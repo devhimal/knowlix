@@ -203,7 +203,7 @@
   
   // Quality indicators
   quality: {
-    rating: Number (1-5),
+    averageRating: Number (1-5),
     totalRatings: Number,
     isTrending: Boolean,
     isPopular: Boolean,
@@ -215,6 +215,18 @@
   visibility: String (enum: ['public', 'subscribers_only', 'premium']),
   createdAt: Date,
   updatedAt: Date
+}
+```
+
+#### Ratings Collection
+```javascript
+{
+  _id: ObjectId,
+  resourceId: ObjectId (ref: Resources),
+  userId: ObjectId (ref: Users),
+  rating: Number (1-5),
+  comment: String,
+  createdAt: Date
 }
 ```
 

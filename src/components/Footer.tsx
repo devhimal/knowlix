@@ -99,7 +99,7 @@ export default function Footer() {
             <h3 className="text-lg font-semibold mb-4">Legal</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li>
-                <a href="#" className="hover:text-primary">
+                <a href="/privacy-policy" className="hover:text-primary">
                   Privacy Policy
                 </a>
               </li>
