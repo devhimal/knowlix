@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useResources, Resource } from '@/context/ResourceContext';
 import { Search, Filter, Download, Star, FileText, Flag, ShoppingCart, Lock, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export default function ResourceLibrary() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +31,7 @@ export default function ResourceLibrary() {
   const approvedResources = resources.filter(r => r.status === 'approved');
 
   const filteredResources = approvedResources.filter(resource => {
-    const matchesSearch = resource.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          resource.subject.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSubject = selectedSubject === 'all' || resource.subject === selectedSubject;
     const matchesSemester = selectedSemester === 'all' || resource.semester === selectedSemester;
@@ -52,19 +53,19 @@ export default function ResourceLibrary() {
 
     // If resource is free, allow direct download
     if (resource.isFree) {
-      toast.success(`Downloaded ${resource.name}`);
+      toast.success(`Downloaded ${resource.title}`);
       return;
     }
 
     // If user already purchased, allow download
     if (hasPurchased(resource.id)) {
-      toast.success(`Downloaded ${resource.name}`);
+      toast.success(`Downloaded ${resource.title}`);
       return;
     }
 
     // If it's the user's own resource
     if (user.id === resource.uploaderId) {
-      toast.success(`Downloaded ${resource.name}`);
+      toast.success(`Downloaded ${resource.title}`);
       return;
     }
 
@@ -191,7 +192,7 @@ export default function ResourceLibrary() {
           open={paymentDialogOpen}
           onOpenChange={setPaymentDialogOpen}
           resourceId={selectedResource.id}
-          resourceName={selectedResource.name}
+          resourceName={selectedResource.title}
           amount={selectedResource.price || 0}
           sellerId={selectedResource.uploaderId}
           sellerEmail={selectedResource.uploaderEmail}
@@ -209,6 +210,7 @@ interface ResourceCardProps {
 }
 
 const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: ResourceCardProps) => {
+  const router = useRouter();
   const getActionButton = () => {
     if (resource.isFree) {
       return (
@@ -251,7 +253,7 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: Resour
           
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2 mb-2">
-              <h3 className="font-semibold text-gray-900 text-lg">{resource.name}</h3>
+              <h3 className="font-semibold text-gray-900 text-lg">{resource.title}</h3>
               {resource.status === 'approved' && (
                 <Badge variant="secondary" className="bg-green-100 text-green-700">
                   Verified
@@ -273,6 +275,7 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: Resour
                 </Badge>
               )}
             </div>
+            <p className="text-sm text-gray-500 mb-2 line-clamp-2">{resource.description}</p>
             
             <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
               <span>{resource.subject}</span>
@@ -299,6 +302,9 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: Resour
 
         <div className="flex gap-2">
           {getActionButton()}
+          <Button size="sm" variant="outline" onClick={() => router.push(`/resources/${resource.id}`)}>
+            View Details
+          </Button>
           <Button size="sm" variant="outline">
             <Flag className="h-4 w-4" />
           </Button>

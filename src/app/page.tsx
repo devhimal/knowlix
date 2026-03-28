@@ -115,7 +115,7 @@ export default function HomePage() {
         r.program === subCategory.program,
     );
 
-    if ('semester' in subCategory && subCategory.semester) {
+    if ("semester" in subCategory && subCategory.semester) {
       filtered = filtered.filter((r) => r.semester === subCategory.semester);
     }
 
@@ -213,7 +213,7 @@ export default function HomePage() {
                   King's College Nepal
                 </h2>
 
-                <p className="mt-3 text-primary-foreground leading-relaxed max-w-2xl">
+                <p className="mt-3 text-primary leading-relaxed max-w-2xl">
                   King’s College is one of Nepal’s leading institutions focused
                   on entrepreneurship, innovation, and leadership development.
                   The college empowers students with practical knowledge, modern
@@ -222,7 +222,7 @@ export default function HomePage() {
                 </p>
 
                 {/* Info Row */}
-                <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-4 text-sm text-primary-foreground">
+                <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-4 text-sm text-primary">
                   <span>📍 Babar Mahal, Kathmandu</span>
                   <span>📞 +977 1 5325909</span>
                   <span>✉️ info@kingscollege.edu.np</span>
@@ -452,7 +452,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {resource.name}
+                        {resource.title}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {resource.downloads.toLocaleString()} downloads
@@ -521,7 +521,7 @@ export default function HomePage() {
       </div>
     </div>
   );
-};
+}
 
 const FeedResourceCard = ({ resource }: { resource: any }) => {
   const router = useRouter();
@@ -552,10 +552,13 @@ const FeedResourceCard = ({ resource }: { resource: any }) => {
       <div className="flex-1">
         <div className="flex justify-between items-start">
           <h3 className="font-semibold text-foreground text-lg mb-1">
-            {resource.name}
+            {resource.title}
           </h3>
           {resource.isFree ? (
-            <Badge variant="secondary" className="bg-green-500/10 text-green-500">
+            <Badge
+              variant="secondary"
+              className="bg-green-500/10 text-green-500"
+            >
               Free
             </Badge>
           ) : (

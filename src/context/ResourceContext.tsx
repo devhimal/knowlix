@@ -36,7 +36,7 @@ export interface PlagiarismResult {
 
 export interface Resource {
   id: number;
-  name: string;
+  title: string;
   description: string;
   subject: string;
   semester: string;
@@ -94,7 +94,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     // ============= PLUS TWO - SCIENCE =============
     {
       id: 1,
-      name: 'Physics Grade 11 - Mechanics Complete Notes',
+      title: 'Physics Grade 11 - Mechanics Complete Notes',
       description: 'Comprehensive notes on Newtonian mechanics, motion, force, and energy for Plus Two Science students',
       subject: 'Physics',
       semester: 'Grade 11',
@@ -117,7 +117,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 2,
-      name: 'Chemistry Grade 11 - Organic Chemistry Notes',
+      title: 'Chemistry Grade 11 - Organic Chemistry Notes',
       description: 'Detailed notes covering hydrocarbons, functional groups, and organic reactions',
       subject: 'Chemistry',
       semester: 'Grade 11',
@@ -140,7 +140,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 3,
-      name: 'Mathematics Grade 12 - Calculus Study Guide',
+      title: 'Mathematics Grade 12 - Calculus Study Guide',
       description: 'Complete guide on differentiation, integration, and their applications',
       subject: 'Mathematics',
       semester: 'Grade 12',
@@ -164,7 +164,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 4,
-      name: 'Biology Grade 11 - Cell Biology Assignment',
+      title: 'Biology Grade 11 - Cell Biology Assignment',
       description: 'Practice assignment covering cell structure, organelles, and cellular processes',
       subject: 'Biology',
       semester: 'Grade 11',
@@ -187,7 +187,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 5,
-      name: 'Computer Science Grade 12 - C Programming Book',
+      title: 'Computer Science Grade 12 - C Programming Book',
       description: 'Complete textbook on C programming with examples and exercises',
       subject: 'Computer Science',
       semester: 'Grade 12',
@@ -213,7 +213,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     // ============= PLUS TWO - MANAGEMENT =============
     {
       id: 6,
-      name: 'Accountancy Grade 11 - Financial Accounting Notes',
+      title: 'Accountancy Grade 11 - Financial Accounting Notes',
       description: 'Comprehensive notes on journal entries, ledgers, and trial balance',
       subject: 'Accountancy',
       semester: 'Grade 11',
@@ -236,7 +236,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 7,
-      name: 'Economics Grade 12 - Microeconomics Guide',
+      title: 'Economics Grade 12 - Microeconomics Guide',
       description: 'Study guide covering demand-supply, market structures, and consumer behavior',
       subject: 'Economics',
       semester: 'Grade 12',
@@ -259,7 +259,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 8,
-      name: 'Business Studies Grade 11 - Marketing Notes',
+      title: 'Business Studies Grade 11 - Marketing Notes',
       description: 'Detailed notes on marketing principles, strategies, and consumer psychology',
       subject: 'Business Studies',
       semester: 'Grade 11',
@@ -282,7 +282,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 9,
-      name: 'Business Mathematics Grade 12 - Statistics Assignment',
+      title: 'Business Mathematics Grade 12 - Statistics Assignment',
       description: 'Practice problems on statistical methods, probability, and data analysis',
       subject: 'Business Mathematics',
       semester: 'Grade 12',
@@ -305,7 +305,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 10,
-      name: 'Hotel Management Grade 11 - Complete Course Book',
+      title: 'Hotel Management Grade 11 - Complete Course Book',
       description: 'Full course material covering hospitality, food service, and hotel operations',
       subject: 'Hotel Management',
       semester: 'Grade 11',
@@ -331,7 +331,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     // ============= BACHELORS - SCIENCE SEMESTER 1 =============
     {
       id: 11,
-      name: 'Physics BSc Semester I - Classical Mechanics Notes',
+      title: 'Physics BSc Semester I - Classical Mechanics Notes',
       description: 'Advanced mechanics covering Lagrangian and Hamiltonian formulations',
       subject: 'Physics',
       semester: 'Semester I',
@@ -354,7 +354,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 12,
-      name: 'Chemistry BSc Semester I - Inorganic Chemistry Guide',
+      title: 'Chemistry BSc Semester I - Inorganic Chemistry Guide',
       description: 'Complete guide on periodic table, bonding, and coordination compounds',
       subject: 'Chemistry',
       semester: 'Semester I',
@@ -377,7 +377,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 13,
-      name: 'Mathematics BSc Semester I - Real Analysis Book',
+      title: 'Mathematics BSc Semester I - Real Analysis Book',
       description: 'Textbook covering sequences, series, continuity, and differentiability',
       subject: 'Mathematics',
       semester: 'Semester I',
@@ -401,7 +401,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 14,
-      name: 'Computer Science BSc Semester I - Programming in C Assignment',
+      title: 'Computer Science BSc Semester I - Programming in C Assignment',
       description: 'Assignment covering arrays, pointers, structures, and file handling',
       subject: 'Computer Science',
       semester: 'Semester I',
@@ -424,7 +424,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 15,
-      name: 'Biology BSc Semester I - Molecular Biology Notes',
+      title: 'Biology BSc Semester I - Molecular Biology Notes',
       description: 'Comprehensive notes on DNA, RNA, protein synthesis, and gene regulation',
       subject: 'Biology',
       semester: 'Semester I',
@@ -449,7 +449,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     // ============= BACHELORS - SCIENCE SEMESTER 2 =============
     {
       id: 16,
-      name: 'Physics BSc Semester II - Quantum Mechanics Guide',
+      title: 'Physics BSc Semester II - Quantum Mechanics Guide',
       description: 'Study guide on wave functions, operators, and Schrödinger equation',
       subject: 'Physics',
       semester: 'Semester II',
@@ -472,7 +472,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 17,
-      name: 'Chemistry BSc Semester II - Organic Chemistry Notes',
+      title: 'Chemistry BSc Semester II - Organic Chemistry Notes',
       description: 'Advanced organic chemistry covering reaction mechanisms and synthesis',
       subject: 'Chemistry',
       semester: 'Semester II',
@@ -495,7 +495,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 18,
-      name: 'Mathematics BSc Semester II - Linear Algebra Book',
+      title: 'Mathematics BSc Semester II - Linear Algebra Book',
       description: 'Complete textbook on vector spaces, matrices, and linear transformations',
       subject: 'Mathematics',
       semester: 'Semester II',
@@ -519,7 +519,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 19,
-      name: 'Computer Science BSc Semester II - Data Structures Assignment',
+      title: 'Computer Science BSc Semester II - Data Structures Assignment',
       description: 'Practice problems on linked lists, stacks, queues, trees, and graphs',
       subject: 'Computer Science',
       semester: 'Semester II',
@@ -542,7 +542,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 20,
-      name: 'Statistics BSc Semester II - Probability Theory Notes',
+      title: 'Statistics BSc Semester II - Probability Theory Notes',
       description: 'Detailed notes on probability distributions and statistical inference',
       subject: 'Statistics',
       semester: 'Semester II',
@@ -567,7 +567,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     // ============= CTEVT - COMPUTER ENGINEERING SEMESTER 1 =============
     {
       id: 21,
-      name: 'Digital Logic - CTEVT Computer Engineering Semester I',
+      title: 'Digital Logic - CTEVT Computer Engineering Semester I',
       description: 'Complete notes on Boolean algebra, logic gates, and combinational circuits',
       subject: 'Digital Logic',
       semester: 'Semester I',
@@ -590,7 +590,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 22,
-      name: 'C Programming - CTEVT Computer Engineering Semester I',
+      title: 'C Programming - CTEVT Computer Engineering Semester I',
       description: 'Programming guide covering syntax, control structures, and functions',
       subject: 'C Programming',
       semester: 'Semester I',
@@ -613,7 +613,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 23,
-      name: 'Engineering Mathematics I - CTEVT Computer Semester I',
+      title: 'Engineering Mathematics I - CTEVT Computer Semester I',
       description: 'Mathematics book covering calculus, algebra, and trigonometry',
       subject: 'Engineering Mathematics',
       semester: 'Semester I',
@@ -637,7 +637,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 24,
-      name: 'Technical Drawing - CTEVT Computer Engineering Assignment',
+      title: 'Technical Drawing - CTEVT Computer Engineering Assignment',
       description: 'Assignment on orthographic projections and engineering drawings',
       subject: 'Technical Drawing',
       semester: 'Semester I',
@@ -660,7 +660,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 25,
-      name: 'Basic Electronics - CTEVT Computer Engineering Semester I',
+      title: 'Basic Electronics - CTEVT Computer Engineering Semester I',
       description: 'Notes on semiconductor devices, diodes, transistors, and amplifiers',
       subject: 'Basic Electronics',
       semester: 'Semester I',
@@ -685,7 +685,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     // ============= CTEVT - COMPUTER ENGINEERING SEMESTER 2 =============
     {
       id: 26,
-      name: 'Microprocessor - CTEVT Computer Engineering Semester II',
+      title: 'Microprocessor - CTEVT Computer Engineering Semester II',
       description: 'Complete guide on 8085/8086 microprocessor architecture and programming',
       subject: 'Microprocessor',
       semester: 'Semester II',
@@ -708,7 +708,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 27,
-      name: 'Data Structures - CTEVT Computer Engineering Semester II',
+      title: 'Data Structures - CTEVT Computer Engineering Semester II',
       description: 'Notes on arrays, linked lists, stacks, queues, and searching algorithms',
       subject: 'Data Structures',
       semester: 'Semester II',
@@ -731,7 +731,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 28,
-      name: 'Object Oriented Programming (C++) - CTEVT Computer Semester II',
+      title: 'Object Oriented Programming (C++) - CTEVT Computer Semester II',
       description: 'Complete book on OOP concepts, classes, inheritance, and polymorphism',
       subject: 'OOP in C++',
       semester: 'Semester II',
@@ -755,7 +755,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 29,
-      name: 'Engineering Mathematics II - CTEVT Computer Assignment',
+      title: 'Engineering Mathematics II - CTEVT Computer Assignment',
       description: 'Assignment covering differential equations and vector calculus',
       subject: 'Engineering Mathematics',
       semester: 'Semester II',
@@ -778,7 +778,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 30,
-      name: 'Web Technology I - CTEVT Computer Engineering Semester II',
+      title: 'Web Technology I - CTEVT Computer Engineering Semester II',
       description: 'Notes on HTML, CSS, JavaScript, and web design fundamentals',
       subject: 'Web Technology',
       semester: 'Semester II',
@@ -803,7 +803,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     // ============= CTEVT - CIVIL ENGINEERING SEMESTER 1 =============
     {
       id: 31,
-      name: 'Building Drawing - CTEVT Civil Engineering Semester I',
+      title: 'Building Drawing - CTEVT Civil Engineering Semester I',
       description: 'Complete notes on architectural drawings, floor plans, and elevations',
       subject: 'Building Drawing',
       semester: 'Semester I',
@@ -826,7 +826,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 32,
-      name: 'Engineering Mechanics - CTEVT Civil Engineering Semester I',
+      title: 'Engineering Mechanics - CTEVT Civil Engineering Semester I',
       description: 'Study guide covering statics, dynamics, and equilibrium of forces',
       subject: 'Engineering Mechanics',
       semester: 'Semester I',
@@ -849,7 +849,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 33,
-      name: 'Surveying I - CTEVT Civil Engineering Semester I Book',
+      title: 'Surveying I - CTEVT Civil Engineering Semester I Book',
       description: 'Textbook on leveling, theodolite, chain surveying, and compass surveying',
       subject: 'Surveying',
       semester: 'Semester I',
@@ -873,7 +873,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 34,
-      name: 'Engineering Mathematics I - CTEVT Civil Assignment',
+      title: 'Engineering Mathematics I - CTEVT Civil Assignment',
       description: 'Assignment problems on calculus, differential equations, and matrices',
       subject: 'Engineering Mathematics',
       semester: 'Semester I',
@@ -896,7 +896,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 35,
-      name: 'Building Materials - CTEVT Civil Engineering Semester I',
+      title: 'Building Materials - CTEVT Civil Engineering Semester I',
       description: 'Notes on cement, concrete, aggregates, steel, and timber properties',
       subject: 'Building Materials',
       semester: 'Semester I',
@@ -921,7 +921,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     // ============= CTEVT - CIVIL ENGINEERING SEMESTER 2 =============
     {
       id: 36,
-      name: 'Concrete Technology - CTEVT Civil Engineering Semester II',
+      title: 'Concrete Technology - CTEVT Civil Engineering Semester II',
       description: 'Complete guide on concrete mix design, testing, and quality control',
       subject: 'Concrete Technology',
       semester: 'Semester II',
@@ -944,7 +944,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 37,
-      name: 'Strength of Materials - CTEVT Civil Engineering Semester II',
+      title: 'Strength of Materials - CTEVT Civil Engineering Semester II',
       description: 'Notes on stress, strain, bending, shear, and torsion in structural elements',
       subject: 'Strength of Materials',
       semester: 'Semester II',
@@ -967,7 +967,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 38,
-      name: 'Surveying II - CTEVT Civil Engineering Semester II Book',
+      title: 'Surveying II - CTEVT Civil Engineering Semester II Book',
       description: 'Advanced surveying book covering total station, GPS, and photogrammetry',
       subject: 'Surveying',
       semester: 'Semester II',
@@ -991,7 +991,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 39,
-      name: 'Hydraulics - CTEVT Civil Engineering Semester II Assignment',
+      title: 'Hydraulics - CTEVT Civil Engineering Semester II Assignment',
       description: 'Practice problems on fluid mechanics, flow measurement, and pipe flow',
       subject: 'Hydraulics',
       semester: 'Semester II',
@@ -1014,7 +1014,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     },
     {
       id: 40,
-      name: 'AutoCAD for Civil Engineers - CTEVT Semester II Notes',
+      title: 'AutoCAD for Civil Engineers - CTEVT Semester II Notes',
       description: 'Comprehensive notes on AutoCAD commands, 2D drawing, and civil applications',
       subject: 'AutoCAD',
       semester: 'Semester II',

@@ -1,6 +1,6 @@
 import { Card } from "./ui/card";
 import { LucideIcon } from "lucide-react";
-import { useNavigate, useParams } from "react-router";
+import { useRouter, useParams } from "next/navigation";
 
 interface ContentType {
   id: string;
@@ -15,14 +15,16 @@ interface ContentTypeCardProps {
 
 export function ContentTypeCard({ contentType }: ContentTypeCardProps) {
   const Icon = contentType.icon;
-  const navigate = useNavigate();
-  const { type, resourceType, classNumber, subjectId } = useParams();
+  const router = useRouter();
+  const params = useParams() as { type?: string; resourceType?: string; classNumber?: string; subjectId?: string } | null;
+  const { type, resourceType, classNumber, subjectId } = params || {};
 
   const handleClick = () => {
-    // Navigate to the appropriate content viewer based on content type
-    navigate(
-      `/resources/${resourceType}/curriculum/${type}/class/${classNumber}/subject/${subjectId}/content/${contentType.id}`
-    );
+    if (resourceType && type && classNumber && subjectId) {
+      router.push(
+        `/resources/${resourceType}/curriculum/${type}/class/${classNumber}/subject/${subjectId}/content/${contentType.id}`
+      );
+    }
   };
 
   return (

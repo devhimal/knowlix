@@ -45,7 +45,7 @@ const Rating = React.forwardRef<HTMLDivElement, RatingProps>(
                 "h-5 w-5 cursor-pointer",
                 rate <= (hoverRating ?? rating)
                   ? "text-yellow-500 fill-yellow-500"
-                  "text-gray-300"
+                  : "text-gray-300"
               )}
               onClick={() => handleRating(rate)}
               onMouseEnter={() => handleMouseEnter(rate)}

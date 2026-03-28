@@ -1,6 +1,6 @@
 import { BookOpen } from "lucide-react";
 import { Card } from "./ui/card";
-import { useNavigate, useParams } from "react-router";
+import { useRouter, useParams } from "next/navigation";
 
 interface Subject {
   id: string;
@@ -13,17 +13,16 @@ interface SubjectCardProps {
 }
 
 export function SubjectCard({ subject }: SubjectCardProps) {
-  const navigate = useNavigate();
-  const { resourceType, type, classNumber } = useParams<{
-    resourceType: string;
-    type: string;
-    classNumber: string;
-  }>();
+  const router = useRouter();
+  const params = useParams() as { resourceType?: string; type?: string; classNumber?: string } | null;
+  const { resourceType, type, classNumber } = params || {};
 
   const handleClick = () => {
-    navigate(
-      `/resources/${resourceType}/curriculum/${type}/class/${classNumber}/subject/${subject.id}`
-    );
+    if (resourceType && type && classNumber) {
+      router.push(
+        `/resources/${resourceType}/curriculum/${type}/class/${classNumber}/subject/${subject.id}`
+      );
+    }
   };
 
   return (

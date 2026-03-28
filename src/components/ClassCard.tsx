@@ -1,17 +1,21 @@
 import { GraduationCap } from "lucide-react";
 import { Card } from "./ui/card";
-import { useNavigate, useParams } from "react-router";
+import { useRouter, useParams } from "next/navigation";
 
 interface ClassCardProps {
   classNumber: number;
 }
 
 export function ClassCard({ classNumber }: ClassCardProps) {
-  const navigate = useNavigate();
-  const { resourceType, type } = useParams<{ resourceType: string; type: string }>();
+  const router = useRouter();
+  const params = useParams() as { resourceType?: string; type?: string } | null;
+  const resourceType = params?.resourceType;
+  const type = params?.type;
 
   const handleClick = () => {
-    navigate(`/resources/${resourceType}/curriculum/${type}/class/${classNumber}`);
+    if (resourceType && type) {
+      router.push(`/resources/${resourceType}/curriculum/${type}/class/${classNumber}`);
+    }
   };
 
   return (

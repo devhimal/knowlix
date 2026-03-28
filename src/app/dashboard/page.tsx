@@ -23,16 +23,16 @@ export default function StudentDashboard() {
   const purchaseCount = purchasedResources.length;
 
   const recentFiles = [
-    { id: 1, name: 'Data Structures Notes.pdf', subject: 'Computer Science', semester: '5th', downloads: 234, rating: 4.8 },
-    { id: 2, name: 'Algorithm Analysis.pdf', subject: 'Computer Science', semester: '5th', downloads: 189, rating: 4.6 },
-    { id: 3, name: 'Database Management.pptx', subject: 'Computer Science', semester: '5th', downloads: 156, rating: 4.7 },
-    { id: 4, name: 'Operating Systems.pdf', subject: 'Computer Science', semester: '5th', downloads: 298, rating: 4.9 },
+    { id: 1, title: 'Data Structures Notes.pdf', description: 'Comprehensive notes on data structures including arrays, linked lists, and trees.', subject: 'Computer Science', semester: '5th', downloads: 234, rating: 4.8 },
+    { id: 2, title: 'Algorithm Analysis.pdf', description: 'Detailed analysis of common algorithms and their complexities.', subject: 'Computer Science', semester: '5th', downloads: 189, rating: 4.6 },
+    { id: 3, title: 'Database Management.pptx', description: 'Presentation slides covering database design, SQL, and normalization.', subject: 'Computer Science', semester: '5th', downloads: 156, rating: 4.7 },
+    { id: 4, title: 'Operating Systems.pdf', description: 'Notes on operating system concepts, processes, memory management, and file systems.', subject: 'Computer Science', semester: '5th', downloads: 298, rating: 4.9 },
   ];
 
   const recommendedResources = [
-    { id: 5, name: 'Web Development Guide.pdf', subject: 'Computer Science', semester: '6th', downloads: 412, rating: 4.9 },
-    { id: 6, name: 'Machine Learning Basics.pdf', subject: 'Computer Science', semester: '6th', downloads: 345, rating: 4.8 },
-    { id: 7, name: 'Software Engineering.docx', subject: 'Computer Science', semester: '6th', downloads: 278, rating: 4.7 },
+    { id: 5, title: 'Web Development Guide.pdf', description: 'A complete guide to modern web development technologies and practices.', subject: 'Computer Science', semester: '6th', downloads: 412, rating: 4.9 },
+    { id: 6, title: 'Machine Learning Basics.pdf', description: 'Introduction to machine learning, covering supervised and unsupervised learning algorithms.', subject: 'Computer Science', semester: '6th', downloads: 345, rating: 4.8 },
+    { id: 7, title: 'Software Engineering.docx', description: 'Foundations of software engineering, including design patterns and agile methodologies.', subject: 'Computer Science', semester: '6th', downloads: 278, rating: 4.7 },
   ];
 
   return (
@@ -141,29 +141,46 @@ const StatCard = ({ icon, value, label }: any) => (
   </Card>
 );
 
-const FileCard = ({ file }: any) => (
-  <Card className="p-4 hover:shadow-lg transition-shadow">
-    <div className="flex items-start justify-between mb-2">
-      <div className="flex items-start gap-3 flex-1">
-        <FileText className="h-10 w-10 text-primary" />
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground mb-1 truncate">{file.name}</h3>
-          <p className="text-sm text-muted-foreground">
-            {file.subject} - {file.semester}
-          </p>
-          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Download className="h-4 w-4" />
-              {file.downloads}
-            </span>
-            <span className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              {file.rating}
-            </span>
+const FileCard = ({ file }: any) => {
+  const router = useRouter();
+
+  const handleViewDetails = () => {
+    router.push(`/resources/${file.id}`);
+  };
+
+  const handleDownload = () => {
+    alert(`Downloading ${file.title}...`);
+    // In a real app, this would trigger the actual download logic
+  };
+
+  return (
+    <Card className="p-4 hover:shadow-lg transition-shadow">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-start gap-3 flex-1">
+          <FileText className="h-10 w-10 text-primary" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-foreground mb-1 truncate">{file.title}</h3>
+            <p className="text-sm text-muted-foreground">
+              {file.subject} - {file.semester}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{file.description}</p>
+            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Download className="h-4 w-4" />
+                {file.downloads}
+              </span>
+              <span className="flex items-center gap-1">
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                {file.rating}
+              </span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <Button size="sm" className="w-full mt-2">Download</Button>
-  </Card>
-);
+      <div className="flex gap-2 mt-2">
+        <Button size="sm" className="flex-1" onClick={handleDownload}>Download</Button>
+        <Button size="sm" variant="outline" className="flex-1" onClick={handleViewDetails}>View Details</Button>
+      </div>
+    </Card>
+  );
+};

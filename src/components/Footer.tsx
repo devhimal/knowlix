@@ -26,6 +26,7 @@ export default function Footer() {
               </a>
               <a className="hover:text-primary transition">
                 <Facebook size={20} />
+                
               </a>
             </div>
           </div>

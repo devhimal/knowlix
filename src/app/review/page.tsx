@@ -132,7 +132,7 @@ export default function ReviewQueue() {
       addNotification({
         type: 'approval',
         title: 'Resource Approved',
-        message: `Your resource "${resource.name}" has been approved and is now live!`,
+        message: `Your resource "${resource.title}" has been approved and is now live!`,
         resourceId: resource.id,
       });
     } else {
@@ -167,7 +167,7 @@ export default function ReviewQueue() {
     addNotification({
       type: 'feedback',
       title: 'Resource Rejected',
-      message: `Your resource "${resource.name}" was rejected. Please review the feedback.`,
+      message: `Your resource "${resource.title}" was rejected. Please review the feedback.`,
       resourceId: resource.id,
     });
 
@@ -296,7 +296,7 @@ export default function ReviewQueue() {
         {/* Review Panel */}
         {selectedResource && (
           <Card className="mt-8 p-6 border-2 border-blue-200">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Review: {selectedResource.name}</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Review: {selectedResource.title}</h3>
             
             {/* Workflow Progress */}
             <div className="mb-6">
@@ -512,7 +512,7 @@ const ResourceReviewCard = ({
           <FileText className="h-8 w-8 text-blue-600" />
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 text-lg mb-1">{resource.name}</h3>
+          <h3 className="font-semibold text-gray-900 text-lg mb-1">{resource.title}</h3>
           <p className="text-sm text-gray-600 mb-3">{resource.description}</p>
           <div className="flex flex-wrap gap-4 text-sm text-gray-600">
             <span>{resource.subject}</span>
@@ -538,7 +538,7 @@ const AIAnalysisCard = ({ resource, onAnalyze }: { resource: Resource; onAnalyze
           <Brain className="h-8 w-8 text-blue-600" />
         </div>
         <div>
-          <h3 className="font-semibold text-gray-900 mb-1">{resource.name}</h3>
+          <h3 className="font-semibold text-gray-900 mb-1">{resource.title}</h3>
           <p className="text-sm text-gray-600">{resource.subject} • {resource.semester}</p>
         </div>
       </div>
@@ -557,7 +557,7 @@ const PlagiarismCheckCard = ({ resource, onCheck }: { resource: Resource; onChec
           <ShieldCheck className="h-8 w-8 text-purple-600" />
         </div>
         <div>
-          <h3 className="font-semibold text-gray-900 mb-1">{resource.name}</h3>
+          <h3 className="font-semibold text-gray-900 mb-1">{resource.title}</h3>
           <p className="text-sm text-gray-600">{resource.subject} • {resource.semester}</p>
         </div>
       </div>
@@ -590,7 +590,7 @@ const ResourceStatusCard = ({ resource }: { resource: Resource }) => {
             <FileText className="h-6 w-6 text-gray-600" />
           </div>
           <div className="flex-1">
-            <h3 className="font-medium text-gray-900">{resource.name}</h3>
+            <h3 className="font-medium text-gray-900">{resource.title}</h3>
             <p className="text-sm text-gray-600">
               {resource.subject} • {resource.semester} • By {resource.uploader}
             </p>

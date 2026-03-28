@@ -11,11 +11,11 @@ interface BreadcrumbItem {
 export default function Breadcrumbs() {
   const params = useParams();
   const pathname = usePathname();
-  const resourceType = params.resourceType as string;
-  const type = params.type as string;
-  const classNumber = params.classNumber as string;
-  const subjectId = params.subjectId as string;
-  const contentTypeId = params.contentTypeId as string;
+  const resourceType = params?.resourceType as string;
+  const type = params?.type as string;
+  const classNumber = params?.classNumber as string;
+  const subjectId = params?.subjectId as string;
+  const contentTypeId = params?.contentTypeId as string;
 
   const items: BreadcrumbItem[] = [
     { label: "Home", href: "/" },
@@ -73,7 +73,7 @@ export default function Breadcrumbs() {
     };
     items.push({
       label: contentTypeNames[contentTypeId] || contentTypeId,
-      href: pathname,
+      href: pathname || "/",
     });
   }
 

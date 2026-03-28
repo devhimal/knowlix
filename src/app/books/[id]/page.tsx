@@ -10,7 +10,8 @@ import { useBooks } from "@/context/BookContext"; // Import useBooks
 export default function BookDetailsPage() {
   // Remove params prop
   const router = useRouter();
-  const { id } = useParams(); // Use useParams to get the id
+  const params = useParams();
+  const id = params?.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : undefined;
   const { books } = useBooks();
   const [book, setBook] = useState<any>(null);
   const [loading, setLoading] = useState(true); // Add loading state

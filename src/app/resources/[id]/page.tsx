@@ -6,34 +6,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Rating } from "@/components/ui/rating";
 import { Textarea } from "@/components/ui/textarea";
-
-export default function ResourceDetailsPage() {
-  const { id } = useParams();
-  const [resource, setResource] = useState<any>(null);
-  const [ratings, setRatings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [newRating, setNewRating] = useState(0);
-  const [newComment, setNewComment] = useState("");
-
-  useEffect(() => {
-    if (id) {
-      fetch(`/api/resources/${id}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setResource(data);
-          setLoading(false);
-        });
-
-      fetch(`/api/resources/${id}/ratings`)
-        .then((res) => res.json())
-        "use client";
-
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Rating } from "@/components/ui/rating";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Collapsible,
   CollapsibleContent,
@@ -42,12 +14,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ResourceDetailsPage() {
-  const { id } = useParams();
+  const params = useParams(); // Get all params
+  const id = params?.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : undefined; // Safely extract id as string or undefined
   const [resource, setResource] = useState<any>(null);
   const [ratings, setRatings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [newRating, setNewRating] = useState(0);
   const [newComment, setNewComment] = useState("");
+  const [processingPdf, setProcessingPdf] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (id) {
@@ -56,13 +30,29 @@ export default function ResourceDetailsPage() {
         .then((data) => {
           setResource(data);
           setLoading(false);
+
+          // Automatically process PDFs if TOC is missing
+          data.files.forEach((file: any) => {
+            if (file.fileType === "PDF" && (!file.toc || file.toc.length === 0)) {
+              handleProcessPdf(file.fileUrl, file.fileName, file._id);
+            }
+          });
+        })
+        .catch((error) => {
+          console.error("Error fetching resource:", error);
+          setLoading(false);
         });
 
       fetch(`/api/resources/${id}/ratings`)
         .then((res) => res.json())
         .then((data) => {
           setRatings(data);
+        })
+        .catch((error) => {
+          console.error("Error fetching ratings:", error);
         });
+    } else {
+      setLoading(false);
     }
   }, [id]);
 
@@ -88,7 +78,8 @@ export default function ResourceDetailsPage() {
     }
   };
 
-  const processPdf = async (fileUrl: string, fileName: string) => {
+  const handleProcessPdf = async (fileUrl: string, fileName: string, fileId: string) => {
+    setProcessingPdf((prev) => ({ ...prev, [fileId]: true }));
     try {
       const response = await fetch(fileUrl);
       const blob = await response.blob();
@@ -108,11 +99,13 @@ export default function ResourceDetailsPage() {
       // Refresh the resource to get the updated TOC
       fetch(`/api/resources/${id}`)
         .then((res) => res.json())
-        .then((data) => {
-          setResource(data);
+        .then((updatedResource) => {
+          setResource(updatedResource);
         });
     } catch (error) {
       console.error("Error processing PDF:", error);
+    } finally {
+      setProcessingPdf((prev) => ({ ...prev, [fileId]: false }));
     }
   };
 
@@ -169,27 +162,41 @@ export default function ResourceDetailsPage() {
             {resource.files.map((file: any) => (
               <div key={file.fileName} className="mb-4">
                 <p className="text-lg">{file.fileName}</p>
-                <Button
-                  onClick={() => processPdf(file.fileUrl, file.fileName)}
-                  className="mt-2"
-                >
-                  Process PDF
-                </Button>
-                {file.toc && file.toc.length > 0 && (
-                  <Collapsible className="mt-2">
-                    <CollapsibleTrigger asChild>
-                      <Button variant="outline">View Table of Contents</Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <ul className="list-disc pl-6 mt-2">
-                        {file.toc.map((item: any) => (
-                          <li key={item.page}>
-                            {item.title} (Page {item.page})
-                          </li>
-                        ))}
-                      </ul>
-                    </CollapsibleContent>
-                  </Collapsible>
+                {file.fileType === "PDF" && (!file.toc || file.toc.length === 0) ? (
+                  <Button
+                    onClick={() => handleProcessPdf(file.fileUrl, file.fileName, file._id)}
+                    className="mt-2"
+                    disabled={processingPdf[file._id]}
+                  >
+                    {processingPdf[file._id] ? "Processing PDF..." : "Process PDF to get TOC"}
+                  </Button>
+                ) : (
+                  file.toc && file.toc.length > 0 && (
+                    <Collapsible className="mt-2">
+                      <CollapsibleTrigger asChild>
+                        <Button variant="outline">View Table of Contents</Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <ul className="list-disc pl-6 mt-2">
+                          {file.toc.map((item: any) => (
+                            <li key={item.page}>
+                              {item.title} (Page {item.page})
+                            </li>
+                          ))}
+                        </ul>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )
+                )}
+                {file.fileType === "PDF" && file.toc && file.toc.length > 0 && (
+                  <Button
+                    onClick={() => handleProcessPdf(file.fileUrl, file.fileName, file._id)}
+                    className="mt-2 ml-2"
+                    variant="outline"
+                    disabled={processingPdf[file._id]}
+                  >
+                    {processingPdf[file._id] ? "Reprocessing..." : "Reprocess PDF"}
+                  </Button>
                 )}
               </div>
             ))}

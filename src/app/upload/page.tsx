@@ -81,7 +81,7 @@ export default function UploadResource() {
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     const resourceId = addResource({
-      name: formData.title,
+      title: formData.title,
       description: formData.description,
       subject: formData.subject,
       semester: formData.semester,
