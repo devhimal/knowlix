@@ -10,7 +10,7 @@ import { PaymentDialog } from '@/components/PaymentDialog';
 import { usePayment } from '@/context/PaymentContext';
 import { useAuth } from '@/context/AuthContext';
 import { useResources, Resource } from '@/context/ResourceContext';
-import { Search, Filter, Download, Star, FileText, Flag, ShoppingCart, Lock, Check } from 'lucide-react';
+import { Search, Filter, Download, Star, FileText, Flag, ShoppingCart, Lock, Check, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -26,6 +26,7 @@ export default function ResourceLibrary() {
   const { hasPurchased } = usePayment();
   const { user } = useAuth();
   const { resources } = useResources();
+  const isSubscribed = user?.subscription?.isSubscribed || false;
 
   // Filter to show only approved resources
   const approvedResources = resources.filter(r => r.status === 'approved');
@@ -57,19 +58,13 @@ export default function ResourceLibrary() {
       return;
     }
 
-    // If user already purchased, allow download
-    if (hasPurchased(resource.id)) {
+    // If user is subscribed or already purchased or uploader, allow download
+    if (isSubscribed || hasPurchased(resource.id) || user.id === resource.uploaderId) {
       toast.success(`Downloaded ${resource.title}`);
       return;
     }
 
-    // If it's the user's own resource
-    if (user.id === resource.uploaderId) {
-      toast.success(`Downloaded ${resource.title}`);
-      return;
-    }
-
-    // Otherwise, show payment dialog
+    // Otherwise, show payment dialog for subscription
     setSelectedResource(resource);
     setPaymentDialogOpen(true);
   };
@@ -175,6 +170,7 @@ export default function ResourceLibrary() {
               onAction={handleResourceAction}
               isPurchased={hasPurchased(resource.id)}
               isOwnResource={user?.id === resource.uploaderId}
+              isSubscribed={isSubscribed}
             />
           ))}
         </div>
@@ -187,17 +183,11 @@ export default function ResourceLibrary() {
       </div>
 
       {/* Payment Dialog */}
-      {selectedResource && (
-        <PaymentDialog
-          open={paymentDialogOpen}
-          onOpenChange={setPaymentDialogOpen}
-          resourceId={selectedResource.id}
-          resourceName={selectedResource.title}
-          amount={selectedResource.price || 0}
-          sellerId={selectedResource.uploaderId}
-          sellerEmail={selectedResource.uploaderEmail}
-        />
-      )}
+      <PaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        mode="subscription"
+      />
     </div>
   );
 };
@@ -207,9 +197,10 @@ interface ResourceCardProps {
   onAction: (resource: Resource) => void;
   isPurchased: boolean;
   isOwnResource: boolean;
+  isSubscribed: boolean;
 }
 
-const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: ResourceCardProps) => {
+const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource, isSubscribed }: ResourceCardProps) => {
   const router = useRouter();
   const getActionButton = () => {
     if (resource.isFree) {
@@ -221,7 +212,7 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: Resour
       );
     }
 
-    if (isPurchased || isOwnResource) {
+    if (isSubscribed || isPurchased || isOwnResource) {
       return (
         <Button size="sm" onClick={() => onAction(resource)} variant="default">
           <Check className="h-4 w-4 mr-2" />
@@ -232,8 +223,8 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: Resour
 
     return (
       <Button size="sm" onClick={() => onAction(resource)} variant="default">
-        <ShoppingCart className="h-4 w-4 mr-2" />
-        Buy NPR {resource.price}
+        <Zap className="h-4 w-4 mr-2" />
+        Get Premium
       </Button>
     );
   };
@@ -244,7 +235,7 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: Resour
         <div className="flex items-start gap-4 flex-1">
           <div className="bg-blue-100 p-3 rounded-lg relative">
             <FileText className="h-8 w-8 text-blue-600" />
-            {!resource.isFree && !isPurchased && !isOwnResource && (
+            {!resource.isFree && !isSubscribed && !isPurchased && !isOwnResource && (
               <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-1">
                 <Lock className="h-3 w-3 text-white" />
               </div>
@@ -259,9 +250,9 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: Resour
                   Verified
                 </Badge>
               )}
-              {!resource.isFree && (
-                <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">
-                  NPR {resource.price}
+              {!resource.isFree && !isSubscribed && !isPurchased && !isOwnResource && (
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                  Premium
                 </Badge>
               )}
               {resource.isFree && (
@@ -269,9 +260,9 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource }: Resour
                   Free
                 </Badge>
               )}
-              {isPurchased && (
+              {(isSubscribed || isPurchased) && !resource.isFree && (
                 <Badge variant="secondary" className="bg-green-100 text-green-700">
-                  Purchased
+                  {isSubscribed ? 'Premium Access' : 'Purchased'}
                 </Badge>
               )}
             </div>

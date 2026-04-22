@@ -8,12 +8,18 @@ interface User {
   avatar?: string;
   course?: string;
   semester?: string;
+  subscription?: {
+    isSubscribed: boolean;
+    plan: 'free' | 'monthly' | 'semester' | 'annual';
+    expiryDate: string | null;
+  };
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, role: 'student' | 'senior' | 'mentor' | 'admin') => Promise<void>;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
   isAuthenticated: boolean;
 }
 
@@ -41,6 +47,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role,
       course: role === 'student' ? 'Computer Science' : undefined,
       semester: role === 'student' ? '5th Semester' : undefined,
+      subscription: {
+        isSubscribed: false,
+        plan: 'free',
+        expiryDate: null,
+      }
     };
     
     setUser(mockUser);
@@ -50,6 +61,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const updatedUser = { ...prev, ...userData };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
   };
 
   const isAuthenticated = !!user;
@@ -62,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,12 +2,14 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 
 export interface Transaction {
   id: string;
-  resourceId: number;
-  resourceName: string;
+  type: 'resource_purchase' | 'subscription';
+  resourceId?: number;
+  resourceName?: string;
+  subscriptionPlan?: 'monthly' | 'semester' | 'annual';
   buyerId: string;
   buyerEmail: string;
-  sellerId: string;
-  sellerEmail: string;
+  sellerId?: string;
+  sellerEmail?: string;
   amount: number;
   paymentMethod: 'esewa' | 'khalti' | 'bank';
   status: 'pending' | 'completed' | 'failed';
@@ -30,6 +32,13 @@ interface PaymentContextType {
     resourceName: string,
     sellerId: string,
     sellerEmail: string,
+    amount: number,
+    paymentMethod: 'esewa' | 'khalti' | 'bank',
+    buyerId: string,
+    buyerEmail: string
+  ) => Promise<{ success: boolean; transactionId?: string }>;
+  initiateSubscription: (
+    plan: 'monthly' | 'semester' | 'annual',
     amount: number,
     paymentMethod: 'esewa' | 'khalti' | 'bank',
     buyerId: string,
@@ -98,6 +107,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
       
       const transaction: Transaction = {
         id: Math.random().toString(36).substr(2, 9),
+        type: 'resource_purchase',
         resourceId,
         resourceName,
         buyerId,
@@ -125,12 +135,64 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     } else {
       const transaction: Transaction = {
         id: Math.random().toString(36).substr(2, 9),
+        type: 'resource_purchase',
         resourceId,
         resourceName,
         buyerId,
         buyerEmail,
         sellerId,
         sellerEmail,
+        amount,
+        paymentMethod,
+        status: 'failed',
+        transactionId: '',
+        createdAt: new Date().toISOString(),
+      };
+
+      setTransactions(prev => [transaction, ...prev]);
+      return { success: false };
+    }
+  };
+
+  const initiateSubscription = async (
+    plan: 'monthly' | 'semester' | 'annual',
+    amount: number,
+    paymentMethod: 'esewa' | 'khalti' | 'bank',
+    buyerId: string,
+    buyerEmail: string
+  ): Promise<{ success: boolean; transactionId?: string }> => {
+    // Simulate payment processing
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Random success/failure (90% success rate for demo)
+    const success = Math.random() > 0.1;
+
+    if (success) {
+      const transactionId = `SUB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      const transaction: Transaction = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'subscription',
+        subscriptionPlan: plan,
+        buyerId,
+        buyerEmail,
+        amount,
+        paymentMethod,
+        status: 'completed',
+        transactionId,
+        createdAt: new Date().toISOString(),
+      };
+
+      setTransactions(prev => [transaction, ...prev]);
+
+      return { success: true, transactionId };
+    } else {
+      const transaction: Transaction = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'subscription',
+        subscriptionPlan: plan,
+        buyerId,
+        buyerEmail,
         amount,
         paymentMethod,
         status: 'failed',
@@ -167,6 +229,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         transactions,
         purchasedResources,
         initiatePayment,
+        initiateSubscription,
         hasPurchased,
         getUserEarnings,
         getUserTransactions,

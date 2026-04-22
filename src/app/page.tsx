@@ -160,35 +160,124 @@ export default function HomePage() {
   );
 
   return (
-    <div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-foreground mb-6">
-            Academic Resource Platform
-          </h1>
-          <p className="text-xl text-foreground mb-8 max-w-3xl mx-auto">
-            Your one-stop platform for academic resources. Access verified study
-            materials from Plus Two, Bachelors, and CTEVT programs.
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Button
-              onClick={() => router.push("/login")}
-              size="lg"
-              className="px-8"
-            >
-              Get Started
-            </Button>
-            <Button
-              onClick={() => router.push("/resources")}
-              size="lg"
-              variant="outline"
-              className="px-8"
-            >
-              Browse All Resources
-            </Button>
-          </div>
+    <div className="overflow-hidden">
+      {/* Hero Section */}
+      <section className="relative pt-20 pb-24 lg:pt-32 lg:pb-40 bg-white">
+        {/* Background Decorations */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[60%] bg-secondary/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
         </div>
 
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex flex-col lg:flex-row items-center gap-16">
+            {/* Left Content */}
+            <div className="flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary font-medium text-sm mb-6 animate-fade-in">
+                <Star className="h-4 w-4 fill-primary" />
+                <span>Nepal's #1 Academic Resource Hub</span>
+              </div>
+              
+              <h1 className="text-5xl lg:text-7xl font-extrabold text-gray-900 tracking-tight mb-6 leading-[1.1]">
+                Master Your Studies with <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-600">Padyantra</span>
+              </h1>
+              
+              <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                Unlock unlimited access to verified notes, solved papers, and expert guides for <span className="font-semibold text-gray-900">Plus Two, Bachelors, and CTEVT</span> programs.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
+                <Button
+                  onClick={() => router.push("/login")}
+                  size="lg"
+                  className="h-14 px-10 text-lg shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
+                >
+                  Start Learning Free
+                </Button>
+                <Button
+                  onClick={() => router.push("/resources")}
+                  size="lg"
+                  variant="outline"
+                  className="h-14 px-10 text-lg border-2 hover:bg-gray-50 transition-all"
+                >
+                  <Search className="mr-2 h-5 w-5" />
+                  Explore Resources
+                </Button>
+              </div>
+
+              {/* Trust Badge */}
+              <div className="flex items-center justify-center lg:justify-start gap-4">
+                <div className="flex -space-x-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <img
+                      key={i}
+                      src={`https://i.pravatar.cc/100?u=${i}`}
+                      alt="User"
+                      className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+                    />
+                  ))}
+                  <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-[10px] text-white font-bold border-2 border-white">
+                    5K+
+                  </div>
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium">Trusted by 5,000+ Students</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Illustration/Image */}
+            <div className="flex-1 relative w-full max-w-2xl mx-auto">
+              <div className="relative z-10 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform hover:-translate-y-2 transition-transform duration-500">
+                <img 
+                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1471&auto=format&fit=crop" 
+                  alt="Students studying" 
+                  className="w-full h-auto"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-8 text-white">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Badge className="bg-primary hover:bg-primary border-none">New</Badge>
+                    <span className="text-sm font-medium">Subscription Model Active</span>
+                  </div>
+                  <p className="text-lg font-bold">Access 10,000+ Premium PDF Notes</p>
+                </div>
+              </div>
+              
+              {/* Floating Cards */}
+              <div className="absolute -top-6 -right-6 z-20 bg-white p-4 rounded-2xl shadow-xl border border-gray-50 animate-bounce" style={{ animationDuration: '3s' }}>
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-100 p-2 rounded-lg text-green-600">
+                    <CheckCircle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Verified Content</div>
+                    <div className="text-sm font-bold text-gray-900">100% Accuracy</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute -bottom-10 -left-10 z-20 bg-white p-6 rounded-2xl shadow-xl border border-gray-50 hidden md:block">
+                <div className="flex items-center gap-4">
+                  <div className="bg-blue-100 p-3 rounded-xl text-blue-600">
+                    <TrendingUp className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">Weekly Growth</div>
+                    <div className="text-2xl font-black text-primary">+24%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <a
           href="https://kingscollege.edu.np"
           target="_blank"

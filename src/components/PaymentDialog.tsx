@@ -5,30 +5,39 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Alert, AlertDescription } from './ui/alert';
-import { CheckCircle, XCircle, Loader2, CreditCard, Building2, Wallet } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, CreditCard, Building2, Wallet, Zap } from 'lucide-react';
 import { usePayment } from '../context/PaymentContext';
 import { useAuth } from '../context/AuthContext';
 
 interface PaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  resourceId: number;
-  resourceName: string;
-  amount: number;
-  sellerId: string;
-  sellerEmail: string;
+  resourceId?: number;
+  resourceName?: string;
+  amount?: number;
+  sellerId?: string;
+  sellerEmail?: string;
+  mode?: 'resource' | 'subscription';
 }
+
+const SUBSCRIPTION_PLANS = [
+  { id: 'monthly', name: 'Monthly Plan', price: 299, duration: '1 Month', description: 'Perfect for quick exam prep' },
+  { id: 'semester', name: 'Semester Plan', price: 999, duration: '6 Months', description: 'Best for full semester coverage' },
+  { id: 'annual', name: 'Annual Plan', price: 1599, duration: '12 Months', description: 'Maximum value for serious students' },
+];
 
 export const PaymentDialog = ({
   open,
   onOpenChange,
   resourceId,
   resourceName,
-  amount,
+  amount: initialAmount,
   sellerId,
   sellerEmail,
+  mode = 'subscription',
 }: PaymentDialogProps) => {
   const [paymentMethod, setPaymentMethod] = useState<'esewa' | 'khalti' | 'bank'>('esewa');
+  const [selectedPlan, setSelectedPlan] = useState<any>(SUBSCRIPTION_PLANS[1]); // Default to semester
   const [processing, setProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [transactionId, setTransactionId] = useState('');
@@ -38,8 +47,10 @@ export const PaymentDialog = ({
     bankName: '',
   });
 
-  const { initiatePayment } = usePayment();
-  const { user } = useAuth();
+  const { initiatePayment, initiateSubscription } = usePayment();
+  const { user, updateUser } = useAuth();
+
+  const finalAmount = mode === 'resource' ? (initialAmount || 0) : selectedPlan.price;
 
   const handlePayment = async () => {
     if (!user) return;
@@ -48,23 +59,48 @@ export const PaymentDialog = ({
     setPaymentStatus('idle');
 
     try {
-      const result = await initiatePayment(
-        resourceId,
-        resourceName,
-        sellerId,
-        sellerEmail,
-        amount,
-        paymentMethod,
-        user.id,
-        user.email
-      );
+      let result;
+      if (mode === 'resource' && resourceId && resourceName) {
+        result = await initiatePayment(
+          resourceId,
+          resourceName,
+          sellerId || '',
+          sellerEmail || '',
+          finalAmount,
+          paymentMethod,
+          user.id,
+          user.email
+        );
+      } else {
+        result = await initiateSubscription(
+          selectedPlan.id,
+          finalAmount,
+          paymentMethod,
+          user.id,
+          user.email
+        );
+
+        if (result.success) {
+          // Update user subscription status in AuthContext
+          const monthsToAdd = selectedPlan.id === 'monthly' ? 1 : selectedPlan.id === 'semester' ? 6 : 12;
+          const expiryDate = new Date();
+          expiryDate.setMonth(expiryDate.getMonth() + monthsToAdd);
+          
+          updateUser({
+            subscription: {
+              isSubscribed: true,
+              plan: selectedPlan.id,
+              expiryDate: expiryDate.toISOString(),
+            }
+          });
+        }
+      }
 
       if (result.success) {
         setPaymentStatus('success');
         setTransactionId(result.transactionId || '');
         setTimeout(() => {
           onOpenChange(false);
-          // Reset state after closing
           setTimeout(() => {
             setPaymentStatus('idle');
             setTransactionId('');
@@ -92,134 +128,112 @@ export const PaymentDialog = ({
       onOpenChange(isOpen);
       if (!isOpen) resetDialog();
     }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Purchase Resource</DialogTitle>
+          <DialogTitle>{mode === 'resource' ? 'Purchase Resource' : 'Upgrade to Premium'}</DialogTitle>
           <DialogDescription>
-            Complete payment to access "{resourceName}"
+            {mode === 'resource' 
+              ? `Complete payment to access "${resourceName}"`
+              : 'Get unlimited access to all resources, books, and premium features.'}
           </DialogDescription>
         </DialogHeader>
 
         {paymentStatus === 'idle' && (
           <div className="space-y-6">
-            {/* Amount Summary */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">Resource</span>
-                <span className="text-sm font-medium">{resourceName}</span>
+            {/* Plan/Resource Summary */}
+            {mode === 'subscription' && (
+              <div className="space-y-3">
+                <Label>Select a Plan</Label>
+                <div className="grid gap-3">
+                  {SUBSCRIPTION_PLANS.map((plan) => (
+                    <div 
+                      key={plan.id}
+                      onClick={() => setSelectedPlan(plan)}
+                      className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        selectedPlan.id === plan.id ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-bold text-gray-900">{plan.name}</div>
+                          <div className="text-xs text-gray-500">{plan.description}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-primary">NPR {plan.price}</div>
+                          <div className="text-[10px] text-gray-400">{plan.duration}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Amount</span>
-                <span className="text-lg font-bold text-blue-600">NPR {amount}</span>
+            )}
+
+            {mode === 'resource' && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Resource</span>
+                  <span className="text-sm font-medium">{resourceName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Amount</span>
+                  <span className="text-lg font-bold text-blue-600">NPR {finalAmount}</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Payment Method Selection */}
             <div>
               <Label className="mb-3 block">Select Payment Method</Label>
               <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
-                <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
                   {/* eSewa */}
-                  <label className="flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                    style={{ borderColor: paymentMethod === 'esewa' ? '#60A05B' : '#e5e7eb' }}>
-                    <RadioGroupItem value="esewa" id="esewa" />
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="bg-green-100 p-2 rounded">
-                        <Wallet className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <div className="font-medium">eSewa</div>
-                        <div className="text-xs text-gray-500">Digital wallet payment</div>
-                      </div>
-                    </div>
+                  <label className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    paymentMethod === 'esewa' ? 'border-[#60A05B] bg-green-50' : 'border-gray-100 hover:border-gray-200'
+                  }`}>
+                    <RadioGroupItem value="esewa" id="esewa" className="sr-only" />
+                    <Wallet className={`h-6 w-6 mb-1 ${paymentMethod === 'esewa' ? 'text-[#60A05B]' : 'text-gray-400'}`} />
+                    <span className="text-xs font-medium">eSewa</span>
                   </label>
 
                   {/* Khalti */}
-                  <label className="flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                    style={{ borderColor: paymentMethod === 'khalti' ? '#5C2D91' : '#e5e7eb' }}>
-                    <RadioGroupItem value="khalti" id="khalti" />
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="bg-purple-100 p-2 rounded">
-                        <CreditCard className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Khalti</div>
-                        <div className="text-xs text-gray-500">Mobile & web wallet</div>
-                      </div>
-                    </div>
+                  <label className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    paymentMethod === 'khalti' ? 'border-[#5C2D91] bg-purple-50' : 'border-gray-100 hover:border-gray-200'
+                  }`}>
+                    <RadioGroupItem value="khalti" id="khalti" className="sr-only" />
+                    <CreditCard className={`h-6 w-6 mb-1 ${paymentMethod === 'khalti' ? 'text-[#5C2D91]' : 'text-gray-400'}`} />
+                    <span className="text-xs font-medium">Khalti</span>
                   </label>
 
                   {/* Bank Transfer */}
-                  <label className="flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                    style={{ borderColor: paymentMethod === 'bank' ? '#3b82f6' : '#e5e7eb' }}>
-                    <RadioGroupItem value="bank" id="bank" />
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="bg-blue-100 p-2 rounded">
-                        <Building2 className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Bank Transfer</div>
-                        <div className="text-xs text-gray-500">Direct bank payment</div>
-                      </div>
-                    </div>
+                  <label className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    paymentMethod === 'bank' ? 'border-[#3b82f6] bg-blue-50' : 'border-gray-100 hover:border-gray-200'
+                  }`}>
+                    <RadioGroupItem value="bank" id="bank" className="sr-only" />
+                    <Building2 className={`h-6 w-6 mb-1 ${paymentMethod === 'bank' ? 'text-[#3b82f6]' : 'text-gray-400'}`} />
+                    <span className="text-xs font-medium">Bank</span>
                   </label>
                 </div>
               </RadioGroup>
             </div>
 
-            {/* Bank Transfer Details (shown when bank is selected) */}
-            {paymentMethod === 'bank' && (
-              <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="font-medium text-sm text-blue-900">Enter Bank Details</h4>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="bankName" className="text-sm">Bank Name</Label>
-                    <Input
-                      id="bankName"
-                      placeholder="e.g., Nepal Bank Limited"
-                      value={bankDetails.bankName}
-                      onChange={(e) => setBankDetails(prev => ({ ...prev, bankName: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="accountHolder" className="text-sm">Account Holder Name</Label>
-                    <Input
-                      id="accountHolder"
-                      placeholder="Your name"
-                      value={bankDetails.accountHolder}
-                      onChange={(e) => setBankDetails(prev => ({ ...prev, accountHolder: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="accountNumber" className="text-sm">Account Number</Label>
-                    <Input
-                      id="accountNumber"
-                      placeholder="Enter account number"
-                      value={bankDetails.accountNumber}
-                      onChange={(e) => setBankDetails(prev => ({ ...prev, accountNumber: e.target.value }))}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="pt-2">
               <Button
                 onClick={handlePayment}
                 disabled={processing}
-                className="flex-1"
+                className="w-full h-12 text-lg font-semibold"
               >
                 {processing ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Processing...
                   </>
                 ) : (
-                  <>Pay NPR {amount}</>
+                  <>{mode === 'resource' ? `Pay NPR ${finalAmount}` : `Subscribe for NPR ${finalAmount}`}</>
                 )}
               </Button>
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
+              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="w-full mt-2 text-gray-500">
                 Cancel
               </Button>
             </div>
@@ -229,20 +243,31 @@ export const PaymentDialog = ({
         {/* Success State */}
         {paymentStatus === 'success' && (
           <div className="py-8 text-center">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Successful!</h3>
-            <p className="text-gray-600 mb-4">
-              Your payment has been processed successfully.
-            </p>
-            <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              <div className="text-sm text-gray-600 mb-1">Transaction ID</div>
-              <div className="font-mono text-sm font-medium">{transactionId}</div>
+            <div className="relative mb-4">
+              <CheckCircle className="h-16 w-16 text-green-600 mx-auto" />
+              <Zap className="h-6 w-6 text-yellow-400 absolute bottom-0 right-1/2 translate-x-8 animate-bounce" />
             </div>
-            <Alert className="bg-green-50 border-green-200">
-              <AlertDescription className="text-green-800">
-                You can now access the resource from your dashboard
-              </AlertDescription>
-            </Alert>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {mode === 'resource' ? 'Purchase Successful!' : 'Welcome to Premium!'}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {mode === 'resource' 
+                ? 'Your payment has been processed. You can now access the resource.'
+                : `You are now a ${selectedPlan.name} member. Enjoy unlimited access!`}
+            </p>
+            <div className="bg-gray-50 p-4 rounded-lg mb-6 text-left">
+              <div className="flex justify-between text-xs text-gray-500 mb-2">
+                <span>Transaction ID:</span>
+                <span className="font-mono font-medium text-gray-900">{transactionId}</span>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Date:</span>
+                <span className="font-medium text-gray-900">{new Date().toLocaleDateString()}</span>
+              </div>
+            </div>
+            <Button onClick={() => onOpenChange(false)} className="w-full">
+              Start Exploring
+            </Button>
           </div>
         )}
 
@@ -252,13 +277,13 @@ export const PaymentDialog = ({
             <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Failed</h3>
             <p className="text-gray-600 mb-6">
-              We couldn't process your payment. Please try again.
+              We couldn't process your payment. Please check your balance and try again.
             </p>
             <div className="flex gap-3">
               <Button onClick={() => setPaymentStatus('idle')} className="flex-1">
                 Try Again
               </Button>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
                 Cancel
               </Button>
             </div>
