@@ -10,14 +10,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { BookOpen, User, LogOut, Menu, Bell, FileCheck } from "lucide-react";
+import { BookOpen, User, LogOut, Menu, Bell, FileCheck, Zap } from "lucide-react";
 import { useState } from "react";
+import { PaymentDialog } from "./PaymentDialog";
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+
+  const isSubscribed = user?.subscription?.isSubscribed || false;
 
   const handleLogout = () => {
     logout();
@@ -30,8 +34,8 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <span className="text-xl font-semibold text-foreground">
+            <BookOpen className="h-8 w-8 text-white" />
+            <span className="text-xl font-bold text-white">
               Padyantra
             </span>
           </Link>
@@ -42,49 +46,41 @@ export default function Navbar() {
               <>
                 <Link
                   href="/dashboard"
-                  className="text-foreground hover:text-secondary transition-colors"
+                  className="text-white/90 hover:text-white font-medium transition-colors"
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/resources"
-                  className="text-foreground hover:text-secondary transition-colors"
+                  className="text-white/90 hover:text-white font-medium transition-colors"
                 >
                   Resources
                 </Link>
                 <Link
                   href="/upload"
-                  className="text-foreground hover:text-secondary transition-colors"
+                  className="text-white/90 hover:text-white font-medium transition-colors"
                 >
                   Upload
                 </Link>
                 <Link
                   href="/mentors"
-                  className="text-foreground hover:text-secondary transition-colors"
+                  className="text-white/90 hover:text-white font-medium transition-colors"
                 >
                   Mentors
                 </Link>
                 <Link
                   href="/books"
-                  className="text-foreground hover:text-secondary transition-colors"
+                  className="text-white/90 hover:text-white font-medium transition-colors"
                 >
                   Books
                 </Link>
                 {["senior", "mentor", "admin"].includes(user?.role || "") && (
                   <Link
                     href="/review"
-                    className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
+                    className="text-white/90 hover:text-white font-medium transition-colors flex items-center gap-1"
                   >
                     <FileCheck className="h-4 w-4" />
                     Review
-                  </Link>
-                )}
-                {user?.role === "admin" && (
-                  <Link
-                    href="/admin"
-                    className="text-foreground hover:text-primary transition-colors"
-                  >
-                    Admin
                   </Link>
                 )}
               </>
@@ -95,15 +91,26 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
+                {!isSubscribed && (
+                  <Button 
+                    onClick={() => setSubscriptionDialogOpen(true)}
+                    variant="secondary" 
+                    size="sm"
+                    className="bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold border-none"
+                  >
+                    <Zap className="h-4 w-4 mr-1 fill-amber-950" />
+                    Go Premium
+                  </Button>
+                )}
+
                 {/* Notifications */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="relative">
+                    <Button variant="ghost" size="sm" className="relative text-white hover:bg-white/10">
                       <Bell className="h-5 w-5" />
                       {unreadCount > 0 && (
                         <Badge
-                          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                          variant="destructive"
+                          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-red-500 text-white border-2 border-primary"
                         >
                           {unreadCount}
                         </Badge>
@@ -111,8 +118,8 @@ export default function Navbar() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 p-0" align="end">
-                    <div className="p-4 border-b">
-                      <h3 className="font-semibold text-foreground">
+                    <div className="p-4 border-b bg-gray-50">
+                      <h3 className="font-semibold text-gray-900">
                         Notifications
                       </h3>
                     </div>
@@ -121,23 +128,23 @@ export default function Navbar() {
                         notifications.slice(0, 5).map((notification) => (
                           <div
                             key={notification.id}
-                            className={`p-4 border-b hover:bg-primary/10 cursor-pointer ${
-                              !notification.read ? "bg-primary/10" : ""
+                            className={`p-4 border-b hover:bg-gray-50 cursor-pointer ${
+                              !notification.read ? "bg-primary/5" : ""
                             }`}
                             onClick={() => markAsRead(notification.id)}
                           >
                             <div className="flex items-start justify-between gap-2 mb-1">
-                              <p className="text-sm font-medium text-foreground">
+                              <p className="text-sm font-medium text-gray-900">
                                 {notification.title}
                               </p>
                               {!notification.read && (
                                 <div className="h-2 w-2 bg-primary rounded-full mt-1"></div>
                               )}
                             </div>
-                            <p className="text-sm text-foreground">
+                            <p className="text-sm text-gray-600 leading-snug">
                               {notification.message}
                             </p>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-[10px] text-gray-400 mt-2">
                               {new Date(
                                 notification.createdAt,
                               ).toLocaleString()}
@@ -145,7 +152,7 @@ export default function Navbar() {
                           </div>
                         ))
                       ) : (
-                        <div className="p-8 text-center text-muted-foreground text-sm">
+                        <div className="p-8 text-center text-gray-500 text-sm">
                           No notifications
                         </div>
                       )}
@@ -153,20 +160,17 @@ export default function Navbar() {
                   </PopoverContent>
                 </Popover>
 
-                <div className="flex items-center gap-2 text-sm text-foreground">
-                  <User className="h-5 w-5" />
+                <div className="flex items-center gap-2 text-sm text-white font-medium bg-white/10 px-3 py-1.5 rounded-full">
+                  <User className="h-4 w-4" />
                   <span>{user?.name}</span>
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {user?.role}
-                  </Badge>
                 </div>
-                <Button onClick={handleLogout} variant="outline" size="sm">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
+                
+                <Button onClick={handleLogout} variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </>
             ) : (
-              <Button onClick={() => router.push("/login")} size="sm">
+              <Button onClick={() => router.push("/login")} variant="secondary" size="sm">
                 Login
               </Button>
             )}
@@ -174,7 +178,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2"
+            className="md:hidden p-2 text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <Menu className="h-6 w-6" />
@@ -183,77 +187,75 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t">
+          <div className="md:hidden py-4 border-t border-white/10">
             {isAuthenticated && (
-              <div className="flex flex-col gap-2 mb-4">
+              <div className="flex flex-col gap-1 mb-4">
+                {!isSubscribed && (
+                  <Button 
+                    onClick={() => {
+                      setSubscriptionDialogOpen(true);
+                      setMobileMenuOpen(false);
+                    }}
+                    variant="secondary" 
+                    className="mx-3 mb-2 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold"
+                  >
+                    <Zap className="h-4 w-4 mr-2 fill-amber-950" />
+                    Go Premium
+                  </Button>
+                )}
                 <Link
                   href="/dashboard"
-                  className="px-3 py-2 text-foreground hover:bg-primary/10 rounded"
+                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/resources"
-                  className="px-3 py-2 text-foreground hover:bg-primary/10 rounded"
+                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   Resources
                 </Link>
                 <Link
                   href="/upload"
-                  className="px-3 py-2 text-foreground hover:bg-primary/10 rounded"
+                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   Upload
                 </Link>
                 <Link
                   href="/mentors"
-                  className="px-3 py-2 text-foreground hover:bg-primary/10 rounded"
+                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   Mentors
                 </Link>
                 <Link
                   href="/books"
-                  className="px-3 py-2 text-foreground hover:bg-primary/10 rounded"
+                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   Books
                 </Link>
-                {["senior", "mentor", "admin"].includes(user?.role || "") && (
-                  <Link
-                    href="/review"
-                    className="px-3 py-2 text-foreground hover:bg-primary/10 rounded"
-                  >
-                    Review Queue
-                  </Link>
-                )}
-                {user?.role === "admin" && (
-                  <Link
-                    href="/admin"
-                    className="px-3 py-2 text-foreground hover:bg-primary/10 rounded"
-                  >
-                    Admin
-                  </Link>
-                )}
               </div>
             )}
             <div className="px-3">
               {isAuthenticated ? (
-                <>
-                  <div className="text-sm text-foreground mb-2">
-                    {user?.name}
-                  </div>
-                  <Button
-                    onClick={handleLogout}
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
-                </>
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-white border-white/20 hover:bg-white/10"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
               ) : (
                 <Button
                   onClick={() => router.push("/login")}
                   size="sm"
+                  variant="secondary"
                   className="w-full"
                 >
                   Login
@@ -263,6 +265,12 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      <PaymentDialog 
+        open={subscriptionDialogOpen} 
+        onOpenChange={setSubscriptionDialogOpen}
+        mode="subscription"
+      />
     </nav>
   );
 }
