@@ -32,7 +32,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-2">
             <BookOpen className="h-8 w-8 text-primary" />
             <span className="text-xl font-semibold text-foreground">
-              Knowlex
+              Padyantra
             </span>
           </Link>
 

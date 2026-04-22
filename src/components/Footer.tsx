@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-10">
           {/* Brand */}
           <div>
-            <h2 className="text-2xl font-bold mb-4">Knowlix</h2>
+            <h2 className="text-2xl font-bold mb-4">Padyantra</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
               Empowering students with organized academic resources, verified
               notes, and collaborative learning tools to improve study
@@ -133,7 +133,7 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="border-t border-border mt-10 pt-6 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Knowlix. All rights reserved.
+          © {new Date().getFullYear()} Padyantra. All rights reserved.
         </div>
       </div>
     </footer>

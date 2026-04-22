@@ -21,7 +21,7 @@ export const Newsletter = () => {
         {/* Glass Card */}
         <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-10 shadow-xl">
           <h2 className="text-3xl md:text-4xl font-bold text-white">
-            Stay Updated with Knowlix
+            Stay Updated with Padyantra
           </h2>
 
           <p className="mt-4 text-white/80 max-w-2xl mx-auto">
