@@ -78,46 +78,54 @@ export default function UploadResource() {
       return;
     }
     setUploading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const resourceId = addResource({
-      title: formData.title,
-      description: formData.description,
-      subject: formData.subject,
-      semester: formData.semester,
-      course: '', // This can be derived from category/subcategory if needed
-      category: {
-        id: formData.category as any,
-        name: categories.find(c => c.id === formData.category)?.name || '',
-      },
-      subCategory: {
-        id: formData.subCategory,
-        name: categories.find(c => c.id === formData.category)?.subCategories.find(sc => sc.id === formData.subCategory)?.name || '',
-      },
-      program: '', // This can be derived as well
-      fileType: formData.file?.name.split('.').pop()?.toUpperCase() || 'PDF',
-      fileSize: formData.file ? `${(formData.file.size / 1024 / 1024).toFixed(2)} MB` : '0 MB',
-      uploader: user.name,
-      uploaderId: user.id,
-      uploaderEmail: user.email,
-      status: 'pending_ai',
-      isFree: formData.isFree,
-      price: formData.isFree ? undefined : formData.price,
-    });
+    try {
+      const resourceId = await addResource({
+        title: formData.title,
+        description: formData.description,
+        subject: formData.subject,
+        semester: formData.semester,
+        course: '', 
+        category: {
+          id: formData.category as any,
+          name: categories.find(c => c.id === formData.category)?.name || '',
+        },
+        subCategory: {
+          id: formData.subCategory,
+          name: categories.find(c => c.id === formData.category)?.subCategories.find(sc => sc.id === formData.subCategory)?.name || '',
+        },
+        program: '', 
+        fileType: formData.file?.name.split('.').pop()?.toUpperCase() || 'PDF',
+        fileSize: formData.file ? `${(formData.file.size / 1024 / 1024).toFixed(2)} MB` : '0 MB',
+        uploader: user.name,
+        uploaderId: user.id,
+        uploaderEmail: user.email,
+        status: 'pending_ai',
+        isFree: formData.isFree,
+        price: formData.isFree ? undefined : formData.price,
+      });
 
-    setUploading(false);
-    setUploadSuccess(true);
-    toast.success('Resource uploaded successfully! It will be reviewed and published soon.');
-    addNotification({
-      type: 'upload',
-      title: 'Resource Uploaded',
-      message: `Your resource "${formData.title}" has been uploaded and is pending review.`,
-      resourceId,
-    });
+      setUploading(false);
+      setUploadSuccess(true);
+      toast.success('Resource uploaded successfully! It will be reviewed and published soon.');
+      
+      if (resourceId) {
+        addNotification({
+          type: 'upload',
+          title: 'Resource Uploaded',
+          message: `Your resource "${formData.title}" has been uploaded and is pending review.`,
+          resourceId,
+        });
+      }
 
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 2000);
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error('Failed to upload resource. Please try again.');
+      setUploading(false);
+    }
   };
 
   const renderStep = () => {

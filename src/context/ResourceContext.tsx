@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export type ResourceStatus = 
   | 'pending_ai'      // Step 1: Waiting for AI content check
@@ -69,14 +70,15 @@ export interface Resource {
 
 interface ResourceContextType {
   resources: Resource[];
-  addResource: (resource: Omit<Resource, 'id' | 'uploadDate' | 'downloads' | 'rating' | 'reviews'>) => number;
-  updateResourceStatus: (id: number, status: ResourceStatus) => void;
-  addReview: (resourceId: number, review: ReviewFeedback) => void;
-  setAIAnalysis: (resourceId: number, analysis: AIAnalysis) => void;
-  setPlagiarismResult: (resourceId: number, result: PlagiarismResult) => void;
+  addResource: (resource: Omit<Resource, 'id' | 'uploadDate' | 'downloads' | 'rating' | 'reviews'>) => Promise<number | null>;
+  updateResourceStatus: (id: number, status: ResourceStatus) => Promise<void>;
+  addReview: (resourceId: number, review: ReviewFeedback) => Promise<void>;
+  setAIAnalysis: (resourceId: number, analysis: AIAnalysis) => Promise<void>;
+  setPlagiarismResult: (resourceId: number, result: PlagiarismResult) => Promise<void>;
   getResourceById: (id: number) => Resource | undefined;
   getResourcesByStatus: (status: ResourceStatus) => Resource[];
   getResourcesByUploader: (uploaderId: string) => Resource[];
+  loading: boolean;
 }
 
 const ResourceContext = createContext<ResourceContextType | undefined>(undefined);
@@ -90,989 +92,165 @@ export const useResources = () => {
 };
 
 export const ResourceProvider = ({ children }: { children: ReactNode }) => {
-  const [resources, setResources] = useState<Resource[]>([
-    // ============= PLUS TWO - SCIENCE =============
-    {
-      id: 1,
-      title: 'Physics Grade 11 - Mechanics Complete Notes',
-      description: 'Comprehensive notes on Newtonian mechanics, motion, force, and energy for Plus Two Science students',
-      subject: 'Physics',
-      semester: 'Grade 11',
-      course: 'Plus Two Science',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-science', name: 'Science' },
-      program: 'Science',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '3.2 MB',
-      uploader: 'Rahul Sharma',
-      uploaderId: 'user101',
-      uploaderEmail: 'rahul@example.com',
-      uploadDate: '2026-03-10',
-      status: 'approved',
-      downloads: 456,
-      rating: 4.7,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 2,
-      title: 'Chemistry Grade 11 - Organic Chemistry Notes',
-      description: 'Detailed notes covering hydrocarbons, functional groups, and organic reactions',
-      subject: 'Chemistry',
-      semester: 'Grade 11',
-      course: 'Plus Two Science',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-science', name: 'Science' },
-      program: 'Science',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '2.8 MB',
-      uploader: 'Priya Thapa',
-      uploaderId: 'user102',
-      uploaderEmail: 'priya@example.com',
-      uploadDate: '2026-03-09',
-      status: 'approved',
-      downloads: 389,
-      rating: 4.6,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 3,
-      title: 'Mathematics Grade 12 - Calculus Study Guide',
-      description: 'Complete guide on differentiation, integration, and their applications',
-      subject: 'Mathematics',
-      semester: 'Grade 12',
-      course: 'Plus Two Science',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-science', name: 'Science' },
-      program: 'Science',
-      type: 'guide',
-      fileType: 'PDF',
-      fileSize: '4.1 MB',
-      uploader: 'Anil Kumar',
-      uploaderId: 'user103',
-      uploaderEmail: 'anil@example.com',
-      uploadDate: '2026-03-08',
-      status: 'approved',
-      downloads: 567,
-      rating: 4.8,
-      reviews: [],
-      isFree: false,
-      price: 100,
-    },
-    {
-      id: 4,
-      title: 'Biology Grade 11 - Cell Biology Assignment',
-      description: 'Practice assignment covering cell structure, organelles, and cellular processes',
-      subject: 'Biology',
-      semester: 'Grade 11',
-      course: 'Plus Two Science',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-science', name: 'Science' },
-      program: 'Science',
-      type: 'assignment',
-      fileType: 'PDF',
-      fileSize: '1.5 MB',
-      uploader: 'Sunita Rai',
-      uploaderId: 'user104',
-      uploaderEmail: 'sunita@example.com',
-      uploadDate: '2026-03-07',
-      status: 'approved',
-      downloads: 234,
-      rating: 4.5,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 5,
-      title: 'Computer Science Grade 12 - C Programming Book',
-      description: 'Complete textbook on C programming with examples and exercises',
-      subject: 'Computer Science',
-      semester: 'Grade 12',
-      course: 'Plus Two Science',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-science', name: 'Science' },
-      program: 'Science',
-      type: 'book',
-      fileType: 'PDF',
-      fileSize: '6.5 MB',
-      uploader: 'Bijay Shrestha',
-      uploaderId: 'user105',
-      uploaderEmail: 'bijay@example.com',
-      uploadDate: '2026-03-06',
-      status: 'approved',
-      downloads: 678,
-      rating: 4.9,
-      reviews: [],
-      isFree: false,
-      price: 200,
-    },
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    // ============= PLUS TWO - MANAGEMENT =============
-    {
-      id: 6,
-      title: 'Accountancy Grade 11 - Financial Accounting Notes',
-      description: 'Comprehensive notes on journal entries, ledgers, and trial balance',
-      subject: 'Accountancy',
-      semester: 'Grade 11',
-      course: 'Plus Two Management',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-management', name: 'Management' },
-      program: 'Management',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '2.9 MB',
-      uploader: 'Deepak Pandey',
-      uploaderId: 'user106',
-      uploaderEmail: 'deepak@example.com',
-      uploadDate: '2026-03-11',
-      status: 'approved',
-      downloads: 412,
-      rating: 4.6,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 7,
-      title: 'Economics Grade 12 - Microeconomics Guide',
-      description: 'Study guide covering demand-supply, market structures, and consumer behavior',
-      subject: 'Economics',
-      semester: 'Grade 12',
-      course: 'Plus Two Management',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-management', name: 'Management' },
-      program: 'Management',
-      type: 'guide',
-      fileType: 'PDF',
-      fileSize: '3.5 MB',
-      uploader: 'Rita Basnet',
-      uploaderId: 'user107',
-      uploaderEmail: 'rita@example.com',
-      uploadDate: '2026-03-10',
-      status: 'approved',
-      downloads: 345,
-      rating: 4.7,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 8,
-      title: 'Business Studies Grade 11 - Marketing Notes',
-      description: 'Detailed notes on marketing principles, strategies, and consumer psychology',
-      subject: 'Business Studies',
-      semester: 'Grade 11',
-      course: 'Plus Two Management',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-management', name: 'Management' },
-      program: 'Management',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '2.3 MB',
-      uploader: 'Sanjay Adhikari',
-      uploaderId: 'user108',
-      uploaderEmail: 'sanjay@example.com',
-      uploadDate: '2026-03-09',
-      status: 'approved',
-      downloads: 289,
-      rating: 4.5,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 9,
-      title: 'Business Mathematics Grade 12 - Statistics Assignment',
-      description: 'Practice problems on statistical methods, probability, and data analysis',
-      subject: 'Business Mathematics',
-      semester: 'Grade 12',
-      course: 'Plus Two Management',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-management', name: 'Management' },
-      program: 'Management',
-      type: 'assignment',
-      fileType: 'PDF',
-      fileSize: '1.8 MB',
-      uploader: 'Kamala Gurung',
-      uploaderId: 'user109',
-      uploaderEmail: 'kamala@example.com',
-      uploadDate: '2026-03-08',
-      status: 'approved',
-      downloads: 267,
-      rating: 4.4,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 10,
-      title: 'Hotel Management Grade 11 - Complete Course Book',
-      description: 'Full course material covering hospitality, food service, and hotel operations',
-      subject: 'Hotel Management',
-      semester: 'Grade 11',
-      course: 'Plus Two Management',
-      category: { id: 'plus-two', name: 'Plus Two' },
-      subCategory: { id: 'plus-two-management', name: 'Management' },
-      program: 'Management',
-      type: 'book',
-      fileType: 'PDF',
-      fileSize: '5.2 MB',
-      uploader: 'Ramesh Karki',
-      uploaderId: 'user110',
-      uploaderEmail: 'ramesh@example.com',
-      uploadDate: '2026-03-07',
-      status: 'approved',
-      downloads: 198,
-      rating: 4.6,
-      reviews: [],
-      isFree: false,
-      price: 250,
-    },
+  // Load resources from Supabase
+  useEffect(() => {
+    fetchResources();
+  }, []);
 
-    // ============= BACHELORS - SCIENCE SEMESTER 1 =============
-    {
-      id: 11,
-      title: 'Physics BSc Semester I - Classical Mechanics Notes',
-      description: 'Advanced mechanics covering Lagrangian and Hamiltonian formulations',
-      subject: 'Physics',
-      semester: 'Semester I',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '4.5 MB',
-      uploader: 'Dr. Narayan Poudel',
-      uploaderId: 'user111',
-      uploaderEmail: 'narayan@example.com',
-      uploadDate: '2026-03-12',
-      status: 'approved',
-      downloads: 523,
-      rating: 4.8,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 12,
-      title: 'Chemistry BSc Semester I - Inorganic Chemistry Guide',
-      description: 'Complete guide on periodic table, bonding, and coordination compounds',
-      subject: 'Chemistry',
-      semester: 'Semester I',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'guide',
-      fileType: 'PDF',
-      fileSize: '3.8 MB',
-      uploader: 'Sita Regmi',
-      uploaderId: 'user112',
-      uploaderEmail: 'sita@example.com',
-      uploadDate: '2026-03-11',
-      status: 'approved',
-      downloads: 445,
-      rating: 4.7,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 13,
-      title: 'Mathematics BSc Semester I - Real Analysis Book',
-      description: 'Textbook covering sequences, series, continuity, and differentiability',
-      subject: 'Mathematics',
-      semester: 'Semester I',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'book',
-      fileType: 'PDF',
-      fileSize: '5.9 MB',
-      uploader: 'Krishna Bhattarai',
-      uploaderId: 'user113',
-      uploaderEmail: 'krishna@example.com',
-      uploadDate: '2026-03-10',
-      status: 'approved',
-      downloads: 612,
-      rating: 4.9,
-      reviews: [],
-      isFree: false,
-      price: 300,
-    },
-    {
-      id: 14,
-      title: 'Computer Science BSc Semester I - Programming in C Assignment',
-      description: 'Assignment covering arrays, pointers, structures, and file handling',
-      subject: 'Computer Science',
-      semester: 'Semester I',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'assignment',
-      fileType: 'PDF',
-      fileSize: '2.1 MB',
-      uploader: 'Mohan Tamang',
-      uploaderId: 'user114',
-      uploaderEmail: 'mohan@example.com',
-      uploadDate: '2026-03-09',
-      status: 'approved',
-      downloads: 389,
-      rating: 4.6,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 15,
-      title: 'Biology BSc Semester I - Molecular Biology Notes',
-      description: 'Comprehensive notes on DNA, RNA, protein synthesis, and gene regulation',
-      subject: 'Biology',
-      semester: 'Semester I',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '3.6 MB',
-      uploader: 'Asha Magar',
-      uploaderId: 'user115',
-      uploaderEmail: 'asha@example.com',
-      uploadDate: '2026-03-08',
-      status: 'approved',
-      downloads: 467,
-      rating: 4.7,
-      reviews: [],
-      isFree: true,
-    },
+  const fetchResources = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('resources')
+        .select('*')
+        .order('upload_date', { ascending: false });
 
-    // ============= BACHELORS - SCIENCE SEMESTER 2 =============
-    {
-      id: 16,
-      title: 'Physics BSc Semester II - Quantum Mechanics Guide',
-      description: 'Study guide on wave functions, operators, and Schrödinger equation',
-      subject: 'Physics',
-      semester: 'Semester II',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'guide',
-      fileType: 'PDF',
-      fileSize: '4.8 MB',
-      uploader: 'Ganesh Subedi',
-      uploaderId: 'user116',
-      uploaderEmail: 'ganesh@example.com',
-      uploadDate: '2026-03-13',
-      status: 'approved',
-      downloads: 534,
-      rating: 4.8,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 17,
-      title: 'Chemistry BSc Semester II - Organic Chemistry Notes',
-      description: 'Advanced organic chemistry covering reaction mechanisms and synthesis',
-      subject: 'Chemistry',
-      semester: 'Semester II',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '4.2 MB',
-      uploader: 'Laxmi Maharjan',
-      uploaderId: 'user117',
-      uploaderEmail: 'laxmi@example.com',
-      uploadDate: '2026-03-12',
-      status: 'approved',
-      downloads: 478,
-      rating: 4.7,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 18,
-      title: 'Mathematics BSc Semester II - Linear Algebra Book',
-      description: 'Complete textbook on vector spaces, matrices, and linear transformations',
-      subject: 'Mathematics',
-      semester: 'Semester II',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'book',
-      fileType: 'PDF',
-      fileSize: '5.5 MB',
-      uploader: 'Bishnu Dhakal',
-      uploaderId: 'user118',
-      uploaderEmail: 'bishnu@example.com',
-      uploadDate: '2026-03-11',
-      status: 'approved',
-      downloads: 601,
-      rating: 4.9,
-      reviews: [],
-      isFree: false,
-      price: 280,
-    },
-    {
-      id: 19,
-      title: 'Computer Science BSc Semester II - Data Structures Assignment',
-      description: 'Practice problems on linked lists, stacks, queues, trees, and graphs',
-      subject: 'Computer Science',
-      semester: 'Semester II',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'assignment',
-      fileType: 'PDF',
-      fileSize: '2.4 MB',
-      uploader: 'Rajesh Yadav',
-      uploaderId: 'user119',
-      uploaderEmail: 'rajesh@example.com',
-      uploadDate: '2026-03-10',
-      status: 'approved',
-      downloads: 412,
-      rating: 4.6,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 20,
-      title: 'Statistics BSc Semester II - Probability Theory Notes',
-      description: 'Detailed notes on probability distributions and statistical inference',
-      subject: 'Statistics',
-      semester: 'Semester II',
-      course: 'Bachelor of Science',
-      category: { id: 'bachelors', name: 'Bachelors' },
-      subCategory: { id: 'bachelors-science', name: 'Science' },
-      program: 'Science',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '3.9 MB',
-      uploader: 'Maya Thapa',
-      uploaderId: 'user120',
-      uploaderEmail: 'maya@example.com',
-      uploadDate: '2026-03-09',
-      status: 'approved',
-      downloads: 356,
-      rating: 4.5,
-      reviews: [],
-      isFree: true,
-    },
+      if (error) throw error;
 
-    // ============= CTEVT - COMPUTER ENGINEERING SEMESTER 1 =============
-    {
-      id: 21,
-      title: 'Digital Logic - CTEVT Computer Engineering Semester I',
-      description: 'Complete notes on Boolean algebra, logic gates, and combinational circuits',
-      subject: 'Digital Logic',
-      semester: 'Semester I',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '3.4 MB',
-      uploader: 'Suresh Khadka',
-      uploaderId: 'user121',
-      uploaderEmail: 'suresh@example.com',
-      uploadDate: '2026-03-14',
-      status: 'approved',
-      downloads: 489,
-      rating: 4.7,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 22,
-      title: 'C Programming - CTEVT Computer Engineering Semester I',
-      description: 'Programming guide covering syntax, control structures, and functions',
-      subject: 'C Programming',
-      semester: 'Semester I',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'guide',
-      fileType: 'PDF',
-      fileSize: '4.1 MB',
-      uploader: 'Binod Nepal',
-      uploaderId: 'user122',
-      uploaderEmail: 'binod@example.com',
-      uploadDate: '2026-03-13',
-      status: 'approved',
-      downloads: 567,
-      rating: 4.8,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 23,
-      title: 'Engineering Mathematics I - CTEVT Computer Semester I',
-      description: 'Mathematics book covering calculus, algebra, and trigonometry',
-      subject: 'Engineering Mathematics',
-      semester: 'Semester I',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'book',
-      fileType: 'PDF',
-      fileSize: '5.8 MB',
-      uploader: 'Hari Bahadur',
-      uploaderId: 'user123',
-      uploaderEmail: 'hari@example.com',
-      uploadDate: '2026-03-12',
-      status: 'approved',
-      downloads: 623,
-      rating: 4.9,
-      reviews: [],
-      isFree: false,
-      price: 250,
-    },
-    {
-      id: 24,
-      title: 'Technical Drawing - CTEVT Computer Engineering Assignment',
-      description: 'Assignment on orthographic projections and engineering drawings',
-      subject: 'Technical Drawing',
-      semester: 'Semester I',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'assignment',
-      fileType: 'PDF',
-      fileSize: '2.6 MB',
-      uploader: 'Nirmal Gautam',
-      uploaderId: 'user124',
-      uploaderEmail: 'nirmal@example.com',
-      uploadDate: '2026-03-11',
-      status: 'approved',
-      downloads: 334,
-      rating: 4.5,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 25,
-      title: 'Basic Electronics - CTEVT Computer Engineering Semester I',
-      description: 'Notes on semiconductor devices, diodes, transistors, and amplifiers',
-      subject: 'Basic Electronics',
-      semester: 'Semester I',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '3.7 MB',
-      uploader: 'Prakash Limbu',
-      uploaderId: 'user125',
-      uploaderEmail: 'prakash@example.com',
-      uploadDate: '2026-03-10',
-      status: 'approved',
-      downloads: 445,
-      rating: 4.6,
-      reviews: [],
-      isFree: true,
-    },
-
-    // ============= CTEVT - COMPUTER ENGINEERING SEMESTER 2 =============
-    {
-      id: 26,
-      title: 'Microprocessor - CTEVT Computer Engineering Semester II',
-      description: 'Complete guide on 8085/8086 microprocessor architecture and programming',
-      subject: 'Microprocessor',
-      semester: 'Semester II',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'guide',
-      fileType: 'PDF',
-      fileSize: '4.9 MB',
-      uploader: 'Ramesh Dahal',
-      uploaderId: 'user126',
-      uploaderEmail: 'ramesh.d@example.com',
-      uploadDate: '2026-03-15',
-      status: 'approved',
-      downloads: 512,
-      rating: 4.8,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 27,
-      title: 'Data Structures - CTEVT Computer Engineering Semester II',
-      description: 'Notes on arrays, linked lists, stacks, queues, and searching algorithms',
-      subject: 'Data Structures',
-      semester: 'Semester II',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '3.8 MB',
-      uploader: 'Dipesh Shrestha',
-      uploaderId: 'user127',
-      uploaderEmail: 'dipesh@example.com',
-      uploadDate: '2026-03-14',
-      status: 'approved',
-      downloads: 478,
-      rating: 4.7,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 28,
-      title: 'Object Oriented Programming (C++) - CTEVT Computer Semester II',
-      description: 'Complete book on OOP concepts, classes, inheritance, and polymorphism',
-      subject: 'OOP in C++',
-      semester: 'Semester II',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'book',
-      fileType: 'PDF',
-      fileSize: '6.2 MB',
-      uploader: 'Yogesh Karki',
-      uploaderId: 'user128',
-      uploaderEmail: 'yogesh@example.com',
-      uploadDate: '2026-03-13',
-      status: 'approved',
-      downloads: 589,
-      rating: 4.9,
-      reviews: [],
-      isFree: false,
-      price: 300,
-    },
-    {
-      id: 29,
-      title: 'Engineering Mathematics II - CTEVT Computer Assignment',
-      description: 'Assignment covering differential equations and vector calculus',
-      subject: 'Engineering Mathematics',
-      semester: 'Semester II',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'assignment',
-      fileType: 'PDF',
-      fileSize: '2.3 MB',
-      uploader: 'Ashok Tamang',
-      uploaderId: 'user129',
-      uploaderEmail: 'ashok@example.com',
-      uploadDate: '2026-03-12',
-      status: 'approved',
-      downloads: 367,
-      rating: 4.5,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 30,
-      title: 'Web Technology I - CTEVT Computer Engineering Semester II',
-      description: 'Notes on HTML, CSS, JavaScript, and web design fundamentals',
-      subject: 'Web Technology',
-      semester: 'Semester II',
-      course: 'Diploma in Computer Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-computer', name: 'Computer Engineering' },
-      program: 'Computer Engineering',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '4.3 MB',
-      uploader: 'Manisha Rai',
-      uploaderId: 'user130',
-      uploaderEmail: 'manisha@example.com',
-      uploadDate: '2026-03-11',
-      status: 'approved',
-      downloads: 501,
-      rating: 4.8,
-      reviews: [],
-      isFree: true,
-    },
-
-    // ============= CTEVT - CIVIL ENGINEERING SEMESTER 1 =============
-    {
-      id: 31,
-      title: 'Building Drawing - CTEVT Civil Engineering Semester I',
-      description: 'Complete notes on architectural drawings, floor plans, and elevations',
-      subject: 'Building Drawing',
-      semester: 'Semester I',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '5.4 MB',
-      uploader: 'Dinesh Chaudhary',
-      uploaderId: 'user131',
-      uploaderEmail: 'dinesh@example.com',
-      uploadDate: '2026-03-14',
-      status: 'approved',
-      downloads: 423,
-      rating: 4.7,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 32,
-      title: 'Engineering Mechanics - CTEVT Civil Engineering Semester I',
-      description: 'Study guide covering statics, dynamics, and equilibrium of forces',
-      subject: 'Engineering Mechanics',
-      semester: 'Semester I',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'guide',
-      fileType: 'PDF',
-      fileSize: '4.6 MB',
-      uploader: 'Kiran Adhikari',
-      uploaderId: 'user132',
-      uploaderEmail: 'kiran@example.com',
-      uploadDate: '2026-03-13',
-      status: 'approved',
-      downloads: 456,
-      rating: 4.6,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 33,
-      title: 'Surveying I - CTEVT Civil Engineering Semester I Book',
-      description: 'Textbook on leveling, theodolite, chain surveying, and compass surveying',
-      subject: 'Surveying',
-      semester: 'Semester I',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'book',
-      fileType: 'PDF',
-      fileSize: '6.8 MB',
-      uploader: 'Raju Pun',
-      uploaderId: 'user133',
-      uploaderEmail: 'raju@example.com',
-      uploadDate: '2026-03-12',
-      status: 'approved',
-      downloads: 534,
-      rating: 4.8,
-      reviews: [],
-      isFree: false,
-      price: 280,
-    },
-    {
-      id: 34,
-      title: 'Engineering Mathematics I - CTEVT Civil Assignment',
-      description: 'Assignment problems on calculus, differential equations, and matrices',
-      subject: 'Engineering Mathematics',
-      semester: 'Semester I',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'assignment',
-      fileType: 'PDF',
-      fileSize: '2.7 MB',
-      uploader: 'Sabina Ghale',
-      uploaderId: 'user134',
-      uploaderEmail: 'sabina@example.com',
-      uploadDate: '2026-03-11',
-      status: 'approved',
-      downloads: 389,
-      rating: 4.5,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 35,
-      title: 'Building Materials - CTEVT Civil Engineering Semester I',
-      description: 'Notes on cement, concrete, aggregates, steel, and timber properties',
-      subject: 'Building Materials',
-      semester: 'Semester I',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '3.9 MB',
-      uploader: 'Nabin Koirala',
-      uploaderId: 'user135',
-      uploaderEmail: 'nabin@example.com',
-      uploadDate: '2026-03-10',
-      status: 'approved',
-      downloads: 467,
-      rating: 4.7,
-      reviews: [],
-      isFree: true,
-    },
-
-    // ============= CTEVT - CIVIL ENGINEERING SEMESTER 2 =============
-    {
-      id: 36,
-      title: 'Concrete Technology - CTEVT Civil Engineering Semester II',
-      description: 'Complete guide on concrete mix design, testing, and quality control',
-      subject: 'Concrete Technology',
-      semester: 'Semester II',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'guide',
-      fileType: 'PDF',
-      fileSize: '5.1 MB',
-      uploader: 'Gita Sharma',
-      uploaderId: 'user136',
-      uploaderEmail: 'gita@example.com',
-      uploadDate: '2026-03-15',
-      status: 'approved',
-      downloads: 445,
-      rating: 4.6,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 37,
-      title: 'Strength of Materials - CTEVT Civil Engineering Semester II',
-      description: 'Notes on stress, strain, bending, shear, and torsion in structural elements',
-      subject: 'Strength of Materials',
-      semester: 'Semester II',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '4.7 MB',
-      uploader: 'Bijaya Malla',
-      uploaderId: 'user137',
-      uploaderEmail: 'bijaya@example.com',
-      uploadDate: '2026-03-14',
-      status: 'approved',
-      downloads: 512,
-      rating: 4.8,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 38,
-      title: 'Surveying II - CTEVT Civil Engineering Semester II Book',
-      description: 'Advanced surveying book covering total station, GPS, and photogrammetry',
-      subject: 'Surveying',
-      semester: 'Semester II',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'book',
-      fileType: 'PDF',
-      fileSize: '7.2 MB',
-      uploader: 'Milan Shakya',
-      uploaderId: 'user138',
-      uploaderEmail: 'milan@example.com',
-      uploadDate: '2026-03-13',
-      status: 'approved',
-      downloads: 478,
-      rating: 4.7,
-      reviews: [],
-      isFree: false,
-      price: 320,
-    },
-    {
-      id: 39,
-      title: 'Hydraulics - CTEVT Civil Engineering Semester II Assignment',
-      description: 'Practice problems on fluid mechanics, flow measurement, and pipe flow',
-      subject: 'Hydraulics',
-      semester: 'Semester II',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'assignment',
-      fileType: 'PDF',
-      fileSize: '2.8 MB',
-      uploader: 'Sarita Bhandari',
-      uploaderId: 'user139',
-      uploaderEmail: 'sarita@example.com',
-      uploadDate: '2026-03-12',
-      status: 'approved',
-      downloads: 401,
-      rating: 4.6,
-      reviews: [],
-      isFree: true,
-    },
-    {
-      id: 40,
-      title: 'AutoCAD for Civil Engineers - CTEVT Semester II Notes',
-      description: 'Comprehensive notes on AutoCAD commands, 2D drawing, and civil applications',
-      subject: 'AutoCAD',
-      semester: 'Semester II',
-      course: 'Diploma in Civil Engineering',
-      category: { id: 'ctevt', name: 'CTEVT' },
-      subCategory: { id: 'ctevt-civil', name: 'Civil Engineering' },
-      program: 'Civil Engineering',
-      type: 'notes',
-      fileType: 'PDF',
-      fileSize: '5.6 MB',
-      uploader: 'Santosh Thapa',
-      uploaderId: 'user140',
-      uploaderEmail: 'santosh@example.com',
-      uploadDate: '2026-03-11',
-      status: 'approved',
-      downloads: 556,
-      rating: 4.9,
-      reviews: [],
-      isFree: true,
-    },
-  ]);
-
-  const addResource = (resource: Omit<Resource, 'id' | 'uploadDate' | 'downloads' | 'rating' | 'reviews'>) => {
-    const newResource: Resource = {
-      ...resource,
-      id: Math.max(0, ...resources.map(r => r.id)) + 1,
-      uploadDate: new Date().toISOString(),
-      downloads: 0,
-      rating: 0,
-      reviews: [],
-      status: 'pending_ai', // Start with AI analysis
-    };
-    setResources(prev => [...prev, newResource]);
-    return newResource.id;
+      if (data) {
+        // Map database fields (snake_case) to Frontend fields (camelCase)
+        const mappedResources: Resource[] = data.map(item => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          subject: item.subject,
+          semester: item.semester,
+          course: item.course,
+          category: item.category,
+          subCategory: item.sub_category,
+          program: item.program,
+          type: item.type,
+          fileType: item.file_type,
+          fileSize: item.file_size,
+          uploader: item.uploader,
+          uploaderId: item.uploader_id,
+          uploaderEmail: item.uploader_email,
+          uploadDate: item.upload_date,
+          status: item.status,
+          downloads: item.downloads,
+          rating: Number(item.rating),
+          reviews: item.reviews || [],
+          aiAnalysis: item.ai_analysis,
+          plagiarismResult: item.plagiarism_result,
+          price: item.price,
+          isFree: item.is_free,
+        }));
+        setResources(mappedResources);
+      }
+    } catch (err) {
+      console.error('Error fetching resources:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateResourceStatus = (id: number, status: ResourceStatus) => {
-    setResources(prev =>
-      prev.map(r => r.id === id ? { ...r, status } : r)
-    );
+  const addResource = async (resource: Omit<Resource, 'id' | 'uploadDate' | 'downloads' | 'rating' | 'reviews'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('resources')
+        .insert([{
+          title: resource.title,
+          description: resource.description,
+          subject: resource.subject,
+          semester: resource.semester,
+          course: resource.course,
+          category: resource.category,
+          sub_category: resource.subCategory,
+          program: resource.program,
+          type: resource.type,
+          file_type: resource.fileType,
+          file_size: resource.fileSize,
+          uploader: resource.uploader,
+          uploader_id: resource.uploaderId,
+          uploader_email: resource.uploaderEmail,
+          status: 'pending_ai',
+          is_free: resource.isFree,
+          price: resource.price,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        await fetchResources(); // Refresh list
+        return data.id;
+      }
+      return null;
+    } catch (err) {
+      console.error('Error adding resource:', err);
+      return null;
+    }
   };
 
-  const addReview = (resourceId: number, review: ReviewFeedback) => {
-    setResources(prev =>
-      prev.map(r => r.id === resourceId ? { ...r, reviews: [...r.reviews, review] } : r)
-    );
+  const updateResourceStatus = async (id: number, status: ResourceStatus) => {
+    try {
+      const { error } = await supabase
+        .from('resources')
+        .update({ status })
+        .eq('id', id);
+
+      if (error) throw error;
+      setResources(prev =>
+        prev.map(r => r.id === id ? { ...r, status } : r)
+      );
+    } catch (err) {
+      console.error('Error updating resource status:', err);
+    }
   };
 
-  const setAIAnalysis = (resourceId: number, analysis: AIAnalysis) => {
-    setResources(prev =>
-      prev.map(r => r.id === resourceId ? { ...r, aiAnalysis: analysis } : r)
-    );
+  const addReview = async (resourceId: number, review: ReviewFeedback) => {
+    const resource = resources.find(r => r.id === resourceId);
+    if (!resource) return;
+
+    try {
+      const updatedReviews = [...resource.reviews, review];
+      const { error } = await supabase
+        .from('resources')
+        .update({ reviews: updatedReviews })
+        .eq('id', resourceId);
+
+      if (error) throw error;
+      setResources(prev =>
+        prev.map(r => r.id === resourceId ? { ...r, reviews: updatedReviews } : r)
+      );
+    } catch (err) {
+      console.error('Error adding review:', err);
+    }
   };
 
-  const setPlagiarismResult = (resourceId: number, result: PlagiarismResult) => {
-    setResources(prev =>
-      prev.map(r => r.id === resourceId ? { ...r, plagiarismResult: result } : r)
-    );
+  const setAIAnalysis = async (resourceId: number, analysis: AIAnalysis) => {
+    try {
+      const { error } = await supabase
+        .from('resources')
+        .update({ ai_analysis: analysis })
+        .eq('id', resourceId);
+
+      if (error) throw error;
+      setResources(prev =>
+        prev.map(r => r.id === resourceId ? { ...r, aiAnalysis: analysis } : r)
+      );
+    } catch (err) {
+      console.error('Error setting AI analysis:', err);
+    }
+  };
+
+  const setPlagiarismResult = async (resourceId: number, result: PlagiarismResult) => {
+    try {
+      const { error } = await supabase
+        .from('resources')
+        .update({ plagiarism_result: result })
+        .eq('id', resourceId);
+
+      if (error) throw error;
+      setResources(prev =>
+        prev.map(r => r.id === resourceId ? { ...r, plagiarismResult: result } : r)
+      );
+    } catch (err) {
+      console.error('Error setting plagiarism result:', err);
+    }
   };
 
   const getResourceById = (id: number) => resources.find(r => r.id === id);
@@ -1094,6 +272,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
       getResourceById,
       getResourcesByStatus,
       getResourcesByUploader,
+      loading
     }}>
       {children}
     </ResourceContext.Provider>
