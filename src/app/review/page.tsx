@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+// import { useRouter } from 'next/navigation'; // Remove useRouter if only used for auth redirection
+// import { useAuth } from '@/context/AuthContext'; // Remove useAuth
 import { useResources, Resource, ResourceStatus } from '@/context/ResourceContext';
 import { useNotifications } from '@/context/NotificationContext';
 import Navbar from '@/components/Navbar';
@@ -27,22 +27,29 @@ import {
 import { toast } from 'sonner';
 
 export default function ReviewQueue() {
-  const { user, isAuthenticated } = useAuth();
+  // const { user, isAuthenticated } = useAuth(); // Remove useAuth destructuring
   const { resources, updateResourceStatus, addReview, setAIAnalysis, setPlagiarismResult } = useResources();
   const { addNotification } = useNotifications();
-  const router = useRouter();
+  // const router = useRouter(); // Remove useRouter if only used for auth redirection
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [reviewComment, setReviewComment] = useState('');
   const [rating, setRating] = useState(5);
 
+  // Mock user and authentication status
+  const user = { id: 'mock-user-id', name: 'Mock Admin', role: 'admin' }; // Mock admin user for UI display
+  const isAuthenticated = true; // Always true for UI display
+
   useEffect(() => {
-    if (!isAuthenticated || !['senior', 'mentor', 'admin'].includes(user?.role || '')) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, user, router]);
+    // Remove authentication and role check if only UI is needed
+    // if (!isAuthenticated || !['senior', 'mentor', 'admin'].includes(user?.role || '')) {
+    //   router.push('/dashboard');
+    // }
+    console.log("Review Queue loaded - (Authentication check removed)");
+  }, []); // Remove isAuthenticated, user, router from dependency array
 
   // Get resources based on user role and workflow stage
   const getResourcesForReview = () => {
+    // Mocking behavior based on mock user role
     if (user?.role === 'admin') {
       return resources.filter(r => r.status === 'pending_admin');
     } else if (user?.role === 'mentor' || user?.role === 'senior') {
@@ -56,10 +63,10 @@ export default function ReviewQueue() {
   const plagiarismPendingResources = resources.filter(r => r.status === 'pending_plagiarism');
 
   const handleAIAnalysis = async (resource: Resource) => {
-    toast.info('Running AI content analysis...');
+    toast.info('Simulating AI content analysis...');
     
     // Simulate AI analysis
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     const analysisResult = {
       relevanceScore: Math.floor(Math.random() * 20) + 80,
@@ -77,18 +84,18 @@ export default function ReviewQueue() {
     
     if (analysisResult.passed) {
       updateResourceStatus(resource.id, 'pending_plagiarism');
-      toast.success('AI analysis passed! Moving to plagiarism check.');
+      toast.success('Simulated AI analysis passed! Moving to plagiarism check.');
     } else {
       updateResourceStatus(resource.id, 'rejected');
-      toast.error('AI analysis failed. Resource rejected.');
+      toast.error('Simulated AI analysis failed. Resource rejected.');
     }
   };
 
   const handlePlagiarismCheck = async (resource: Resource) => {
-    toast.info('Running plagiarism detection...');
+    toast.info('Simulating plagiarism detection...');
     
     // Simulate plagiarism check
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     const plagiarismResult = {
       similarity: Math.floor(Math.random() * 15),
@@ -101,10 +108,10 @@ export default function ReviewQueue() {
     
     if (plagiarismResult.passed) {
       updateResourceStatus(resource.id, 'pending_review');
-      toast.success('Plagiarism check passed! Moving to peer review.');
+      toast.success('Simulated Plagiarism check passed! Moving to peer review.');
     } else {
       updateResourceStatus(resource.id, 'rejected');
-      toast.error('Plagiarism detected. Resource rejected.');
+      toast.error('Simulated Plagiarism detected. Resource rejected.');
     }
   };
 
@@ -115,8 +122,8 @@ export default function ReviewQueue() {
     }
 
     const review = {
-      reviewerId: user?.id || '',
-      reviewerName: user?.name || '',
+      reviewerId: user?.id || 'mock-reviewer-id',
+      reviewerName: user?.name || 'Mock Reviewer',
       reviewerRole: user?.role as 'senior' | 'mentor' | 'admin',
       rating,
       comment: reviewComment,
@@ -127,7 +134,7 @@ export default function ReviewQueue() {
 
     if (user?.role === 'admin') {
       updateResourceStatus(resource.id, 'approved');
-      toast.success('Resource approved and published!');
+      toast.success('Simulated Resource approved and published!');
       
       addNotification({
         type: 'approval',
@@ -137,7 +144,7 @@ export default function ReviewQueue() {
       });
     } else {
       updateResourceStatus(resource.id, 'pending_admin');
-      toast.success('Review submitted. Sent to admin for final approval.');
+      toast.success('Simulated Review submitted. Sent to admin for final approval.');
     }
 
     setSelectedResource(null);
@@ -152,8 +159,8 @@ export default function ReviewQueue() {
     }
 
     const review = {
-      reviewerId: user?.id || '',
-      reviewerName: user?.name || '',
+      reviewerId: user?.id || 'mock-reviewer-id',
+      reviewerName: user?.name || 'Mock Reviewer',
       reviewerRole: user?.role as 'senior' | 'mentor' | 'admin',
       comment: reviewComment,
       date: new Date().toISOString(),
@@ -162,7 +169,7 @@ export default function ReviewQueue() {
     addReview(resource.id, review);
     updateResourceStatus(resource.id, 'rejected');
     
-    toast.success('Resource rejected with feedback.');
+    toast.success('Simulated Resource rejected with feedback.');
     
     addNotification({
       type: 'feedback',

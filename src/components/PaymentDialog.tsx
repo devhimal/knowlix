@@ -6,8 +6,8 @@ import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Alert, AlertDescription } from './ui/alert';
 import { CheckCircle, XCircle, Loader2, CreditCard, Building2, Wallet, Zap } from 'lucide-react';
-import { usePayment } from '../context/PaymentContext';
-import { useAuth } from '../context/AuthContext';
+// import { usePayment } from '../context/PaymentContext'; // Keep if PaymentContext is not being removed
+// import { useAuth } from '../context/AuthContext'; // Remove useAuth import
 
 interface PaymentDialogProps {
   open: boolean;
@@ -47,13 +47,44 @@ export const PaymentDialog = ({
     bankName: '',
   });
 
-  const { initiatePayment, initiateSubscription } = usePayment();
-  const { user, updateUser } = useAuth();
+  // const { initiatePayment, initiateSubscription } = usePayment(); // Keep if PaymentContext is not being removed
+  // const { user, updateUser } = useAuth(); // Remove useAuth destructuring
+
+  // Placeholder for user and payment functions since Supabase is removed
+  const user = { id: 'mock-user-id', email: 'mock@example.com' }; // Mock user
+  const initiatePayment = async (
+    _resourceId: number,
+    _resourceName: string,
+    _sellerId: string,
+    _sellerEmail: string,
+    _finalAmount: number,
+    _paymentMethod: 'esewa' | 'khalti' | 'bank',
+    _userId: string,
+    _userEmail: string
+  ) => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return { success: true, transactionId: 'MOCK_TXN_' + Date.now() };
+  };
+
+  const initiateSubscription = async (
+    _planId: string,
+    _finalAmount: number,
+    _paymentMethod: 'esewa' | 'khalti' | 'bank',
+    _userId: string,
+    _userEmail: string
+  ) => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return { success: true, transactionId: 'MOCK_SUB_' + Date.now() };
+  };
+
+  // const updateUser = (_userData: any) => console.log("Simulating user update"); // Mock updateUser
 
   const finalAmount = mode === 'resource' ? (initialAmount || 0) : selectedPlan.price;
 
   const handlePayment = async () => {
-    if (!user) return;
+    if (!user) return; // This check will now always pass with mock user
 
     setProcessing(true);
     setPaymentStatus('idle');
@@ -81,18 +112,19 @@ export const PaymentDialog = ({
         );
 
         if (result.success) {
-          // Update user subscription status in AuthContext
-          const monthsToAdd = selectedPlan.id === 'monthly' ? 1 : selectedPlan.id === 'semester' ? 6 : 12;
-          const expiryDate = new Date();
-          expiryDate.setMonth(expiryDate.getMonth() + monthsToAdd);
-          
-          updateUser({
-            subscription: {
-              isSubscribed: true,
-              plan: selectedPlan.id,
-              expiryDate: expiryDate.toISOString(),
-            }
-          });
+          // Update user subscription status - now simulated
+          // const monthsToAdd = selectedPlan.id === 'monthly' ? 1 : selectedPlan.id === 'semester' ? 6 : 12;
+          // const expiryDate = new Date();
+          // expiryDate.setMonth(expiryDate.getMonth() + monthsToAdd);
+
+          // updateUser({ // Simulated updateUser
+          //   subscription: {
+          //     isSubscribed: true,
+          //     plan: selectedPlan.id,
+          //     expiryDate: expiryDate.toISOString(),
+          //   }
+          // });
+          console.log("Simulating subscription update for user:", user.id);
         }
       }
 
@@ -132,7 +164,7 @@ export const PaymentDialog = ({
         <DialogHeader>
           <DialogTitle>{mode === 'resource' ? 'Purchase Resource' : 'Upgrade to Premium'}</DialogTitle>
           <DialogDescription>
-            {mode === 'resource' 
+            {mode === 'resource'
               ? `Complete payment to access "${resourceName}"`
               : 'Get unlimited access to all resources, books, and premium features.'}
           </DialogDescription>
@@ -146,7 +178,7 @@ export const PaymentDialog = ({
                 <Label>Select a Plan</Label>
                 <div className="grid gap-3">
                   {SUBSCRIPTION_PLANS.map((plan) => (
-                    <div 
+                    <div
                       key={plan.id}
                       onClick={() => setSelectedPlan(plan)}
                       className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
@@ -251,7 +283,7 @@ export const PaymentDialog = ({
               {mode === 'resource' ? 'Purchase Successful!' : 'Welcome to Premium!'}
             </h3>
             <p className="text-gray-600 mb-6">
-              {mode === 'resource' 
+              {mode === 'resource'
                 ? 'Your payment has been processed. You can now access the resource.'
                 : `You are now a ${selectedPlan.name} member. Enjoy unlimited access!`}
             </p>

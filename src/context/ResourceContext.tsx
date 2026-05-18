@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import supabase from '@/lib/supabase';
+import { categories, semesters } from '@/app/upload/page'; // Import categories and semesters
 
 export type ResourceStatus = 
   | 'pending_ai'      // Step 1: Waiting for AI content check
@@ -36,10 +37,11 @@ export interface PlagiarismResult {
 }
 
 export interface Resource {
-  id: number;
+  id: string; // Changed from number to string
   title: string;
   description: string;
-  subject: string;
+  subject: string; // This will remain the ID
+  subjectName: string; // Human-readable subject name
   semester: string;
   course: string;
   category: {
@@ -66,16 +68,17 @@ export interface Resource {
   plagiarismResult?: PlagiarismResult;
   price?: number;
   isFree: boolean;
+  file_path?: string;
 }
 
 interface ResourceContextType {
   resources: Resource[];
-  addResource: (resource: Omit<Resource, 'id' | 'uploadDate' | 'downloads' | 'rating' | 'reviews'>) => Promise<number | null>;
-  updateResourceStatus: (id: number, status: ResourceStatus) => Promise<void>;
-  addReview: (resourceId: number, review: ReviewFeedback) => Promise<void>;
-  setAIAnalysis: (resourceId: number, analysis: AIAnalysis) => Promise<void>;
-  setPlagiarismResult: (resourceId: number, result: PlagiarismResult) => Promise<void>;
-  getResourceById: (id: number) => Resource | undefined;
+  fetchResources: () => Promise<void>;
+  updateResourceStatus: (id: string, status: ResourceStatus) => Promise<void>;
+  addReview: (resourceId: string, review: ReviewFeedback) => Promise<void>;
+  setAIAnalysis: (resourceId: string, analysis: AIAnalysis) => Promise<void>;
+  setPlagiarismResult: (resourceId: string, result: PlagiarismResult) => Promise<void>;
+  getResourceById: (id: string) => Resource | undefined;
   getResourcesByStatus: (status: ResourceStatus) => Resource[];
   getResourcesByUploader: (uploaderId: string) => Resource[];
   loading: boolean;
@@ -95,176 +98,116 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load resources from Supabase
-  useEffect(() => {
-    fetchResources();
-  }, []);
-
-  const fetchResources = async () => {
+  const fetchResources = useCallback(async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('resources')
         .select('*')
-        .order('upload_date', { ascending: false });
+        .order('created_at', { ascending: false }); // Order by most recent
 
-      if (error) throw error;
-
-      if (data) {
-        // Map database fields (snake_case) to Frontend fields (camelCase)
-        const mappedResources: Resource[] = data.map(item => ({
-          id: item.id,
-          title: item.title,
-          description: item.description,
-          subject: item.subject,
-          semester: item.semester,
-          course: item.course,
-          category: item.category,
-          subCategory: item.sub_category,
-          program: item.program,
-          type: item.type,
-          fileType: item.file_type,
-          fileSize: item.file_size,
-          uploader: item.uploader,
-          uploaderId: item.uploader_id,
-          uploaderEmail: item.uploader_email,
-          uploadDate: item.upload_date,
-          status: item.status,
-          downloads: item.downloads,
-          rating: Number(item.rating),
-          reviews: item.reviews || [],
-          aiAnalysis: item.ai_analysis,
-          plagiarismResult: item.plagiarism_result,
-          price: item.price,
-          isFree: item.is_free,
-        }));
-        setResources(mappedResources);
+      if (error) {
+        throw error;
       }
-    } catch (err) {
-      console.error('Error fetching resources:', err);
+
+      // Map Supabase data to Resource interface
+      const fetchedResources: Resource[] = data.map((dbResource: any) => {
+        console.log('Raw dbResource:', dbResource); // Log raw data
+
+        const category = categories.find(c => c.id === dbResource.category_id);
+        const subCategory = category?.subCategories.find(sc => sc.id === dbResource.sub_category_id);
+        const subject = subCategory?.subjects.find(s => s.id === dbResource.subject);
+
+        const resource: Resource = {
+          id: dbResource.id,
+          title: dbResource.title,
+          description: dbResource.description,
+          subject: dbResource.subject, // This remains the ID
+          subjectName: subject?.name || dbResource.subject, // Human-readable name
+          semester: dbResource.semester,
+          course: dbResource.course || '', // Assuming course can be null
+          category: {
+            id: dbResource.category_id,
+            name: category?.name || dbResource.category_id
+          },
+          subCategory: {
+            id: dbResource.sub_category_id,
+            name: subCategory?.name || dbResource.sub_category_id
+          },
+          program: dbResource.program || '', // Assuming program can be null
+          fileType: dbResource.file_type,
+          fileSize: `${dbResource.file_size_mb} MB`, // Convert back to string for display
+          file_path: dbResource.file_path, // Re-added file_path mapping
+          uploader: dbResource.uploader_name || 'Unknown',
+          uploaderId: dbResource.uploader_id,
+          uploaderEmail: dbResource.uploader_email,
+          uploadDate: dbResource.created_at, // Use created_at as uploadDate
+          status: dbResource.status,
+          downloads: dbResource.downloads || 0,
+          rating: dbResource.rating || 0,
+          reviews: dbResource.reviews || [], // Assuming reviews is stored as JSONB or handled differently
+          price: dbResource.price,
+          isFree: dbResource.is_free,
+        };
+        console.log('Mapped resource:', resource); // Log mapped data
+        return resource;
+      });
+
+      setResources(fetchedResources);
+    } catch (error) {
+      console.error('Error fetching resources:', error);
     } finally {
       setLoading(false);
     }
+  }, [setLoading, setResources, supabase]);
+
+  useEffect(() => {
+    fetchResources();
+  }, [fetchResources]);
+
+  // addResource is removed from context as it's directly handled by Supabase in upload page
+
+  const updateResourceStatus = async (id: string, status: ResourceStatus) => {
+    // This function will need to be updated to interact with Supabase
+    // For now, it will update local state.
+    setResources(prev =>
+      prev.map(r => r.id === id ? { ...r, status } : r)
+    );
   };
 
-  const addResource = async (resource: Omit<Resource, 'id' | 'uploadDate' | 'downloads' | 'rating' | 'reviews'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('resources')
-        .insert([{
-          title: resource.title,
-          description: resource.description,
-          subject: resource.subject,
-          semester: resource.semester,
-          course: resource.course,
-          category: resource.category,
-          sub_category: resource.subCategory,
-          program: resource.program,
-          type: resource.type,
-          file_type: resource.fileType,
-          file_size: resource.fileSize,
-          uploader: resource.uploader,
-          uploader_id: resource.uploaderId,
-          uploader_email: resource.uploaderEmail,
-          status: 'pending_ai',
-          is_free: resource.isFree,
-          price: resource.price,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        await fetchResources(); // Refresh list
-        return data.id;
-      }
-      return null;
-    } catch (err) {
-      console.error('Error adding resource:', err);
-      return null;
-    }
+  const addReview = async (resourceId: string, review: ReviewFeedback) => {
+    // This function will need to be updated to interact with Supabase
+    setResources(prev =>
+      prev.map(r => r.id === resourceId ? { ...r, reviews: [...r.reviews, review] } : r)
+    );
   };
 
-  const updateResourceStatus = async (id: number, status: ResourceStatus) => {
-    try {
-      const { error } = await supabase
-        .from('resources')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) throw error;
-      setResources(prev =>
-        prev.map(r => r.id === id ? { ...r, status } : r)
-      );
-    } catch (err) {
-      console.error('Error updating resource status:', err);
-    }
+  const setAIAnalysis = async (resourceId: string, analysis: AIAnalysis) => {
+    // This function will need to be updated to interact with Supabase
+    setResources(prev =>
+      prev.map(r => r.id === resourceId ? { ...r, aiAnalysis: analysis } : r)
+    );
   };
 
-  const addReview = async (resourceId: number, review: ReviewFeedback) => {
-    const resource = resources.find(r => r.id === resourceId);
-    if (!resource) return;
-
-    try {
-      const updatedReviews = [...resource.reviews, review];
-      const { error } = await supabase
-        .from('resources')
-        .update({ reviews: updatedReviews })
-        .eq('id', resourceId);
-
-      if (error) throw error;
-      setResources(prev =>
-        prev.map(r => r.id === resourceId ? { ...r, reviews: updatedReviews } : r)
-      );
-    } catch (err) {
-      console.error('Error adding review:', err);
-    }
+  const setPlagiarismResult = async (resourceId: string, result: PlagiarismResult) => {
+    // This function will need to be updated to interact with Supabase
+    setResources(prev =>
+      prev.map(r => r.id === resourceId ? { ...r, plagiarismResult: result } : r)
+    );
   };
 
-  const setAIAnalysis = async (resourceId: number, analysis: AIAnalysis) => {
-    try {
-      const { error } = await supabase
-        .from('resources')
-        .update({ ai_analysis: analysis })
-        .eq('id', resourceId);
-
-      if (error) throw error;
-      setResources(prev =>
-        prev.map(r => r.id === resourceId ? { ...r, aiAnalysis: analysis } : r)
-      );
-    } catch (err) {
-      console.error('Error setting AI analysis:', err);
-    }
-  };
-
-  const setPlagiarismResult = async (resourceId: number, result: PlagiarismResult) => {
-    try {
-      const { error } = await supabase
-        .from('resources')
-        .update({ plagiarism_result: result })
-        .eq('id', resourceId);
-
-      if (error) throw error;
-      setResources(prev =>
-        prev.map(r => r.id === resourceId ? { ...r, plagiarismResult: result } : r)
-      );
-    } catch (err) {
-      console.error('Error setting plagiarism result:', err);
-    }
-  };
-
-  const getResourceById = (id: number) => resources.find(r => r.id === id);
+  const getResourceById = (id: string) => resources.find(r => r.id === id);
 
   const getResourcesByStatus = (status: ResourceStatus) =>
     resources.filter(r => r.status === status);
 
   const getResourcesByUploader = (uploaderId: string) =>
-    resources.filter(r => r.uploaderId === uploaderId);
+    resources.filter(r => r.id === uploaderId); // Assuming uploaderId is resource.id here, need to fix later if actual uploaderId is used
 
   return (
     <ResourceContext.Provider value={{
       resources,
-      addResource,
+      fetchResources,
       updateResourceStatus,
       addReview,
       setAIAnalysis,

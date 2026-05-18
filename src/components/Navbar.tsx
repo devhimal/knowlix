@@ -13,18 +13,20 @@ import {
 import { BookOpen, User, LogOut, Menu, Bell, FileCheck, Zap } from "lucide-react";
 import { useState } from "react";
 import { PaymentDialog } from "./PaymentDialog";
+import { usePayment } from "@/context/PaymentContext";
 
 export default function Navbar() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, signOut, isAuthenticated } = useAuth();
   const { notifications, unreadCount, markAsRead } = useNotifications();
+  const { isSubscribed } = usePayment();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
 
-  const isSubscribed = user?.subscription?.isSubscribed || false;
+  const userIsSubscribed = user ? isSubscribed(user.id) : false;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     router.push("/");
   };
 
@@ -42,7 +44,7 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            {isAuthenticated && (
+            {isAuthenticated && ( // Always true now for UI
               <>
                 <Link
                   href="/dashboard"
@@ -74,7 +76,7 @@ export default function Navbar() {
                 >
                   Books
                 </Link>
-                {["senior", "mentor", "admin"].includes(user?.role || "") && (
+                {["senior", "mentor", "admin"].includes(user?.role || "") && ( // Always true with mock admin
                   <Link
                     href="/review"
                     className="text-white/90 hover:text-white font-medium transition-colors flex items-center gap-1"
@@ -89,12 +91,12 @@ export default function Navbar() {
 
           {/* User Actions */}
           <div className="hidden md:flex items-center gap-4">
-            {isAuthenticated ? (
+            {isAuthenticated ? ( // Always true now for UI
               <>
-                {!isSubscribed && (
-                  <Button 
+                {!userIsSubscribed && ( // Mock subscribed is true
+                  <Button
                     onClick={() => setSubscriptionDialogOpen(true)}
-                    variant="secondary" 
+                    variant="secondary"
                     size="sm"
                     className="bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold border-none"
                   >
@@ -162,7 +164,7 @@ export default function Navbar() {
 
                 <div className="flex items-center gap-2 text-sm text-white font-medium bg-white/10 px-3 py-1.5 rounded-full">
                   <User className="h-4 w-4" />
-                  <span>{user?.name}</span>
+                  <span>{user?.user_metadata?.name || user?.email}</span>
                 </div>
                 
                 <Button onClick={handleLogout} variant="ghost" size="sm" className="text-white hover:bg-white/10">
@@ -188,15 +190,15 @@ export default function Navbar() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-white/10">
-            {isAuthenticated && (
+            {isAuthenticated && ( // Always true now for UI
               <div className="flex flex-col gap-1 mb-4">
-                {!isSubscribed && (
-                  <Button 
+                {!userIsSubscribed && ( // Mock subscribed is true
+                  <Button
                     onClick={() => {
                       setSubscriptionDialogOpen(true);
                       setMobileMenuOpen(false);
                     }}
-                    variant="secondary" 
+                    variant="secondary"
                     className="mx-3 mb-2 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold"
                   >
                     <Zap className="h-4 w-4 mr-2 fill-amber-950" />
@@ -241,7 +243,7 @@ export default function Navbar() {
               </div>
             )}
             <div className="px-3">
-              {isAuthenticated ? (
+              {isAuthenticated ? ( // Always true now for UI
                 <Button
                   onClick={handleLogout}
                   variant="outline"
@@ -252,12 +254,7 @@ export default function Navbar() {
                   Logout
                 </Button>
               ) : (
-                <Button
-                  onClick={() => router.push("/login")}
-                  size="sm"
-                  variant="secondary"
-                  className="w-full"
-                >
+                <Button onClick={() => router.push("/login")} size="sm" variant="secondary" className="w-full">
                   Login
                 </Button>
               )}
@@ -266,8 +263,8 @@ export default function Navbar() {
         )}
       </div>
 
-      <PaymentDialog 
-        open={subscriptionDialogOpen} 
+      <PaymentDialog
+        open={subscriptionDialogOpen}
         onOpenChange={setSubscriptionDialogOpen}
         mode="subscription"
       />

@@ -7,7 +7,7 @@ export interface Notification {
   message: string;
   read: boolean;
   createdAt: string;
-  resourceId?: number;
+  resourceId?: string;
   link?: string;
 }
 
@@ -39,7 +39,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       message: 'Your resource "Data Structures Notes.pdf" has been approved and is now live!',
       read: false,
       createdAt: new Date().toISOString(),
-      resourceId: 1,
+      resourceId: '1',
     },
     {
       id: '2',
