@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PaymentDialog } from "@/components/PaymentDialog";
 import { usePayment } from "@/context/PaymentContext";
-import { categories, semesters } from "@/app/upload/page"; // Import categories and semesters
+import { categories, semesters } from "@/lib/constants"; // Import categories and semesters
 
 import { useResources, Resource } from "@/context/ResourceContext";
 import { useAuth } from "@/context/AuthContext";
@@ -48,13 +48,13 @@ export default function ResourceLibrary() {
   const { hasPurchased, isSubscribed } = usePayment();
   const { user } = useAuth();
   const { resources, loading, fetchResources } = useResources();
-  console.log('Raw resources from context:', resources); // Debug log
+  console.log("Raw resources from context:", resources); // Debug log
 
   const router = useRouter();
 
   // Filter to show only approved resources
   const approvedResources = resources.filter((r) => r.status === "approved");
-  console.log('Approved resources (after status filter):', approvedResources); // Debug log
+  console.log("Approved resources (after status filter):", approvedResources); // Debug log
 
   const filteredResources = approvedResources
     .filter((resource) => {
@@ -90,7 +90,8 @@ export default function ResourceLibrary() {
       return 0;
     });
 
-  const handleResourceAction = async (resource: Resource) => { // Made async
+  const handleResourceAction = async (resource: Resource) => {
+    // Made async
     if (!user) {
       toast.error("Please log in to access resources.");
       return;
@@ -102,7 +103,10 @@ export default function ResourceLibrary() {
     }
 
     // Generate signed download URL
-    const downloadUrl = await getDownloadUrl(resource.file_path, resource.title + '.' + resource.fileType.split('/').pop());
+    const downloadUrl = await getDownloadUrl(
+      resource.file_path,
+      resource.title + "." + resource.fileType.split("/").pop(),
+    );
 
     if (!downloadUrl) {
       toast.error("Failed to prepare download. Please try again.");
@@ -117,7 +121,11 @@ export default function ResourceLibrary() {
     }
 
     // If subscribed, purchased, or it's the user's own resource, allow download
-    if ((user && isSubscribed(user.id)) || hasPurchased(resource.id) || user.id === resource.uploaderId) {
+    if (
+      (user && isSubscribed(user.id)) ||
+      hasPurchased(resource.id) ||
+      user.id === resource.uploaderId
+    ) {
       toast.success(`Downloading ${resource.title}...`);
       window.open(downloadUrl, "_blank");
       return;
@@ -441,4 +449,3 @@ const ResourceCard = ({
     </Card>
   );
 };
-

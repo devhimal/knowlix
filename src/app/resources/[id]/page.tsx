@@ -42,7 +42,7 @@ export default function ResourceDetailsPage() {
 
   const resourceId = params.id as string;
 
-  const { getResourceById, loading, fetchResources, resources } =
+  const { getResourceById, loading, fetchResources, resources, incrementDownload } =
     useResources();
 
   const { user } = useAuth();
@@ -62,8 +62,8 @@ export default function ResourceDetailsPage() {
 
   const handleDownload = async (res: Resource) => {
     // Made async
-    if (!user) {
-      toast.error("Please log in first");
+    if (!res.isFree && !user) {
+      toast.error("Please log in first to download premium resources.");
       return;
     }
 
@@ -85,12 +85,13 @@ export default function ResourceDetailsPage() {
 
     if (
       res.isFree ||
-      user && isSubscribed(user.id) ||
+      (user && isSubscribed(user.id)) ||
       hasPurchased(res.id) ||
-      user.id === res.uploaderId
+      (user && user.id === res.uploaderId)
     ) {
       toast.success(`Downloading ${res.title}`);
       window.open(downloadUrl, "_blank");
+      incrementDownload(res.id); // Increment download count
       return;
     }
 
@@ -133,9 +134,9 @@ export default function ResourceDetailsPage() {
 
   const canAccess =
     resource.isFree ||
-    user && isSubscribed(user.id) ||
+    (user && isSubscribed(user.id)) ||
     hasPurchased(resource.id) ||
-    user?.id === resource.uploaderId;
+    (user && user.id === resource.uploaderId);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4">

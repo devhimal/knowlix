@@ -19,107 +19,36 @@ import {
   GraduationCap,
   Building2,
   Wrench,
+  Download,
 } from "lucide-react";
 import { useState } from "react";
 import { Testimonials } from "@/components/Testimonials";
 import { Newsletter } from "@/components/Newsletter";
+import { categories, semesters } from "@/lib/constants";
+import { toast } from "sonner";
+import { getDownloadUrl } from "@/lib/supabase";
 
 export default function HomePage() {
   const router = useRouter();
   const { resources } = useResources();
-  const [activeCategory, setActiveCategory] = useState("plus-two");
-  const [activeSubCategory, setActiveSubCategory] =
-    useState("plus-two-science");
-
-  const mainCategories = [
-    {
-      id: "plus-two",
-      label: "Plus Two",
-      icon: GraduationCap,
-      color: "bg-primary",
-      subCategories: [
-        { id: "plus-two-science", label: "Science", program: "Science" },
-        {
-          id: "plus-two-management",
-          label: "Management",
-          program: "Management",
-        },
-      ],
-    },
-    {
-      id: "bachelors",
-      label: "Bachelors",
-      icon: BookOpen,
-      color: "bg-secondary",
-      subCategories: [
-        {
-          id: "bachelors-science-sem1",
-          label: "Science - Sem I",
-          program: "Science",
-          semester: "Semester I",
-        },
-        {
-          id: "bachelors-science-sem2",
-          label: "Science - Sem II",
-          program: "Science",
-          semester: "Semester II",
-        },
-      ],
-    },
-    {
-      id: "ctevt",
-      label: "CTEVT",
-      icon: Wrench,
-      color: "bg-accent",
-      subCategories: [
-        {
-          id: "ctevt-computer-sem1",
-          label: "Computer - Sem I",
-          program: "Computer Engineering",
-          semester: "Semester I",
-        },
-        {
-          id: "ctevt-computer-sem2",
-          label: "Computer - Sem II",
-          program: "Computer Engineering",
-          semester: "Semester II",
-        },
-        {
-          id: "ctevt-civil-sem1",
-          label: "Civil - Sem I",
-          program: "Civil Engineering",
-          semester: "Semester I",
-        },
-        {
-          id: "ctevt-civil-sem2",
-          label: "Civil - Sem II",
-          program: "Civil Engineering",
-          semester: "Semester II",
-        },
-      ],
-    },
-  ];
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("all");
+  const [selectedSemester, setSelectedSemester] = useState("all");
 
   const getFilteredResources = () => {
-    const category = mainCategories.find((c) => c.id === activeCategory);
-    const subCategory = category?.subCategories.find(
-      (sc) => sc.id === activeSubCategory,
-    );
+    let filtered = resources.filter((r) => r.status === "approved");
 
-    if (!subCategory) return [];
-
-    let filtered = resources.filter(
-      (r) =>
-        r.status === "approved" &&
-        r.category.id === activeCategory &&
-        r.program === subCategory.program,
-    );
-
-    if ("semester" in subCategory && subCategory.semester) {
-      filtered = filtered.filter((r) => r.semester === subCategory.semester);
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((r) => r.category.id === selectedCategory);
+    }
+    if (selectedSubCategory !== "all") {
+      filtered = filtered.filter((r) => r.subCategory.id === selectedSubCategory);
+    }
+    if (selectedSemester !== "all") {
+      filtered = filtered.filter((r) => r.semester === selectedSemester);
     }
 
-    return filtered.slice(0, 6);
+    return filtered;
   };
 
   const filteredResources = getFilteredResources();
@@ -154,10 +83,22 @@ export default function HomePage() {
     },
   ];
 
-  const currentCategory = mainCategories.find((c) => c.id === activeCategory);
+  const currentCategory = categories.find((c) => c.id === selectedCategory);
   const currentSubCategory = currentCategory?.subCategories.find(
-    (sc) => sc.id === activeSubCategory,
+    (sc) => sc.id === selectedSubCategory,
   );
+
+  const iconMap: Record<string, React.ElementType> = {
+    "plus-two": GraduationCap,
+    bachelors: BookOpen,
+    ctevt: Wrench,
+  };
+
+  const colorMap: Record<string, string> = {
+    "plus-two": "bg-primary",
+    bachelors: "bg-secondary",
+    ctevt: "bg-accent",
+  };
 
   return (
     <div className="overflow-hidden">
@@ -330,28 +271,29 @@ export default function HomePage() {
         <div className="mb-8">
           <div className="bg-background rounded-xl shadow-md p-3 overflow-x-auto">
             <div className="flex gap-2 min-w-max">
-              {mainCategories.map((category) => {
-                const Icon = category.icon;
-                const isActive = activeCategory === category.id;
+              {categories.map((category) => {
+                const Icon = iconMap[category.id];
+                const isActive = selectedCategory === category.id;
 
                 return (
                   <button
                     key={category.id}
                     onClick={() => {
-                      setActiveCategory(category.id);
-                      setActiveSubCategory(category.subCategories[0].id);
+                      setSelectedCategory(category.id);
+                      setSelectedSubCategory("all"); // Reset subcategory when main category changes
+                      setSelectedSemester("all"); // Reset semester when main category changes
                     }}
                     className={`
                       flex items-center gap-2 px-5 py-3 rounded-lg font-medium transition-all whitespace-nowrap
                       ${
                         isActive
-                          ? `${category.color} text-primary-foreground shadow-lg transform scale-105`
+                          ? `${colorMap[category.id]} text-primary-foreground shadow-lg transform scale-105`
                           : "bg-primary text-foreground hover:bg-muted hover:text-secondary"
                       }
                     `}
                   >
-                    <Icon className="h-5 w-5" />
-                    <span>{category.label}</span>
+                    {Icon && <Icon className="h-5 w-5" />}
+                    <span>{category.name}</span>
                   </button>
                 );
               })}
@@ -361,12 +303,12 @@ export default function HomePage() {
             <div className="bg-background rounded-xl shadow-md p-2 mt-2 overflow-x-auto">
               <div className="flex gap-2 min-w-max">
                 {currentCategory.subCategories.map((subCategory) => {
-                  const isActive = activeSubCategory === subCategory.id;
+                  const isActive = selectedSubCategory === subCategory.id;
 
                   return (
                     <button
                       key={subCategory.id}
-                      onClick={() => setActiveSubCategory(subCategory.id)}
+                      onClick={() => setSelectedSubCategory(subCategory.id)}
                       className={`
                         px-4 py-2 rounded-md font-medium text-sm transition-all whitespace-nowrap
                         ${
@@ -376,25 +318,65 @@ export default function HomePage() {
                         }
                       `}
                     >
-                      <span>{subCategory.label}</span>
+                      <span>{subCategory.name}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
           )}
-        </div>
+
+          {/* Semester Tabs */}
+          <div className="bg-background rounded-xl shadow-md p-2 mt-2 overflow-x-auto">
+            <div className="flex gap-2 min-w-max">
+              <button
+                onClick={() => setSelectedSemester("all")}
+                className={`
+                  px-4 py-2 rounded-md font-medium text-sm transition-all whitespace-nowrap
+                  ${
+                    selectedSemester === "all"
+                      ? `bg-primary text-primary-foreground`
+                      : "bg-transparent text-foreground hover:bg-primary"
+                  }
+                `}
+              >
+                <span>All Semesters</span>
+              </button>
+              {semesters.map((semester) => {
+                const isActive = selectedSemester === semester.id;
+                return (
+                  <button
+                    key={semester.id}
+                    onClick={() => setSelectedSemester(semester.id)}
+                    className={`
+                      px-4 py-2 rounded-md font-medium text-sm transition-all whitespace-nowrap
+                      ${
+                        isActive
+                          ? `bg-primary text-primary-foreground`
+                          : "bg-transparent text-foreground hover:bg-primary"
+                      }
+                    `}
+                  >
+                    <span>{semester.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>        </div>
 
         <div className="grid lg:grid-cols-3 gap-8 mb-12">
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                {currentCategory?.icon &&
+                {selectedCategory !== "all" && iconMap[selectedCategory] &&
                   (() => {
-                    const Icon = currentCategory.icon;
+                    const Icon = iconMap[selectedCategory];
                     return <Icon className="h-6 w-6 text-secondary" />;
                   })()}
-                {currentSubCategory?.label}
+                {selectedCategory === "all"
+                  ? "All Resources"
+                  : currentCategory?.name}{" "}
+                {selectedSubCategory !== "all" && ` - ${currentSubCategory?.name}`}
               </h2>
               <Button variant="ghost" onClick={() => router.push("/resources")}>
                 View All
@@ -614,27 +596,31 @@ export default function HomePage() {
 
 const FeedResourceCard = ({ resource }: { resource: any }) => {
   const router = useRouter();
+  const { incrementDownload } = useResources();
 
-  const getTypeColor = (type?: string) => {
-    switch (type) {
-      case "notes":
-        return "bg-primary/10 text-primary";
-      case "book":
-        return "bg-secondary/10 text-secondary-foreground";
-      case "assignment":
-        return "bg-accent/10 text-accent";
-      case "guide":
-        return "bg-green-500/10 text-green-500";
-      default:
-        return "bg-muted text-muted-foreground";
+  const handleDownload = async (res: any) => {
+    if (!res.file_path) {
+      toast.error("File path not available for download.");
+      return;
     }
+
+    const downloadUrl = await getDownloadUrl(
+      res.file_path,
+      res.title + "." + res.fileType.split("/").pop(),
+    );
+
+    if (!downloadUrl) {
+      toast.error("Failed to prepare download. Please try again.");
+      return;
+    }
+
+    toast.success(`Downloading ${res.title}`);
+    window.open(downloadUrl, "_blank");
+    incrementDownload(res.id); // Increment download count
   };
 
   return (
-    <Card
-      className="p-4 hover:shadow-xl transition-shadow cursor-pointer flex gap-4"
-      onClick={() => router.push("/resources")}
-    >
+    <Card className="p-4 hover:shadow-xl transition-shadow flex gap-4">
       <div className="bg-primary/10 p-4 rounded-lg flex items-center justify-center">
         <FileText className="h-8 w-8 text-primary" />
       </div>
@@ -673,6 +659,18 @@ const FeedResourceCard = ({ resource }: { resource: any }) => {
             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
             {resource.rating}
           </span>
+        </div>
+        <div className="flex gap-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/resources/${resource.id}`)}
+          >
+            View Details
+          </Button>
+          <Button size="sm" onClick={() => handleDownload(resource)}>
+            <Download className="w-4 h-4 mr-1" /> Download
+          </Button>
         </div>
       </div>
     </Card>
