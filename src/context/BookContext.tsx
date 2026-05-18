@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { useAuth } from './AuthContext'; // Assuming AuthContext provides user info
+// import { useAuth } from './AuthContext'; // Remove useAuth import
 
 export interface Book {
   id: string;
@@ -27,7 +27,7 @@ interface BookContextType {
 const BookContext = createContext<BookContextType | undefined>(undefined);
 
 export function BookProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Remove useAuth destructuring
   const [books, setBooks] = useState<Book[]>([
     // Dummy data for initial display
     {
@@ -78,16 +78,16 @@ export function BookProvider({ children }: { children: ReactNode }) {
   ]);
 
   const addBook = (newBookData: Omit<Book, 'id' | 'sellerId' | 'sellerName' | 'postedDate'>) => {
-    if (!user) {
-      console.error("User not authenticated to add book.");
-      return;
-    }
+    // if (!user) { // Remove user check
+    //   console.error("User not authenticated to add book.");
+    //   return;
+    // }
 
     const newBook: Book = {
       ...newBookData,
       id: `book-${books.length + 1}-${Date.now()}`,
-      sellerId: user.id,
-      sellerName: user.name,
+      sellerId: "mock-seller-id", // Replace with mock ID
+      sellerName: "Mock Seller", // Replace with mock Name
       postedDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
     };
     setBooks((prevBooks) => [...prevBooks, newBook]);
@@ -96,7 +96,9 @@ export function BookProvider({ children }: { children: ReactNode }) {
   const getBooks = () => books;
 
   const getUsersBooks = (userId: string) => {
-    return books.filter((book) => book.sellerId === userId);
+    // return books.filter((book) => book.sellerId === userId); // Original logic
+    // Now, always return all books or filter by mock ID for demonstration
+    return books; // Or return books.filter((book) => book.sellerId === "mock-seller-id");
   };
 
   return (

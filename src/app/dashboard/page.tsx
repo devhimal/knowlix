@@ -1,8 +1,8 @@
 "use client";
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { usePayment } from '@/context/PaymentContext';
+// import { useRouter } from 'next/navigation'; // Remove useRouter if only used for auth
+// import { useAuth } from '@/context/AuthContext'; // Remove useAuth
+// import { usePayment } from '@/context/PaymentContext'; // Remove usePayment if it was Supabase-dependent
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,34 @@ import { Badge } from '@/components/ui/badge';
 import { BookOpen, Upload, Users, FileText, Star, Download, Search, TrendingUp, DollarSign, ShoppingBag, Zap, Calendar, CreditCard } from 'lucide-react';
 
 export default function StudentDashboard() {
-  const { user, isAuthenticated } = useAuth();
-  const { getUserEarnings, purchasedResources, getUserTransactions } = usePayment();
-  const router = useRouter();
+  // const { user, isAuthenticated } = useAuth(); // Remove useAuth destructuring
+  // const { getUserEarnings, purchasedResources, getUserTransactions } = usePayment(); // Remove usePayment destructuring
+  // const router = useRouter(); // Remove useRouter if only used for auth
+
+  // Mock user data
+  const user = {
+    id: 'mock-user-id',
+    name: 'Student User',
+    email: 'student@example.com',
+    role: 'student',
+    course: 'Computer Science',
+    semester: '5th Semester',
+    subscription: {
+      isSubscribed: true,
+      plan: 'semester',
+      expiryDate: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString(), // 3 months from now
+    },
+  };
+  const isAuthenticated = true; // Always true for UI display
+
+  // Mock payment functions and data
+  const getUserEarnings = (_userId: string) => 1500; // Mock earnings
+  const purchasedResources = []; // Mock purchased resources
+  const getUserTransactions = (_userId: string) => ([ // Mock transactions
+    { id: 'tx1', resourceName: 'Calculus Notes', buyerEmail: 'student@example.com', sellerEmail: 'mentor@example.com', amount: 150, paymentMethod: 'esewa', status: 'completed', createdAt: '2024-04-01T10:00:00Z', type: 'resource' },
+    { id: 'tx2', resourceName: 'Linear Algebra Guide', buyerEmail: 'student@example.com', sellerEmail: 'mentor@example.com', amount: 200, paymentMethod: 'khalti', status: 'completed', createdAt: '2024-04-02T11:00:00Z', type: 'resource' },
+    { id: 'tx3', subscriptionPlan: 'semester', buyerEmail: 'student@example.com', sellerEmail: 'platform', amount: 999, paymentMethod: 'bank', status: 'completed', createdAt: '2024-04-03T12:00:00Z', type: 'subscription' },
+  ]);
 
   const transactions = user ? getUserTransactions(user.id) : [];
   const isSubscribed = user?.subscription?.isSubscribed || false;
@@ -27,13 +52,15 @@ export default function StudentDashboard() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
+    // Remove authentication check if only UI is needed
+    // if (!isAuthenticated) {
+    //   router.push('/login');
+    // }
+    console.log("Dashboard loaded - (Authentication check removed)");
+  }, []); // Remove isAuthenticated, router from dependency array
 
   const earnings = user ? getUserEarnings(user.id) : 0;
-  
+
   const recentFiles = [
     { id: 1, title: 'Data Structures Notes.pdf', description: 'Comprehensive notes on data structures including arrays, linked lists, and trees.', subject: 'Computer Science', semester: '5th', downloads: 234, rating: 4.8 },
     { id: 2, title: 'Algorithm Analysis.pdf', description: 'Detailed analysis of common algorithms and their complexities.', subject: 'Computer Science', semester: '5th', downloads: 189, rating: 4.6 },
@@ -60,7 +87,7 @@ export default function StudentDashboard() {
               {user?.course} • {user?.semester}
             </p>
           </div>
-          
+
           {isSubscribed ? (
             <div className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-primary/10">
               <div className="bg-primary/10 p-2 rounded-lg">
@@ -75,7 +102,7 @@ export default function StudentDashboard() {
               </Badge>
             </div>
           ) : (
-            <Button onClick={() => router.push('/resources')} className="bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold border-none">
+            <Button /*onClick={() => router.push('/resources')}*/ className="bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold border-none">
               <Zap className="h-4 w-4 mr-2 fill-amber-950" />
               Try Premium
             </Button>
@@ -90,10 +117,10 @@ export default function StudentDashboard() {
               <Input
                 placeholder="Search for notes, assignments, papers..."
                 className="pl-10 h-12 text-lg"
-                onFocus={() => router.push('/resources')}
+                // onFocus={() => router.push('/resources')}
               />
             </div>
-            <Button size="lg" onClick={() => router.push('/resources')} className="px-8">Search</Button>
+            <Button size="lg" /*onClick={() => router.push('/resources')}*/ className="px-8">Search</Button>
           </div>
         </Card>
 
@@ -105,22 +132,22 @@ export default function StudentDashboard() {
               <ActionCard
                 icon={<BookOpen className="h-6 w-6 text-primary" />}
                 title="Browse"
-                onClick={() => router.push('/resources')}
+                // onClick={() => router.push('/resources')}
               />
               <ActionCard
                 icon={<Upload className="h-6 w-6 text-green-500" />}
                 title="Upload"
-                onClick={() => router.push('/upload')}
+                // onClick={() => router.push('/upload')}
               />
               <ActionCard
                 icon={<Users className="h-6 w-6 text-purple-500" />}
                 title="Mentors"
-                onClick={() => router.push('/mentors')}
+                // onClick={() => router.push('/mentors')}
               />
               <ActionCard
                 icon={<DollarSign className="h-6 w-6 text-amber-500" />}
                 title="Earnings"
-                onClick={() => router.push('/earnings')}
+                // onClick={() => router.push('/earnings')}
               />
             </div>
 
@@ -216,7 +243,7 @@ export default function StudentDashboard() {
 };
 
 const ActionCard = ({ icon, title, description, onClick }: any) => (
-  <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={onClick}>
+  <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer" /*onClick={onClick}*/>
     <div className="mb-4">{icon}</div>
     <h3 className="font-semibold text-foreground mb-1">{title}</h3>
     <p className="text-sm text-muted-foreground">{description}</p>
@@ -234,10 +261,11 @@ const StatCard = ({ icon, value, label }: any) => (
 );
 
 const FileCard = ({ file }: any) => {
-  const router = useRouter();
+  // const router = useRouter(); // Remove useRouter
 
   const handleViewDetails = () => {
-    router.push(`/resources/${file.id}`);
+    // router.push(`/resources/${file.id}`); // Remove redirection
+    alert(`Navigating to /resources/${file.id}`);
   };
 
   const handleDownload = () => {

@@ -1,79 +1,154 @@
 "use client";
-import { useState } from 'react';
-import Navbar from '@/components/Navbar';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { PaymentDialog } from '@/components/PaymentDialog';
-import { usePayment } from '@/context/PaymentContext';
-import { useAuth } from '@/context/AuthContext';
-import { useResources, Resource } from '@/context/ResourceContext';
-import { Search, Filter, Download, Star, FileText, Flag, ShoppingCart, Lock, Check, Zap } from 'lucide-react';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { PaymentDialog } from "@/components/PaymentDialog";
+import { usePayment } from "@/context/PaymentContext";
+import { categories, semesters } from "@/app/upload/page"; // Import categories and semesters
+
+import { useResources, Resource } from "@/context/ResourceContext";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Search,
+  Filter,
+  Download,
+  Star,
+  FileText,
+  Flag,
+  ShoppingCart,
+  Lock,
+  Check,
+  Zap,
+} from "lucide-react";
+import { toast } from "sonner";
+import { getDownloadUrl } from "@/lib/supabase"; // Import the helper function
 
 export default function ResourceLibrary() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('all');
-  const [selectedSemester, setSelectedSemester] = useState('all');
-  const [selectedFileType, setSelectedFileType] = useState('all');
-  const [sortBy, setSortBy] = useState('popular');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("all");
+  const [selectedSemester, setSelectedSemester] = useState("all");
+  const [selectedFileType, setSelectedFileType] = useState("all");
+  const [sortBy, setSortBy] = useState("popular");
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  const [selectedResource, setSelectedResource] = useState<Resource | null>(
+    null,
+  );
 
-  const { hasPurchased } = usePayment();
+  const { hasPurchased, isSubscribed } = usePayment();
   const { user } = useAuth();
-  const { resources } = useResources();
-  const isSubscribed = user?.subscription?.isSubscribed || false;
+  const { resources, loading, fetchResources } = useResources();
+  console.log('Raw resources from context:', resources); // Debug log
+
+  const router = useRouter();
 
   // Filter to show only approved resources
-  const approvedResources = resources.filter(r => r.status === 'approved');
+  const approvedResources = resources.filter((r) => r.status === "approved");
+  console.log('Approved resources (after status filter):', approvedResources); // Debug log
 
-  const filteredResources = approvedResources.filter(resource => {
-    const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         resource.subject.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = selectedSubject === 'all' || resource.subject === selectedSubject;
-    const matchesSemester = selectedSemester === 'all' || resource.semester === selectedSemester;
-    const matchesFileType = selectedFileType === 'all' || resource.fileType === selectedFileType;
-    
-    return matchesSearch && matchesSubject && matchesSemester && matchesFileType;
-  }).sort((a, b) => {
-    if (sortBy === 'popular') return b.downloads - a.downloads;
-    if (sortBy === 'rating') return b.rating - a.rating;
-    if (sortBy === 'recent') return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime();
-    return 0;
-  });
+  const filteredResources = approvedResources
+    .filter((resource) => {
+      const matchesSearch =
+        resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        resource.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        resource.subjectName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "all" || resource.category.id === selectedCategory;
+      const matchesSubCategory =
+        selectedSubCategory === "all" ||
+        resource.subCategory.id === selectedSubCategory;
+      const matchesSemester =
+        selectedSemester === "all" || resource.semester === selectedSemester;
+      const matchesFileType =
+        selectedFileType === "all" || resource.fileType === selectedFileType;
 
-  const handleResourceAction = (resource: Resource) => {
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesSubCategory &&
+        matchesSemester &&
+        matchesFileType
+      );
+    })
+    .sort((a, b) => {
+      if (sortBy === "popular") return b.downloads - a.downloads;
+      if (sortBy === "rating") return b.rating - a.rating;
+      if (sortBy === "recent")
+        return (
+          new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+        );
+      return 0;
+    });
+
+  const handleResourceAction = async (resource: Resource) => { // Made async
     if (!user) {
-      toast.error('Please log in to access resources.');
+      toast.error("Please log in to access resources.");
+      return;
+    }
+
+    if (!resource.file_path) {
+      toast.error("File path not available for download.");
+      return;
+    }
+
+    // Generate signed download URL
+    const downloadUrl = await getDownloadUrl(resource.file_path, resource.title + '.' + resource.fileType.split('/').pop());
+
+    if (!downloadUrl) {
+      toast.error("Failed to prepare download. Please try again.");
       return;
     }
 
     // If resource is free, allow direct download
     if (resource.isFree) {
-      toast.success(`Downloaded ${resource.title}`);
+      toast.success(`Downloading ${resource.title}...`);
+      window.open(downloadUrl, "_blank");
       return;
     }
 
-    // If user is subscribed or already purchased or uploader, allow download
-    if (isSubscribed || hasPurchased(resource.id) || user.id === resource.uploaderId) {
-      toast.success(`Downloaded ${resource.title}`);
+    // If subscribed, purchased, or it's the user's own resource, allow download
+    if ((user && isSubscribed(user.id)) || hasPurchased(resource.id) || user.id === resource.uploaderId) {
+      toast.success(`Downloading ${resource.title}...`);
+      window.open(downloadUrl, "_blank");
       return;
     }
 
-    // Otherwise, show payment dialog for subscription
+    // Otherwise, show payment dialog
     setSelectedResource(resource);
     setPaymentDialogOpen(true);
+    toast.info("This is a premium resource. Please subscribe or purchase.");
   };
 
+  // Fetch resources on mount
+  useEffect(() => {
+    fetchResources();
+  }, [fetchResources]);
+
+  useEffect(() => {
+    setSelectedSubCategory("all");
+  }, [selectedCategory]);
+
+  const availableSubCategories =
+    selectedCategory !== "all"
+      ? categories.find((c) => c.id === selectedCategory)?.subCategories || []
+      : [];
+  console.log("check", filteredResources);
   return (
     <div className="min-h-screen bg-gray-50">
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Resource Library</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">
+          Resource Library
+        </h1>
 
         {/* Search and Filters */}
         <Card className="p-6 mb-8">
@@ -96,38 +171,68 @@ export default function ResourceLibrary() {
             </div>
             <div className="grid md:grid-cols-4 gap-4">
               <div>
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Subject" />
+                    <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Subjects</SelectItem>
-                    <SelectItem value="Computer Science">Computer Science</SelectItem>
-                    <SelectItem value="Mathematics">Mathematics</SelectItem>
-                    <SelectItem value="Physics">Physics</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+                <Select
+                  value={selectedSubCategory}
+                  onValueChange={setSelectedSubCategory}
+                  disabled={selectedCategory === "all"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sub-category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sub-categories</SelectItem>
+                    {availableSubCategories.map((subCat) => (
+                      <SelectItem key={subCat.id} value={subCat.id}>
+                        {subCat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Select
+                  value={selectedSemester}
+                  onValueChange={setSelectedSemester}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Semester" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Semesters</SelectItem>
-                    <SelectItem value="1st">1st Semester</SelectItem>
-                    <SelectItem value="2nd">2nd Semester</SelectItem>
-                    <SelectItem value="3rd">3rd Semester</SelectItem>
-                    <SelectItem value="4th">4th Semester</SelectItem>
-                    <SelectItem value="5th">5th Semester</SelectItem>
-                    <SelectItem value="6th">6th Semester</SelectItem>
+                    {semesters.map((sem) => (
+                      <SelectItem key={sem.id} value={sem.id}>
+                        {sem.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Select value={selectedFileType} onValueChange={setSelectedFileType}>
+                <Select
+                  value={selectedFileType}
+                  onValueChange={setSelectedFileType}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="File Type" />
                   </SelectTrigger>
@@ -164,13 +269,13 @@ export default function ResourceLibrary() {
         {/* Resources Grid */}
         <div className="grid gap-4">
           {filteredResources.map((resource) => (
-            <ResourceCard 
-              key={resource.id} 
-              resource={resource} 
+            <ResourceCard
+              key={resource.id}
+              resource={resource}
               onAction={handleResourceAction}
               isPurchased={hasPurchased(resource.id)}
               isOwnResource={user?.id === resource.uploaderId}
-              isSubscribed={isSubscribed}
+              isSubscribed={user ? isSubscribed(user.id) : false}
             />
           ))}
         </div>
@@ -190,7 +295,7 @@ export default function ResourceLibrary() {
       />
     </div>
   );
-};
+}
 
 interface ResourceCardProps {
   resource: Resource;
@@ -200,8 +305,18 @@ interface ResourceCardProps {
   isSubscribed: boolean;
 }
 
-const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource, isSubscribed }: ResourceCardProps) => {
+const ResourceCard = ({
+  resource,
+  onAction,
+  isPurchased,
+  isOwnResource,
+  isSubscribed,
+}: ResourceCardProps) => {
   const router = useRouter();
+  const handleViewDetails = () => {
+    router.push(`/resources/${resource.id}`);
+  };
+
   const getActionButton = () => {
     if (resource.isFree) {
       return (
@@ -235,39 +350,61 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource, isSubscr
         <div className="flex items-start gap-4 flex-1">
           <div className="bg-blue-100 p-3 rounded-lg relative">
             <FileText className="h-8 w-8 text-blue-600" />
-            {!resource.isFree && !isSubscribed && !isPurchased && !isOwnResource && (
-              <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-1">
-                <Lock className="h-3 w-3 text-white" />
-              </div>
-            )}
+            {!resource.isFree &&
+              !isSubscribed &&
+              !isPurchased &&
+              !isOwnResource && (
+                <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-1">
+                  <Lock className="h-3 w-3 text-white" />
+                </div>
+              )}
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2 mb-2">
-              <h3 className="font-semibold text-gray-900 text-lg">{resource.title}</h3>
-              {resource.status === 'approved' && (
-                <Badge variant="secondary" className="bg-green-100 text-green-700">
+              <h3 className="font-semibold text-gray-900 text-lg">
+                {resource.title}
+              </h3>
+              {resource.status === "approved" && (
+                <Badge
+                  variant="secondary"
+                  className="bg-green-100 text-green-700"
+                >
                   Verified
                 </Badge>
               )}
-              {!resource.isFree && !isSubscribed && !isPurchased && !isOwnResource && (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-700">
-                  Premium
-                </Badge>
-              )}
+              {!resource.isFree &&
+                !isSubscribed &&
+                !isPurchased &&
+                !isOwnResource && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-amber-100 text-amber-700"
+                  >
+                    Premium
+                  </Badge>
+                )}
               {resource.isFree && (
-                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                <Badge
+                  variant="secondary"
+                  className="bg-blue-100 text-blue-700"
+                >
                   Free
                 </Badge>
               )}
               {(isSubscribed || isPurchased) && !resource.isFree && (
-                <Badge variant="secondary" className="bg-green-100 text-green-700">
-                  {isSubscribed ? 'Premium Access' : 'Purchased'}
+                <Badge
+                  variant="secondary"
+                  className="bg-green-100 text-green-700"
+                >
+                  {isSubscribed ? "Premium Access" : "Purchased"}
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-gray-500 mb-2 line-clamp-2">{resource.description}</p>
-            
+            <p className="text-sm text-gray-500 mb-2 line-clamp-2">
+              {resource.description}
+            </p>
+
             <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
               <span>{resource.subject}</span>
               <span>•</span>
@@ -293,7 +430,7 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource, isSubscr
 
         <div className="flex gap-2">
           {getActionButton()}
-          <Button size="sm" variant="outline" onClick={() => router.push(`/resources/${resource.id}`)}>
+          <Button size="sm" variant="outline" onClick={handleViewDetails}>
             View Details
           </Button>
           <Button size="sm" variant="outline">
@@ -304,3 +441,4 @@ const ResourceCard = ({ resource, onAction, isPurchased, isOwnResource, isSubscr
     </Card>
   );
 };
+

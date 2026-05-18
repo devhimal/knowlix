@@ -2,27 +2,37 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { usePayment } from '@/context/PaymentContext';
+import { usePayment } from '@/context/PaymentContext'; // Keep usePayment for now
 import Navbar from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, FileText, Flag, CheckCircle, XCircle, Trash2, DollarSign, Calendar, CreditCard } from 'lucide-react';
+import { Users, FileText, Flag, CheckCircle, XCircle, Trash2, DollarSign, Calendar, CreditCard, Loader2 } from 'lucide-react';
 
 export default function AdminPanel() {
-  const { user, isAuthenticated } = useAuth();
-  const { getAllTransactions } = usePayment();
+  const { user, role, loading } = useAuth();
+  // const { getAllTransactions } = usePayment(); // Keep usePayment for now
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'admin') {
-      router.push('/dashboard');
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else if (role !== 'admin') {
+        router.push('/dashboard'); // Redirect if not an admin
+      }
     }
-  }, [isAuthenticated, user, router]);
+  }, [loading, user, role, router]);
 
-  const transactions = getAllTransactions();
+  // Mock transactions data, assuming usePayment will also be mocked or removed later
+  const transactions = [
+    { id: 't1', resourceName: 'Calculus Notes', buyerEmail: 'student1@example.com', sellerEmail: 'mentor1@example.com', amount: 150, paymentMethod: 'esewa', status: 'completed', createdAt: '2024-04-01T10:00:00Z' },
+    { id: 't2', resourceName: 'Linear Algebra Guide', buyerEmail: 'student2@example.com', sellerEmail: 'mentor2@example.com', amount: 200, paymentMethod: 'khalti', status: 'completed', createdAt: '2024-04-02T11:00:00Z' },
+    { id: 't3', resourceName: 'Subscription - Monthly', buyerEmail: 'student3@example.com', sellerEmail: 'platform', amount: 299, paymentMethod: 'bank', status: 'completed', createdAt: '2024-04-03T12:00:00Z' },
+    { id: 't4', resourceName: 'Physics Exam Prep', buyerEmail: 'student4@example.com', sellerEmail: 'mentor1@example.com', amount: 100, paymentMethod: 'esewa', status: 'failed', createdAt: '2024-04-04T13:00:00Z' },
+  ];
   const totalRevenue = transactions
     .filter(t => t.status === 'completed')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -63,6 +73,21 @@ export default function AdminPanel() {
     pendingVerification: resources.filter(r => r.status === 'pending').length,
     flaggedContent: resources.filter(r => r.status === 'flagged').length,
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-gray-700">Loading authentication...</span>
+      </div>
+    );
+  }
+
+  // If user is not admin, the useEffect will redirect them.
+  // We can render null or a basic message here as the redirection handles it.
+  if (!user || role !== 'admin') {
+    return null; 
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

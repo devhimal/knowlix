@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 export interface Transaction {
   id: string;
   type: 'resource_purchase' | 'subscription';
-  resourceId?: number;
+  resourceId?: string;
   resourceName?: string;
   subscriptionPlan?: 'monthly' | 'semester' | 'annual';
   buyerId: string;
@@ -18,7 +18,7 @@ export interface Transaction {
 }
 
 export interface PurchasedResource {
-  resourceId: number;
+  resourceId: string;
   purchaseDate: string;
   amount: number;
   transactionId: string;
@@ -28,7 +28,7 @@ interface PaymentContextType {
   transactions: Transaction[];
   purchasedResources: PurchasedResource[];
   initiatePayment: (
-    resourceId: number,
+    resourceId: string,
     resourceName: string,
     sellerId: string,
     sellerEmail: string,
@@ -44,7 +44,8 @@ interface PaymentContextType {
     buyerId: string,
     buyerEmail: string
   ) => Promise<{ success: boolean; transactionId?: string }>;
-  hasPurchased: (resourceId: number) => boolean;
+  hasPurchased: (resourceId: string) => boolean;
+  isSubscribed: (userId: string) => boolean;
   getUserEarnings: (userId: string) => number;
   getUserTransactions: (userId: string) => Transaction[];
   getAllTransactions: () => Transaction[];
@@ -87,7 +88,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
   }, [purchasedResources]);
 
   const initiatePayment = async (
-    resourceId: number,
+    resourceId: string,
     resourceName: string,
     sellerId: string,
     sellerEmail: string,
@@ -205,7 +206,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const hasPurchased = (resourceId: number): boolean => {
+  const hasPurchased = (resourceId: string): boolean => {
     return purchasedResources.some(purchase => purchase.resourceId === resourceId);
   };
 
@@ -217,6 +218,10 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
 
   const getUserTransactions = (userId: string): Transaction[] => {
     return transactions.filter(t => t.sellerId === userId || t.buyerId === userId);
+  };
+
+  const isSubscribed = (userId: string): boolean => {
+    return transactions.some(t => t.buyerId === userId && t.type === 'subscription' && t.status === 'completed');
   };
 
   const getAllTransactions = (): Transaction[] => {
@@ -231,6 +236,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         initiatePayment,
         initiateSubscription,
         hasPurchased,
+        isSubscribed,
         getUserEarnings,
         getUserTransactions,
         getAllTransactions,
