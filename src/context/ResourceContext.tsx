@@ -1,20 +1,27 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import supabase from '@/lib/supabase';
-import { categories, semesters } from '@/app/upload/page'; // Import categories and semesters
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useCallback,
+} from "react";
+import supabase from "@/lib/supabase";
+import { categories, semesters } from "@/lib/constants"; // Import categories and semesters
 
-export type ResourceStatus = 
-  | 'pending_ai'      // Step 1: Waiting for AI content check
-  | 'pending_plagiarism' // Step 2: Waiting for plagiarism check
-  | 'pending_review'  // Step 3: Waiting for senior/mentor review
-  | 'pending_admin'   // Step 4: Waiting for admin approval
-  | 'approved'        // Step 5: Approved and live
-  | 'rejected'        // Rejected at any stage
-  | 'flagged';        // Flagged by users
+export type ResourceStatus =
+  | "pending_ai" // Step 1: Waiting for AI content check
+  | "pending_plagiarism" // Step 2: Waiting for plagiarism check
+  | "pending_review" // Step 3: Waiting for senior/mentor review
+  | "pending_admin" // Step 4: Waiting for admin approval
+  | "approved" // Step 5: Approved and live
+  | "rejected" // Rejected at any stage
+  | "flagged"; // Flagged by users
 
 export interface ReviewFeedback {
   reviewerId: string;
   reviewerName: string;
-  reviewerRole: 'senior' | 'mentor' | 'admin';
+  reviewerRole: "senior" | "mentor" | "admin";
   rating?: number;
   comment: string;
   date: string;
@@ -22,7 +29,7 @@ export interface ReviewFeedback {
 
 export interface AIAnalysis {
   relevanceScore: number; // 0-100
-  qualityScore: number;   // 0-100
+  qualityScore: number; // 0-100
   completenessScore: number; // 0-100
   suggestions: string[];
   passed: boolean;
@@ -45,7 +52,7 @@ export interface Resource {
   semester: string;
   course: string;
   category: {
-    id: 'plus-two' | 'bachelors' | 'ctevt';
+    id: "plus-two" | "bachelors" | "ctevt";
     name: string;
   };
   subCategory: {
@@ -53,7 +60,7 @@ export interface Resource {
     name: string;
   };
   program: string; // e.g., 'Science', 'Management', 'Computer Engineering'
-  type?: 'notes' | 'book' | 'assignment' | 'guide'; // New field
+  type?: "notes" | "book" | "assignment" | "guide"; // New field
   fileType: string;
   fileSize: string;
   uploader: string;
@@ -77,19 +84,25 @@ interface ResourceContextType {
   updateResourceStatus: (id: string, status: ResourceStatus) => Promise<void>;
   addReview: (resourceId: string, review: ReviewFeedback) => Promise<void>;
   setAIAnalysis: (resourceId: string, analysis: AIAnalysis) => Promise<void>;
-  setPlagiarismResult: (resourceId: string, result: PlagiarismResult) => Promise<void>;
+  setPlagiarismResult: (
+    resourceId: string,
+    result: PlagiarismResult,
+  ) => Promise<void>;
   getResourceById: (id: string) => Resource | undefined;
   getResourcesByStatus: (status: ResourceStatus) => Resource[];
   getResourcesByUploader: (uploaderId: string) => Resource[];
+  incrementDownload: (resourceId: string) => Promise<void>;
   loading: boolean;
 }
 
-const ResourceContext = createContext<ResourceContextType | undefined>(undefined);
+const ResourceContext = createContext<ResourceContextType | undefined>(
+  undefined,
+);
 
 export const useResources = () => {
   const context = useContext(ResourceContext);
   if (!context) {
-    throw new Error('useResources must be used within a ResourceProvider');
+    throw new Error("useResources must be used within a ResourceProvider");
   }
   return context;
 };
@@ -102,9 +115,10 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('resources')
-        .select('*')
-        .order('created_at', { ascending: false }); // Order by most recent
+        .from("resources")
+        .select("*")
+        .eq("is_free", true) // Only fetch free resources
+        .order("created_at", { ascending: false }); // Order by most recent
 
       if (error) {
         throw error;
@@ -112,11 +126,17 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
       // Map Supabase data to Resource interface
       const fetchedResources: Resource[] = data.map((dbResource: any) => {
-        console.log('Raw dbResource:', dbResource); // Log raw data
+        console.log("Raw dbResource:", dbResource); // Log raw data
 
-        const category = categories.find(c => c.id === dbResource.category_id);
-        const subCategory = category?.subCategories.find(sc => sc.id === dbResource.sub_category_id);
-        const subject = subCategory?.subjects.find(s => s.id === dbResource.subject);
+        const category = categories.find(
+          (c) => c.id === dbResource.category_id,
+        );
+        const subCategory = category?.subCategories.find(
+          (sc) => sc.id === dbResource.sub_category_id,
+        );
+        const subject = subCategory?.subjects.find(
+          (s) => s.id === dbResource.subject,
+        );
 
         const resource: Resource = {
           id: dbResource.id,
@@ -125,20 +145,20 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
           subject: dbResource.subject, // This remains the ID
           subjectName: subject?.name || dbResource.subject, // Human-readable name
           semester: dbResource.semester,
-          course: dbResource.course || '', // Assuming course can be null
+          course: dbResource.course || "", // Assuming course can be null
           category: {
             id: dbResource.category_id,
-            name: category?.name || dbResource.category_id
+            name: category?.name || dbResource.category_id,
           },
           subCategory: {
             id: dbResource.sub_category_id,
-            name: subCategory?.name || dbResource.sub_category_id
+            name: subCategory?.name || dbResource.sub_category_id,
           },
-          program: dbResource.program || '', // Assuming program can be null
+          program: dbResource.program || "", // Assuming program can be null
           fileType: dbResource.file_type,
           fileSize: `${dbResource.file_size_mb} MB`, // Convert back to string for display
           file_path: dbResource.file_path, // Re-added file_path mapping
-          uploader: dbResource.uploader_name || 'Unknown',
+          uploader: dbResource.uploader_name || "Unknown",
           uploaderId: dbResource.uploader_id,
           uploaderEmail: dbResource.uploader_email,
           uploadDate: dbResource.created_at, // Use created_at as uploadDate
@@ -149,13 +169,13 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
           price: dbResource.price,
           isFree: dbResource.is_free,
         };
-        console.log('Mapped resource:', resource); // Log mapped data
+        console.log("Mapped resource:", resource); // Log mapped data
         return resource;
       });
 
       setResources(fetchedResources);
     } catch (error) {
-      console.error('Error fetching resources:', error);
+      console.error("Error fetching resources:", error);
     } finally {
       setLoading(false);
     }
@@ -170,53 +190,93 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
   const updateResourceStatus = async (id: string, status: ResourceStatus) => {
     // This function will need to be updated to interact with Supabase
     // For now, it will update local state.
-    setResources(prev =>
-      prev.map(r => r.id === id ? { ...r, status } : r)
+    setResources((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status } : r)),
     );
   };
 
   const addReview = async (resourceId: string, review: ReviewFeedback) => {
     // This function will need to be updated to interact with Supabase
-    setResources(prev =>
-      prev.map(r => r.id === resourceId ? { ...r, reviews: [...r.reviews, review] } : r)
+    setResources((prev) =>
+      prev.map((r) =>
+        r.id === resourceId ? { ...r, reviews: [...r.reviews, review] } : r,
+      ),
     );
   };
 
   const setAIAnalysis = async (resourceId: string, analysis: AIAnalysis) => {
     // This function will need to be updated to interact with Supabase
-    setResources(prev =>
-      prev.map(r => r.id === resourceId ? { ...r, aiAnalysis: analysis } : r)
+    setResources((prev) =>
+      prev.map((r) =>
+        r.id === resourceId ? { ...r, aiAnalysis: analysis } : r,
+      ),
     );
   };
 
-  const setPlagiarismResult = async (resourceId: string, result: PlagiarismResult) => {
+  const setPlagiarismResult = async (
+    resourceId: string,
+    result: PlagiarismResult,
+  ) => {
     // This function will need to be updated to interact with Supabase
-    setResources(prev =>
-      prev.map(r => r.id === resourceId ? { ...r, plagiarismResult: result } : r)
+    setResources((prev) =>
+      prev.map((r) =>
+        r.id === resourceId ? { ...r, plagiarismResult: result } : r,
+      ),
     );
   };
 
-  const getResourceById = (id: string) => resources.find(r => r.id === id);
+  const getResourceById = (id: string) => resources.find((r) => r.id === id);
 
   const getResourcesByStatus = (status: ResourceStatus) =>
-    resources.filter(r => r.status === status);
+    resources.filter((r) => r.status === status);
 
   const getResourcesByUploader = (uploaderId: string) =>
-    resources.filter(r => r.id === uploaderId); // Assuming uploaderId is resource.id here, need to fix later if actual uploaderId is used
+    resources.filter((r) => r.id === uploaderId); // Assuming uploaderId is resource.id here, need to fix later if actual uploaderId is used
+
+  const incrementDownload = async (resourceId: string) => {
+    try {
+      // Optimistically update the UI
+      setResources((prev) =>
+        prev.map((r) =>
+          r.id === resourceId ? { ...r, downloads: r.downloads + 1 } : r,
+        ),
+      );
+
+      // Update in Supabase
+      const { error } = await supabase.rpc("increment_resource_downloads", {
+        resource_id: resourceId,
+      });
+
+      if (error) {
+        console.error("Error incrementing download count:", error);
+        // Revert optimistic update if Supabase update fails
+        setResources((prev) =>
+          prev.map((r) =>
+            r.id === resourceId ? { ...r, downloads: r.downloads - 1 } : r,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error("Error in incrementDownload:", error);
+    }
+  };
 
   return (
-    <ResourceContext.Provider value={{
-      resources,
-      fetchResources,
-      updateResourceStatus,
-      addReview,
-      setAIAnalysis,
-      setPlagiarismResult,
-      getResourceById,
-      getResourcesByStatus,
-      getResourcesByUploader,
-      loading
-    }}>
+    <ResourceContext.Provider
+      value={{
+        resources,
+        fetchResources,
+        updateResourceStatus,
+        addReview,
+        setAIAnalysis,
+        setPlagiarismResult,
+        getResourceById,
+        getResourcesByStatus,
+        getResourcesByUploader,
+        incrementDownload,
+        loading,
+      }}
+    >
       {children}
     </ResourceContext.Provider>
   );
