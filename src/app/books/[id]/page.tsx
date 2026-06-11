@@ -8,35 +8,32 @@ import BookCard from "@/components/BookCard"; // Import BookCard
 import { useBooks } from "@/context/BookContext"; // Import useBooks
 
 export default function BookDetailsPage() {
-  // Remove params prop
   const router = useRouter();
   const params = useParams();
   const id = params?.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : undefined;
-  const { books } = useBooks();
+  const { books, loading: booksLoading } = useBooks();
   const [book, setBook] = useState<any>(null);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [localLoading, setLocalLoading] = useState(true); // Use a local loading state
 
   useEffect(() => {
     console.log("BookDetailsPage - useEffect triggered.");
     console.log("Current ID from params (direct access):", id);
     console.log("Books from context:", books);
 
-    if (id && books.length > 0) {
+    if (id && !booksLoading) { // Only process if ID is present and books are not loading from context
       const foundBook = books.find((b: any) => b.id === id);
-      console.log("Found book:", foundBook);
-      setBook(foundBook);
-      setLoading(false); // Data loaded
-    } else if (books.length === 0) {
-      // If books are still loading or empty, keep loading state, but if id is present, it will eventually find.
-      // If no books are ever loaded and id is present, it will eventually show "not found"
-      // For now, assume books will eventually load if the context is working.
-      setLoading(true);
-    } else {
-      setLoading(false); // No ID or other issue, stop loading
+      if (foundBook) {
+        setBook(foundBook);
+      } else {
+        setBook(null); // Book not found
+      }
+      setLocalLoading(false); // Local loading finished
+    } else if (!id) {
+      setLocalLoading(false); // No ID, so stop loading
     }
-  }, [id, books]);
+  }, [id, books, booksLoading]);
 
-  if (loading) {
+  if (localLoading) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto">

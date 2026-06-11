@@ -1,57 +1,95 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import clientPromise from "@/lib/db";
-import Rating from "@/models/Rating";
-import Resource from "@/models/Resource";
-import mongoose from "mongoose";
+import { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  const { id } = req.query;
-  const resourceId = id as string;
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  await clientPromise;
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
 
-  if (req.method === "POST") {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const { id } = req.query; // resource_id
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized: No access token provided.' });
+  }
+
+  // Create a Supabase client that acts as the authenticated user
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+
+  if (req.method === 'POST') {
+    const { userId, rating, comment } = req.body;
+
+    if (!id || !userId || !rating) {
+      return res.status(400).json({ error: 'Missing required fields: resourceId, userId, rating' });
+    }
+
     try {
-      const { rating, comment, userId } = req.body;
+      // Check if user has already rated this resource
+      const { data: existingRating, error: fetchError } = await supabase
+        .from('resource_ratings')
+        .select('*')
+        .eq('resource_id', id)
+        .eq('user_id', userId)
+        .single();
 
-      const newRating = new Rating({
-        resourceId,
-        userId,
-        rating,
-        comment,
-      });
-
-      await newRating.save();
-
-      const resource = await Resource.findById(resourceId);
-      if (resource) {
-        const ratings = await Rating.find({ resourceId });
-        const totalRatings = ratings.length;
-        const averageRating =
-          ratings.reduce((acc, curr) => acc + curr.rating, 0) / totalRatings;
-
-        resource.quality.averageRating = averageRating;
-        resource.quality.totalRatings = totalRatings;
-
-        await resource.save();
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+        throw fetchError;
       }
 
-      res.status(201).json(newRating);
-    } catch (error) {
-      res.status(500).json({ message: "Error submitting rating", error });
+      let response;
+      if (existingRating) {
+        // Update existing rating
+        response = await supabase
+          .from('resource_ratings')
+          .update({ rating, comment, created_at: new Date().toISOString() }) // Update created_at to reflect last update
+          .eq('resource_id', id)
+          .eq('user_id', userId);
+      } else {
+        // Insert new rating
+        response = await supabase
+          .from('resource_ratings')
+          .insert({ resource_id: id, user_id: userId, rating, comment });
+      }
+
+      const { data, error } = response;
+
+      if (error) {
+        throw error;
+      }
+
+      res.status(200).json({ message: 'Rating submitted successfully', data });
+    } catch (error: any) {
+      console.error('Error submitting rating:', error.message);
+      res.status(500).json({ error: error.message });
     }
-  } else if (req.method === "GET") {
+  } else if (req.method === 'GET') {
     try {
-      const ratings = await Rating.find({ resourceId }).populate("userId", "fullName");
-      res.status(200).json(ratings);
-    } catch (error) {
-      res.status(500).json({ message: "Error fetching ratings", error });
+      const { data, error } = await supabase
+        .from('resource_ratings')
+        .select('*')
+        .eq('resource_id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      res.status(200).json(data);
+    } catch (error: any) {
+      console.error('Error fetching ratings:', error.message);
+      res.status(500).json({ error: error.message });
     }
   } else {
-    res.setHeader("Allow", ["GET", "POST"]);
+    res.setHeader('Allow', ['POST', 'GET']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
