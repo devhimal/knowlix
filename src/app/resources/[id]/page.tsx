@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useResources, Resource } from "@/context/ResourceContext";
+import { useResources, Resource } from '@/context/ResourceContext';
 import { Button } from "@/components/ui/button";
 import { Download, Star, Check, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { usePayment } from "@/context/PaymentContext";
 import { getDownloadUrl } from "@/lib/supabase"; // Import the helper function
+import { StarRating } from '@/components/StarRating'; // Import StarRating
+import { Textarea } from '@/components/ui/textarea'; // Import Textarea
+import { Label } from '@/components/ui/label'; // Import Label
 
 export default function ResourceDetailsPage() {
   const params = useParams();
@@ -45,10 +48,12 @@ export default function ResourceDetailsPage() {
   const { getResourceById, loading, fetchResources, resources, incrementDownload } =
     useResources();
 
-  const { user } = useAuth();
+  const { user, isAuthenticated, session } = useAuth(); // Destructure isAuthenticated and session
   const { hasPurchased, isSubscribed } = usePayment();
 
   const [resource, setResource] = useState<Resource | undefined>();
+  const [userRating, setUserRating] = useState(0); // State for user's selected rating
+  const [userComment, setUserComment] = useState(""); // State for user's comment
 
   useEffect(() => {
     fetchResources?.();
@@ -56,9 +61,12 @@ export default function ResourceDetailsPage() {
 
   useEffect(() => {
     if (resourceId && resources.length > 0) {
-      setResource(getResourceById(resourceId));
+      const foundResource = getResourceById(resourceId);
+      setResource(foundResource);
+      // Optionally fetch user's existing rating for this resource to pre-fill
+      // This would require another API call or a modification to the existing resource fetch
     }
-  }, [resourceId, resources, getResourceById]); // Added getResourceById to dependencies
+  }, [resourceId, resources, getResourceById]);
 
   const handleDownload = async (res: Resource) => {
     // Made async
@@ -98,6 +106,45 @@ export default function ResourceDetailsPage() {
     toast.info("Premium resource. Please subscribe or purchase.");
   };
 
+  const handleRatingSubmit = async () => {
+    if (!isAuthenticated || !user || !session?.access_token) {
+      toast.error("You must be logged in to submit a rating.");
+      return;
+    }
+    if (userRating === 0) {
+      toast.error("Please select a star rating.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/resources/${resourceId}/ratings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`, // Add Authorization header
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          rating: userRating,
+          comment: userComment,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit rating.');
+      }
+
+      toast.success("Rating submitted successfully!");
+      // Optionally re-fetch resources to update the average rating display
+      fetchResources();
+      setUserRating(0);
+      setUserComment("");
+    } catch (error: any) {
+      console.error("Error submitting rating:", error);
+      toast.error(error.message || "Failed to submit rating.");
+    }
+  };
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -158,7 +205,9 @@ export default function ResourceDetailsPage() {
 
               <div className="flex items-center gap-2 mt-3">
                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                <span className="text-sm text-gray-600">{resource.rating}</span>
+                <span className="text-sm text-gray-600">
+                  {resource.average_rating?.toFixed(1)} ({resource.total_ratings} ratings)
+                </span>
               </div>
             </div>
 
@@ -209,6 +258,33 @@ export default function ResourceDetailsPage() {
               <Badge className="bg-amber-100 text-amber-700">
                 Premium • NPR {resource.price}
               </Badge>
+            )}
+          </div>
+
+          {/* Rating Section */}
+          <div className="mt-10 pt-8 border-t border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Rate this Resource</h2>
+            {isAuthenticated ? (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="mb-4">
+                  <Label htmlFor="rating">Your Rating:</Label>
+                  <StarRating initialRating={userRating} onRatingChange={setUserRating} />
+                </div>
+                <div className="mb-4">
+                  <Label htmlFor="comment">Your Comment (Optional):</Label>
+                  <Textarea
+                    id="comment"
+                    value={userComment}
+                    onChange={(e) => setUserComment(e.target.value)}
+                    placeholder="Share your thoughts on this resource..."
+                    rows={4}
+                    className="mt-1"
+                  />
+                </div>
+                <Button onClick={handleRatingSubmit} className="w-full">Submit Rating</Button>
+              </div>
+            ) : (
+              <p className="text-gray-600">Please log in to rate this resource.</p>
             )}
           </div>
         </div>

@@ -1,117 +1,122 @@
 "use client";
 
-import React, { createContext, useState, useContext, ReactNode } from 'react';
-// import { useAuth } from './AuthContext'; // Remove useAuth import
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useCallback,
+} from "react";
+import supabase from "@/lib/supabase"; // Client-side Supabase client
 
 export interface Book {
   id: string;
+  created_at: string;
   title: string;
   author: string;
-  condition: "new" | "used-like-new" | "used-good" | "used-fair";
-  type: "sell" | "exchange" | "free"; // sell, exchange, free
-  price?: number; // Only if type is 'sell'
-  exchangeFor?: string; // Only if type is 'exchange'
-  description?: string;
-  sellerId: string;
-  sellerName: string;
-  postedDate: string;
+  isbn: string | null;
+  genre: string | null;
+  publication_year: number | null;
+  cover_image_url: string | null;
+  description: string | null;
+  pages: number | null;
+  language: string | null;
+  pdf_url: string | null;
+  // New properties for market functionality
+  condition: string | null;
+  price: number | null;
+  type: "sell" | "exchange" | "free" | null;
+  exchangeFor: string | null;
 }
 
 interface BookContextType {
   books: Book[];
-  addBook: (newBook: Omit<Book, 'id' | 'sellerId' | 'sellerName' | 'postedDate'>) => void;
-  getBooks: () => Book[];
-  getUsersBooks: (userId: string) => Book[];
+  fetchBooks: () => Promise<void>;
+  addBook: (bookData: Omit<Book, "id" | "created_at">) => Promise<Book | undefined>;
+  loading: boolean;
 }
 
 const BookContext = createContext<BookContextType | undefined>(undefined);
 
-export function BookProvider({ children }: { children: ReactNode }) {
-  // const { user } = useAuth(); // Remove useAuth destructuring
-  const [books, setBooks] = useState<Book[]>([
-    // Dummy data for initial display
-    {
-      id: "b1",
-      title: "Calculus I",
-      author: "James Stewart",
-      condition: "used-good",
-      type: "sell",
-      price: 500,
-      description: "8th edition, some highlights",
-      sellerId: "user1",
-      sellerName: "Alice",
-      postedDate: "2023-01-15",
-    },
-    {
-      id: "b2",
-      title: "Linear Algebra",
-      author: "Gilbert Strang",
-      condition: "used-fair",
-      type: "exchange",
-      exchangeFor: "Differential Equations book",
-      sellerId: "user2",
-      sellerName: "Bob",
-      postedDate: "2023-02-01",
-    },
-    {
-      id: "b3",
-      title: "Data Structures and Algorithms",
-      author: "Thomas Cormen",
-      condition: "new",
-      type: "sell",
-      price: 800,
-      sellerId: "user1",
-      sellerName: "Alice",
-      postedDate: "2023-03-10",
-    },
-    {
-      id: "b4",
-      title: "Operating System Concepts",
-      author: "Silberschatz",
-      condition: "used-good",
-      type: "free",
-      description: "7th edition, some wear and tear",
-      sellerId: "user3",
-      sellerName: "Charlie",
-      postedDate: "2023-03-20",
-    },
-  ]);
+export const useBooks = () => {
+  const context = useContext(BookContext);
+  if (!context) {
+    throw new Error("useBooks must be used within a BookProvider");
+  }
+  return context;
+};
 
-  const addBook = (newBookData: Omit<Book, 'id' | 'sellerId' | 'sellerName' | 'postedDate'>) => {
-    // if (!user) { // Remove user check
-    //   console.error("User not authenticated to add book.");
-    //   return;
-    // }
+export const BookProvider = ({ children }: { children: ReactNode }) => {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    const newBook: Book = {
-      ...newBookData,
-      id: `book-${books.length + 1}-${Date.now()}`,
-      sellerId: "mock-seller-id", // Replace with mock ID
-      sellerName: "Mock Seller", // Replace with mock Name
-      postedDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
-    };
-    setBooks((prevBooks) => [...prevBooks, newBook]);
-  };
+  const fetchBooks = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from("books").select("*");
 
-  const getBooks = () => books;
+      if (error) {
+        throw error;
+      }
+      setBooks(data as Book[]);
+    } catch (error) {
+      console.error("Error fetching books:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const getUsersBooks = (userId: string) => {
-    // return books.filter((book) => book.sellerId === userId); // Original logic
-    // Now, always return all books or filter by mock ID for demonstration
-    return books; // Or return books.filter((book) => book.sellerId === "mock-seller-id");
-  };
+  const addBook = useCallback(
+    async (bookData: Omit<Book, "id" | "created_at">): Promise<Book | undefined> => {
+      try {
+        const {
+          coverImageUrl,
+          publicationYear,
+          exchangeFor,
+          pdfUrl,
+          ...rest
+        } = bookData;
+
+        const dataToInsert = {
+          ...rest,
+          cover_image_url: coverImageUrl,
+          publication_year: publicationYear,
+          exchange_for: exchangeFor,
+          pdf_url: pdfUrl,
+        };
+
+        const { data, error } = await supabase.from("books").insert(dataToInsert).select();
+
+        if (error) {
+          throw error;
+        }
+
+        // Re-fetch books to update the context state with the new book and its auto-generated ID/created_at
+        fetchBooks();
+        return data ? (data[0] as Book) : undefined;
+      } catch (error) {
+        console.error("Error adding book:", error);
+        return undefined;
+      }
+    },
+    [fetchBooks],
+  );
+
+  useEffect(() => {
+    fetchBooks();
+  }, [fetchBooks]);
 
   return (
-    <BookContext.Provider value={{ books, addBook, getBooks, getUsersBooks }}>
+    <BookContext.Provider
+      value={{
+        books,
+        fetchBooks,
+        addBook, // Expose addBook
+        loading,
+      }}
+    >
       {children}
     </BookContext.Provider>
   );
-}
-
-export function useBooks() {
-  const context = useContext(BookContext);
-  if (context === undefined) {
-    throw new Error('useBooks must be used within a BookProvider');
-  }
-  return context;
-}
+};

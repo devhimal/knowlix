@@ -82,7 +82,7 @@ export default function ResourceLibrary() {
     })
     .sort((a, b) => {
       if (sortBy === "popular") return b.downloads - a.downloads;
-      if (sortBy === "rating") return b.rating - a.rating;
+      if (sortBy === "rating") return (b.average_rating || 0) - (a.average_rating || 0);
       if (sortBy === "recent")
         return (
           new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
@@ -430,7 +430,7 @@ const ResourceCard = ({
               </span>
               <span className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                {resource.rating} rating
+                {resource.average_rating?.toFixed(1)} rating
               </span>
             </div>
           </div>

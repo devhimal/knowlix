@@ -1,78 +1,154 @@
 "use client";
-import { useEffect } from 'react';
-// import { useRouter } from 'next/navigation'; // Remove useRouter if only used for auth
-// import { useAuth } from '@/context/AuthContext'; // Remove useAuth
-// import { usePayment } from '@/context/PaymentContext'; // Remove usePayment if it was Supabase-dependent
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { BookOpen, Upload, Users, FileText, Star, Download, Search, TrendingUp, DollarSign, ShoppingBag, Zap, Calendar, CreditCard } from 'lucide-react';
 
-export default function StudentDashboard() {
-  // const { user, isAuthenticated } = useAuth(); // Remove useAuth destructuring
-  // const { getUserEarnings, purchasedResources, getUserTransactions } = usePayment(); // Remove usePayment destructuring
-  // const router = useRouter(); // Remove useRouter if only used for auth
+import { useEffect, useState, useCallback } from "react";
+import supabase, { getDownloadUrl } from "@/lib/supabase"; // Import getDownloadUrl
+import { Resource } from "@/context/ResourceContext"; // Changed to use alias
+import { usePayment } from "@/context/PaymentContext";
+import { useAuth } from "@/context/AuthContext";
+import { useResources } from "@/context/ResourceContext";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  BookOpen,
+  Upload,
+  Users,
+  FileText,
+  Star,
+  Download,
+  Search,
+  TrendingUp,
+  DollarSign,
+  Zap,
+  Calendar,
+  CreditCard,
+  Check,
+  Eye,
+  Trash2,
+} from "lucide-react";
 
-  // Mock user data
-  const user = {
-    id: 'mock-user-id',
-    name: 'Student User',
-    email: 'student@example.com',
-    role: 'student',
-    course: 'Computer Science',
-    semester: '5th Semester',
-    subscription: {
-      isSubscribed: true,
-      plan: 'semester',
-      expiryDate: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString(), // 3 months from now
-    },
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+// Define helper components first as they are used by others
+const ActionCard = ({ icon, title, description, onClick }: any) => (
+  <Card
+    className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+    onClick={onClick}
+  >
+    <div className="mb-4">{icon}</div>
+    <h3 className="font-semibold text-foreground mb-1">{title}</h3>
+    <p className="text-sm text-muted-foreground">{description}</p>
+  </Card>
+);
+
+const StatCard = ({ icon, value, label }: any) => (
+  <Card className="p-6">
+    <div className="flex items-center justify-between mb-2">
+      <div className="text-muted-foreground">{icon}</div>
+      <div className="text-2xl font-bold text-foreground">{value}</div>
+    </div>
+    <div className="text-sm text-muted-foreground">{label}</div>
+  </Card>
+);
+
+const FileCard = ({ file }: { file: Resource }) => {
+  const router = useRouter();
+  const { incrementDownload } = useResources(); // Access incrementDownload from context
+
+  const handleViewDetails = () => {
+    router.push(`/resources/${file.id}`);
   };
-  const isAuthenticated = true; // Always true for UI display
 
-  // Mock payment functions and data
-  const getUserEarnings = (_userId: string) => 1500; // Mock earnings
-  const purchasedResources = []; // Mock purchased resources
-  const getUserTransactions = (_userId: string) => ([ // Mock transactions
-    { id: 'tx1', resourceName: 'Calculus Notes', buyerEmail: 'student@example.com', sellerEmail: 'mentor@example.com', amount: 150, paymentMethod: 'esewa', status: 'completed', createdAt: '2024-04-01T10:00:00Z', type: 'resource' },
-    { id: 'tx2', resourceName: 'Linear Algebra Guide', buyerEmail: 'student@example.com', sellerEmail: 'mentor@example.com', amount: 200, paymentMethod: 'khalti', status: 'completed', createdAt: '2024-04-02T11:00:00Z', type: 'resource' },
-    { id: 'tx3', subscriptionPlan: 'semester', buyerEmail: 'student@example.com', sellerEmail: 'platform', amount: 999, paymentMethod: 'bank', status: 'completed', createdAt: '2024-04-03T12:00:00Z', type: 'subscription' },
-  ]);
+  const handleDownload = async () => {
+    if (!file.file_path) {
+      toast.error("File path not available for download.");
+      return;
+    }
 
-  const transactions = user ? getUserTransactions(user.id) : [];
-  const isSubscribed = user?.subscription?.isSubscribed || false;
+    try {
+      // Use the getDownloadUrl helper function
+      const downloadUrl = await getDownloadUrl(file.file_path, file.title);
+      
+      if (downloadUrl) {
+        // Initiate download
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = file.title; // Suggest a filename
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
 
-  const getPlanName = (plan: string) => {
-    switch (plan) {
-      case 'monthly': return 'Monthly Pro';
-      case 'semester': return 'Semester Pass';
-      case 'annual': return 'Annual Elite';
-      default: return 'Free Plan';
+        // Increment download count in DB
+        await incrementDownload(file.id);
+        toast.success(`Downloading "${file.title}"!`);
+      } else {
+        toast.error("Failed to get download URL.");
+      }
+    } catch (error) {
+      console.error("Error during download:", error);
+      toast.error("An error occurred during download.");
     }
   };
 
-  useEffect(() => {
-    // Remove authentication check if only UI is needed
-    // if (!isAuthenticated) {
-    //   router.push('/login');
-    // }
-    console.log("Dashboard loaded - (Authentication check removed)");
-  }, []); // Remove isAuthenticated, router from dependency array
+  return (
+    <Card className="p-4 hover:shadow-lg transition-shadow">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-start gap-3 flex-1">
+          <FileText className="h-10 w-10 text-primary" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-foreground mb-1 truncate">{file.title}</h3>
+            <p className="text-sm text-muted-foreground">
+              {file.subjectName} - {file.semester}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{file.description}</p>
+            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Download className="h-4 w-4" />
+                {file.downloads}
+              </span>
+              <span className="flex items-center gap-1">
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                {file.average_rating?.toFixed(1)} ({file.total_ratings})
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-2 mt-2">
+        <Button size="sm" className="flex-1" onClick={handleDownload}>Download</Button>
+        <Button size="sm" variant="outline" className="flex-1" onClick={handleViewDetails}>View Details</Button>
+      </div>
+    </Card>
+  );
+};
 
+interface StudentDashboardContentProps {
+  user: any; // Consider a more specific User type from AuthContext
+  isSubscribed: boolean;
+  getPlanName: (plan: string) => string;
+  recentFiles: Resource[];
+  recommendedResources: Resource[];
+  transactions: any[]; // Consider a more specific Transaction type from PaymentContext
+  loadingPayments: boolean;
+  getUserEarnings: (userId: string) => number;
+  myUploadedResources: Resource[]; // Added for user-specific uploads
+}
+
+const StudentDashboardContent = ({
+  user,
+  isSubscribed,
+  getPlanName,
+  recentFiles,
+  recommendedResources,
+  transactions,
+  loadingPayments,
+  getUserEarnings,
+  myUploadedResources,
+}: StudentDashboardContentProps) => {
   const earnings = user ? getUserEarnings(user.id) : 0;
-
-  const recentFiles = [
-    { id: 1, title: 'Data Structures Notes.pdf', description: 'Comprehensive notes on data structures including arrays, linked lists, and trees.', subject: 'Computer Science', semester: '5th', downloads: 234, rating: 4.8 },
-    { id: 2, title: 'Algorithm Analysis.pdf', description: 'Detailed analysis of common algorithms and their complexities.', subject: 'Computer Science', semester: '5th', downloads: 189, rating: 4.6 },
-    { id: 3, title: 'Database Management.pptx', description: 'Presentation slides covering database design, SQL, and normalization.', subject: 'Computer Science', semester: '5th', downloads: 156, rating: 4.7 },
-    { id: 4, title: 'Operating Systems.pdf', description: 'Notes on operating system concepts, processes, memory management, and file systems.', subject: 'Computer Science', semester: '5th', downloads: 298, rating: 4.9 },
-  ];
-
-  const recommendedResources = [
-    { id: 5, title: 'Web Development Guide.pdf', description: 'A complete guide to modern web development technologies and practices.', subject: 'Computer Science', semester: '6th', downloads: 412, rating: 4.9 },
-    { id: 6, title: 'Machine Learning Basics.pdf', description: 'Introduction to machine learning, covering supervised and unsupervised learning algorithms.', subject: 'Computer Science', semester: '6th', downloads: 345, rating: 4.8 },
-    { id: 7, title: 'Software Engineering.docx', description: 'Foundations of software engineering, including design patterns and agile methodologies.', subject: 'Computer Science', semester: '6th', downloads: 278, rating: 4.7 },
-  ];
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -102,7 +178,7 @@ export default function StudentDashboard() {
               </Badge>
             </div>
           ) : (
-            <Button /*onClick={() => router.push('/resources')}*/ className="bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold border-none">
+            <Button className="bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold border-none" onClick={() => router.push('/resources')}>
               <Zap className="h-4 w-4 mr-2 fill-amber-950" />
               Try Premium
             </Button>
@@ -117,10 +193,10 @@ export default function StudentDashboard() {
               <Input
                 placeholder="Search for notes, assignments, papers..."
                 className="pl-10 h-12 text-lg"
-                // onFocus={() => router.push('/resources')}
+                onFocus={() => router.push('/resources')}
               />
             </div>
-            <Button size="lg" /*onClick={() => router.push('/resources')}*/ className="px-8">Search</Button>
+            <Button size="lg" onClick={() => router.push('/resources')}>Search</Button>
           </div>
         </Card>
 
@@ -132,22 +208,22 @@ export default function StudentDashboard() {
               <ActionCard
                 icon={<BookOpen className="h-6 w-6 text-primary" />}
                 title="Browse"
-                // onClick={() => router.push('/resources')}
+                onClick={() => router.push('/resources')}
               />
               <ActionCard
                 icon={<Upload className="h-6 w-6 text-green-500" />}
                 title="Upload"
-                // onClick={() => router.push('/upload')}
+                onClick={() => router.push('/upload')}
               />
               <ActionCard
                 icon={<Users className="h-6 w-6 text-purple-500" />}
                 title="Mentors"
-                // onClick={() => router.push('/mentors')}
+                onClick={() => router.push('/mentors')}
               />
               <ActionCard
                 icon={<DollarSign className="h-6 w-6 text-amber-500" />}
                 title="Earnings"
-                // onClick={() => router.push('/earnings')}
+                onClick={() => router.push('/earnings')}
               />
             </div>
 
@@ -159,16 +235,54 @@ export default function StudentDashboard() {
               <StatCard icon={<TrendingUp className="h-4 w-4" />} value="234" label="Points" />
             </div>
 
-            {/* Recently Uploaded */}
+            {/* My Uploaded Resources */}
             <section>
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Upload className="h-5 w-5 text-green-500" />
+                My Uploaded Resources
+              </h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {myUploadedResources.length > 0 ? (
+                  myUploadedResources.map((file) => (
+                    <FileCard key={file.id} file={file} />
+                  ))
+                ) : (
+                  <p>You have not uploaded any resources yet.</p>
+                )}
+              </div>
+            </section>
+
+            {/* Recently Uploaded */}
+            <section className="mt-8">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
                 Recently Uploaded
               </h2>
               <div className="grid md:grid-cols-2 gap-4">
-                {recentFiles.map((file) => (
-                  <FileCard key={file.id} file={file} />
-                ))}
+                {recentFiles.length > 0 ? (
+                  recentFiles.map((file) => (
+                    <FileCard key={file.id} file={file} />
+                  ))
+                ) : (
+                  <p>No recent files found.</p>
+                )}
+              </div>
+            </section>
+
+            {/* Recommended Resources */}
+            <section className="mt-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Star className="h-5 w-5 text-yellow-500" />
+                Recommended for You
+              </h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {recommendedResources.length > 0 ? (
+                  recommendedResources.map((file) => (
+                    <FileCard key={file.id} file={file} />
+                  ))
+                ) : (
+                  <p>No recommendations found.</p>
+                )}
               </div>
             </section>
           </div>
@@ -208,7 +322,11 @@ export default function StudentDashboard() {
                 History
               </h2>
               <Card className="divide-y border-none shadow-sm overflow-hidden bg-white">
-                {transactions.length > 0 ? (
+                {loadingPayments ? (
+                  <div className="p-8 text-center text-gray-500 text-sm">
+                    Loading transactions...
+                  </div>
+                ) : transactions.length > 0 ? (
                   transactions.slice(0, 5).map((tx) => (
                     <div key={tx.id} className="p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start mb-1">
@@ -228,11 +346,9 @@ export default function StudentDashboard() {
                     No recent transactions
                   </div>
                 )}
-                {transactions.length > 0 && (
-                  <Button variant="ghost" className="w-full text-xs text-primary font-bold py-3">
-                    View All Activity
-                  </Button>
-                )}
+                {transactions.length > 0 && <Button variant="ghost" className="w-full text-xs text-primary font-bold py-3">
+                  View All Activity
+                </Button>}
               </Card>
             </section>
           </div>
@@ -242,65 +358,284 @@ export default function StudentDashboard() {
   );
 };
 
-const ActionCard = ({ icon, title, description, onClick }: any) => (
-  <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer" /*onClick={onClick}*/>
-    <div className="mb-4">{icon}</div>
-    <h3 className="font-semibold text-foreground mb-1">{title}</h3>
-    <p className="text-sm text-muted-foreground">{description}</p>
-  </Card>
-);
+export default function StudentDashboard() {
+  const { user, isAuthenticated, role, loading } = useAuth();
+  const { getUserEarnings, getUserTransactions, loading: loadingPayments } = usePayment();
+  const { resources, fetchResources, loading: loadingResourcesFromContext } = useResources();
 
-const StatCard = ({ icon, value, label }: any) => (
-  <Card className="p-6">
-    <div className="flex items-center justify-between mb-2">
-      <div className="text-muted-foreground">{icon}</div>
-      <div className="text-2xl font-bold text-foreground">{value}</div>
-    </div>
-    <div className="text-sm text-muted-foreground">{label}</div>
-  </Card>
-);
+  const transactions = user && !loadingPayments ? getUserTransactions(user.id) : [];
+  const isSubscribed = user?.subscription?.isSubscribed || false;
 
-const FileCard = ({ file }: any) => {
-  // const router = useRouter(); // Remove useRouter
+  const [recentFiles, setRecentFiles] = useState<Resource[]>([]);
+  const [recommendedResources, setRecommendedResources] = useState<Resource[]>([]);
+  const [myUploadedResources, setMyUploadedResources] = useState<Resource[]>([]);
+  const [loadingDashboardResources, setLoadingDashboardResources] = useState(true);
 
-  const handleViewDetails = () => {
-    // router.push(`/resources/${file.id}`); // Remove redirection
-    alert(`Navigating to /resources/${file.id}`);
+  const getPlanName = (plan: string) => {
+    switch (plan) {
+      case 'monthly': return 'Monthly Pro';
+      case 'semester': return 'Semester Pass';
+      case 'annual': return 'Annual Elite';
+      default: return 'Free Plan';
+    }
   };
 
-  const handleDownload = () => {
-    alert(`Downloading ${file.title}...`);
-    // In a real app, this would trigger the actual download logic
-  };
+  const fetchDashboardResources = useCallback(async () => {
+    setLoadingDashboardResources(true);
+    await fetchResources(); // Fetch free resources
+    setLoadingDashboardResources(false);
+  }, [fetchResources]);
+
+  useEffect(() => {
+    fetchDashboardResources();
+  }, [fetchDashboardResources]);
+
+  useEffect(() => {
+    if (!loadingResourcesFromContext && resources.length > 0) {
+      // All free resources fetched by fetchResources
+      const sortedResources = [...resources].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+      setRecentFiles(sortedResources.slice(0, 4));
+
+      const sortedByDownloads = [...resources].sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
+      setRecommendedResources(sortedByDownloads.slice(0, 3));
+
+      // Filter for resources uploaded by the current user
+      if (user?.id) {
+        setMyUploadedResources(resources.filter(resource => resource.uploaderId === user.id));
+      }
+    }
+  }, [resources, loadingResourcesFromContext, user]);
+
+  if (!isAuthenticated && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-500">You must be logged in to view this page.</p>
+      </div>
+    );
+  }
+
+  if (loading || loadingPayments || loadingDashboardResources || loadingResourcesFromContext) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (role === 'admin') {
+    return <AdminDashboardContent />;
+  }
+
+  if (role === 'mentor') {
+    return <MentorDashboardContent />;
+  }
 
   return (
-    <Card className="p-4 hover:shadow-lg transition-shadow">
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-start gap-3 flex-1">
-          <FileText className="h-10 w-10 text-primary" />
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground mb-1 truncate">{file.title}</h3>
-            <p className="text-sm text-muted-foreground">
-              {file.subject} - {file.semester}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{file.description}</p>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Download className="h-4 w-4" />
-                {file.downloads}
-              </span>
-              <span className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                {file.rating}
-              </span>
-            </div>
-          </div>
+    <StudentDashboardContent
+      user={user}
+      isSubscribed={isSubscribed}
+      getPlanName={getPlanName}
+      recentFiles={recentFiles}
+      recommendedResources={recommendedResources}
+      transactions={transactions}
+      loadingPayments={loadingPayments}
+      getUserEarnings={getUserEarnings}
+      myUploadedResources={myUploadedResources}
+    />
+  );
+}
+
+// Placeholder for MentorDashboardContent
+const MentorDashboardContent = () => {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <h1 className="text-3xl font-bold text-gray-900">Mentor Dashboard</h1>
+    </div>
+  );
+};
+
+// Admin Dashboard Content
+type ResourceStatus = 'pending_review' | 'approved' | 'rejected' | 'pending_admin';
+
+const AdminDashboardContent = () => {
+  const { resources, fetchAllResources, loading, updateResourceStatus, deleteResource } = useResources();
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
+  const [totalBooks, setTotalBooks] = useState<number | null>(null);
+  const router = useRouter(); // Moved here
+
+  useEffect(() => {
+    fetchAllResources();
+  }, [fetchAllResources]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      // Fetch total users
+      const { count: usersCount, error: usersError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' });
+      if (usersError) {
+        console.error('Error fetching total users:', usersError);
+      } else {
+        setTotalUsers(usersCount);
+      }
+
+      // Fetch total books
+      const { count: booksCount, error: booksError } = await supabase
+        .from('books')
+        .select('*', { count: 'exact' });
+      if (booksError) {
+        console.error('Error fetching total books:', booksError);
+      } else {
+        setTotalBooks(booksCount);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const filteredResources = resources.filter(resource => {
+    const matchesStatus = filterStatus === 'all' || resource.status === filterStatus;
+    const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          resource.uploader.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  // Calculate resource counts by status
+  const approvedResources = resources.filter(r => r.status === 'approved').length;
+  const pendingReviewResources = resources.filter(r => r.status === 'pending_review' || r.status === 'pending_admin').length;
+  const rejectedResources = resources.filter(r => r.status === 'rejected').length;
+
+  const handleUpdateStatus = async (id: string, newStatus: ResourceStatus) => {
+    await updateResourceStatus(id, newStatus);
+    toast.success(`Resource status updated to ${newStatus.replace('_', ' ')}!`);
+    fetchAllResources(); // Re-fetch all resources to update counts and list
+  };
+
+  const handleDeleteResource = async (id: string, title: string) => {
+    if (window.confirm(`Are you sure you want to delete the resource: "${title}"?`)) {
+      try {
+        await deleteResource(id);
+        toast.success(`Resource "${title}" deleted successfully!`);
+        fetchAllResources(); // Re-fetch all resources to update counts and list
+      } catch (error) {
+        console.error("Error deleting resource:", error);
+        toast.error(`Failed to delete resource "${title}".`);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Loading resources for admin...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
+
+      {/* Overview Statistics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard icon={<Users className="h-4 w-4" />} value={totalUsers !== null ? totalUsers : '...'} label="Total Users" />
+        <StatCard icon={<BookOpen className="h-4 w-4" />} value={totalBooks !== null ? totalBooks : '...'} label="Total Books" />
+        <StatCard icon={<FileText className="h-4 w-4" />} value={resources.length} label="Total Resources" />
+        <StatCard icon={<Download className="h-4 w-4" />} value={resources.reduce((sum, r) => sum + r.downloads, 0)} label="Total Downloads" />
+      </div>
+
+      {/* Resource Status Counts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <StatCard icon={<Check className="h-4 w-4 text-green-500" />} value={approvedResources} label="Approved Resources" />
+        <StatCard icon={<Search className="h-4 w-4 text-orange-500" />} value={pendingReviewResources} label="Pending Review" />
+        <StatCard icon={<Zap className="h-4 w-4 text-red-500" />} value={rejectedResources} label="Rejected Resources" />
+      </div>
+
+      {/* Resources Management */}
+      <section className="mt-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Manage Resources</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <Input
+            placeholder="Search resources..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-xs"
+          />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="p-2 border rounded-md"
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending_review">Pending Review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="pending_admin">Pending Admin</option>
+          </select>
         </div>
-      </div>
-      <div className="flex gap-2 mt-2">
-        <Button size="sm" className="flex-1" onClick={handleDownload}>Download</Button>
-        <Button size="sm" variant="outline" className="flex-1" onClick={handleViewDetails}>View Details</Button>
-      </div>
-    </Card>
+
+        <Card>
+          <div className="relative w-full overflow-auto">
+            <table className="w-full caption-bottom text-sm">
+              <thead className="[&_tr]:border-b">
+                <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Title</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Uploader</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Status</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="[&_tr:last-child]:border-0">
+                {filteredResources.length > 0 ? (
+                  filteredResources.map((resource) => (
+                    <tr key={resource.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                      <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0 font-medium">{resource.title}</td>
+                      <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">{resource.uploader}</td>
+                      <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
+                        <Badge
+                          variant={
+                            resource.status === 'approved' ? 'default' :
+                            resource.status === 'pending_review' || resource.status === 'pending_admin' ? 'secondary' :
+                            'destructive'
+                          }
+                        >
+                          {resource.status.replace('_', ' ')}
+                        </Badge>
+                      </td>
+                      <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => router.push(`/resources/${resource.id}`)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {(resource.status === 'pending_review' || resource.status === 'pending_admin') && (
+                            <>
+                              <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(resource.id, 'approved')}>
+                                Approve
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(resource.id, 'rejected')}>
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteResource(resource.id, resource.title)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center text-muted-foreground">No resources found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </section>
+    </div>
   );
 };

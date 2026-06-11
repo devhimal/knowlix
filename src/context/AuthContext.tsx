@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import supabase from '@/lib/supabase'; // Import the Supabase client
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 
 // Define roles
 export type UserRole = 'admin' | 'student' | 'mentor' | null;
@@ -12,6 +12,7 @@ interface AuthContextType {
   role: UserRole;
   loading: boolean;
   isAuthenticated: boolean;
+  session: Session | null; // Add session to context type
   signIn: (email: string, password: string) => Promise<{ success: boolean; error: string | null }>;
   signUp: (email: string, password: string, role: UserRole) => Promise<{ success: boolean; error: string | null }>;
   signOut: () => Promise<{ success: boolean; error: string | null }>;
@@ -23,10 +24,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null); // Add session state
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        setSession(session); // Update session state
         if (session) {
           setUser(session.user);
           // Fetch user role from public.profiles table or user metadata
@@ -42,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Initial check
     supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session); // Update session state
       if (session) {
         setUser(session.user);
         setRole((session.user.user_metadata?.role as UserRole) || null);
@@ -61,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       return { success: false, error: error.message };
     }
-    // Role will be set by onAuthStateChange listener
+    // Session will be set by onAuthStateChange listener
     return { success: true, error: null };
   };
 
@@ -78,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       return { success: false, error: error.message };
     }
-    // Role will be set by onAuthStateChange listener
+    // Session will be set by onAuthStateChange listener
     return { success: true, error: null };
   };
 
@@ -93,11 +97,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, signIn, signUp, signOut, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, role, loading, signIn, signUp, signOut, isAuthenticated: !!user, session }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
