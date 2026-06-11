@@ -44,11 +44,11 @@ export interface PlagiarismResult {
 }
 
 export interface Resource {
-  id: string; // Changed from number to string
+  id: string;
   title: string;
   description: string;
-  subject: string; // This will remain the ID
-  subjectName: string; // Human-readable subject name
+  subject: string;
+  subjectName: string;
   semester: string;
   course: string;
   category: {
@@ -59,8 +59,8 @@ export interface Resource {
     id: string;
     name: string;
   };
-  program: string; // e.g., 'Science', 'Management', 'Computer Engineering'
-  type?: "notes" | "book" | "assignment" | "guide"; // New field
+  program: string;
+  type?: "notes" | "book" | "assignment" | "guide";
   fileType: string;
   fileSize: string;
   uploader: string;
@@ -69,14 +69,16 @@ export interface Resource {
   uploadDate: string;
   status: ResourceStatus;
   downloads: number;
-  rating: number;
-  reviews: ReviewFeedback[];
+  average_rating?: number; // New field
+  total_ratings?: number;  // New field
   aiAnalysis?: AIAnalysis;
   plagiarismResult?: PlagiarismResult;
   price?: number;
   isFree: boolean;
   file_path?: string;
+  reviews?: ReviewFeedback[]; // Added missing property
 }
+
 
 interface ResourceContextType {
   resources: Resource[];
@@ -92,6 +94,10 @@ interface ResourceContextType {
   getResourcesByStatus: (status: ResourceStatus) => Resource[];
   getResourcesByUploader: (uploaderId: string) => Resource[];
   incrementDownload: (resourceId: string) => Promise<void>;
+  updateResource: (id: string, updates: Partial<Resource>) => Promise<void>;
+  deleteResource: (id: string) => Promise<void>;
+  updateResource: (id: string, updates: Partial<Resource>) => Promise<void>;
+  fetchAllResources: () => Promise<void>; // New function for admin to fetch all resources
   loading: boolean;
 }
 
@@ -126,7 +132,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
       // Map Supabase data to Resource interface
       const fetchedResources: Resource[] = data.map((dbResource: any) => {
-        console.log("Raw dbResource:", dbResource); // Log raw data
+        console.log("Raw dbResource (from fetchResources):", dbResource); // Add this log
 
         const category = categories.find(
           (c) => c.id === dbResource.category_id,
@@ -163,13 +169,16 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
           uploaderEmail: dbResource.uploader_email,
           uploadDate: dbResource.created_at, // Use created_at as uploadDate
           status: dbResource.status,
-          downloads: dbResource.downloads || 0,
-          rating: dbResource.rating || 0,
-          reviews: dbResource.reviews || [], // Assuming reviews is stored as JSONB or handled differently
+          downloads: dbResource.downloads_count || 0,
+          average_rating: dbResource.average_rating || 0.0,
+          total_ratings: dbResource.total_ratings || 0,
+          aiAnalysis: dbResource.ai_analysis || undefined,
+          plagiarismResult: dbResource.plagiarism_result || undefined,
           price: dbResource.price,
           isFree: dbResource.is_free,
+          reviews: dbResource.reviews || undefined, // Map reviews
         };
-        console.log("Mapped resource:", resource); // Log mapped data
+        console.log("Mapped resource (from fetchResources):", resource); // Add this log
         return resource;
       });
 
@@ -181,48 +190,199 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [setLoading, setResources, supabase]);
 
-  useEffect(() => {
-    fetchResources();
-  }, [fetchResources]);
+  const fetchAllResources = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("resources")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      const fetchedResources: Resource[] = data.map((dbResource: any) => {
+        const category = categories.find(
+          (c) => c.id === dbResource.category_id,
+        );
+        const subCategory = category?.subCategories.find(
+          (sc) => sc.id === dbResource.sub_category_id,
+        );
+        const subject = subCategory?.subjects.find(
+          (s) => s.id === dbResource.subject,
+        );
+
+        const resource: Resource = {
+          id: dbResource.id,
+          title: dbResource.title,
+          description: dbResource.description,
+          subject: dbResource.subject,
+          subjectName: subject?.name || dbResource.subject,
+          semester: dbResource.semester,
+          course: dbResource.course || "",
+          category: {
+            id: dbResource.category_id,
+            name: category?.name || dbResource.category_id,
+          },
+          subCategory: {
+            id: dbResource.sub_category_id,
+            name: subCategory?.name || dbResource.sub_category_id,
+          },
+          program: dbResource.program || "",
+          fileType: dbResource.file_type,
+          fileSize: `${dbResource.file_size_mb} MB`,
+          file_path: dbResource.file_path,
+          uploader: dbResource.uploader_name || "Unknown",
+          uploaderId: dbResource.uploader_id,
+          uploaderEmail: dbResource.uploader_email,
+          uploadDate: dbResource.created_at,
+          status: dbResource.status,
+          downloads: dbResource.downloads_count || 0,
+          average_rating: dbResource.average_rating || 0.0,
+          total_ratings: dbResource.total_ratings || 0,
+          aiAnalysis: dbResource.ai_analysis || undefined,
+          plagiarismResult: dbResource.plagiarism_result || undefined,
+          price: dbResource.price,
+          isFree: dbResource.is_free,
+          reviews: dbResource.reviews || undefined, // Map reviews
+        };
+        return resource;
+      });
+
+      setResources(fetchedResources);
+    } catch (error) {
+      console.error("Error fetching all resources:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // addResource is removed from context as it's directly handled by Supabase in upload page
 
+  const deleteResource = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("resources")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+      fetchResources(); // Re-fetch to update UI
+    } catch (error) {
+      console.error("Error deleting resource:", error);
+    }
+  };
+
+  const updateResource = async (id: string, updates: Partial<Resource>) => {
+    try {
+      const { error } = await supabase
+        .from("resources")
+        .update(updates)
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+      fetchResources(); // Re-fetch to update UI
+    } catch (error) {
+      console.error("Error updating resource:", error);
+    }
+  };
+
   const updateResourceStatus = async (id: string, status: ResourceStatus) => {
-    // This function will need to be updated to interact with Supabase
-    // For now, it will update local state.
-    setResources((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status } : r)),
-    );
+    try {
+      // Update in Supabase
+      const { error } = await supabase
+        .from("resources")
+        .update({ status: status })
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Re-fetch resources to update the UI with the latest status
+      fetchResources();
+    } catch (error) {
+      console.error("Error updating resource status:", error);
+    }
   };
 
   const addReview = async (resourceId: string, review: ReviewFeedback) => {
-    // This function will need to be updated to interact with Supabase
-    setResources((prev) =>
-      prev.map((r) =>
-        r.id === resourceId ? { ...r, reviews: [...r.reviews, review] } : r,
-      ),
-    );
+    try {
+      // Fetch the existing resource to get current reviews
+      const { data: existingResource, error: fetchError } = await supabase
+        .from("resources")
+        .select("reviews")
+        .eq("id", resourceId)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      const currentReviews: ReviewFeedback[] = existingResource?.reviews || [];
+      const updatedReviews = [...currentReviews, review];
+
+      // Update in Supabase
+      const { error: updateError } = await supabase
+        .from("resources")
+        .update({ reviews: updatedReviews as any }) // Supabase expects JSONB to be handled as 'any' or parsed
+        .eq("id", resourceId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Re-fetch resources to update the UI
+      fetchResources();
+    } catch (error) {
+      console.error("Error adding review:", error);
+    }
   };
 
   const setAIAnalysis = async (resourceId: string, analysis: AIAnalysis) => {
-    // This function will need to be updated to interact with Supabase
-    setResources((prev) =>
-      prev.map((r) =>
-        r.id === resourceId ? { ...r, aiAnalysis: analysis } : r,
-      ),
-    );
+    try {
+      // Update in Supabase
+      const { error } = await supabase
+        .from("resources")
+        .update({ ai_analysis: analysis as any })
+        .eq("id", resourceId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Re-fetch resources to update the UI
+      fetchResources();
+    } catch (error) {
+      console.error("Error setting AI analysis:", error);
+    }
   };
 
   const setPlagiarismResult = async (
     resourceId: string,
     result: PlagiarismResult,
   ) => {
-    // This function will need to be updated to interact with Supabase
-    setResources((prev) =>
-      prev.map((r) =>
-        r.id === resourceId ? { ...r, plagiarismResult: result } : r,
-      ),
-    );
+    try {
+      // Update in Supabase
+      const { error } = await supabase
+        .from("resources")
+        .update({ plagiarism_result: result as any })
+        .eq("id", resourceId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Re-fetch resources to update the UI
+      fetchResources();
+    } catch (error) {
+      console.error("Error setting plagiarism result:", error);
+    }
   };
 
   const getResourceById = (id: string) => resources.find((r) => r.id === id);
@@ -255,6 +415,9 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
             r.id === resourceId ? { ...r, downloads: r.downloads - 1 } : r,
           ),
         );
+      } else {
+        // Re-fetch resources to update the UI with the latest download counts
+        fetchResources();
       }
     } catch (error) {
       console.error("Error in incrementDownload:", error);
@@ -274,6 +437,9 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
         getResourcesByStatus,
         getResourcesByUploader,
         incrementDownload,
+        updateResource,
+        deleteResource,
+        fetchAllResources, // Add fetchAllResources here
         loading,
       }}
     >

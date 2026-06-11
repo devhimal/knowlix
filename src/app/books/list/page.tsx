@@ -14,6 +14,13 @@ import { useBooks, Book } from "@/context/BookContext"; // New import
 interface BookFormData {
   title: string;
   author: string;
+  isbn: string | null; // Added missing property
+  genre: string | null; // Added missing property
+  publication_year: number | null; // Added missing property
+  cover_image_url: string | null; // Added missing property
+  pages: number | null; // Added missing property
+  language: string | null; // Added missing property
+  pdf_url: string | null; // Added missing property
   condition: "new" | "used-like-new" | "used-good" | "used-fair" | "";
   type: "sell" | "exchange" | "free";
   price: number;
@@ -25,6 +32,13 @@ export default function ListBookPage() {
   const [formData, setFormData] = useState<BookFormData>({
     title: "",
     author: "",
+    isbn: null, // Initialized missing property
+    genre: null, // Initialized missing property
+    publication_year: null, // Initialized missing property
+    cover_image_url: null, // Initialized missing property
+    pages: null, // Initialized missing property
+    language: null, // Initialized missing property
+    pdf_url: null, // Initialized missing property
     condition: "",
     type: "sell", // sell, exchange, free
     price: 0,
@@ -40,7 +54,7 @@ export default function ListBookPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const bookToSubmit: Omit<Book, 'id' | 'sellerId' | 'sellerName' | 'postedDate'> = {
+    const bookToSubmit: Omit<Book, 'id' | 'created_at'> = { // Removed sellerId, sellerName, postedDate from Omit
       ...formData,
       condition: formData.condition as "new" | "used-like-new" | "used-good" | "used-fair",
       type: formData.type as "sell" | "exchange" | "free",
@@ -80,6 +94,38 @@ export default function ListBookPage() {
                 required
               />
             </div>
+            {/* New fields added */}
+            <div>
+              <Label htmlFor="isbn">ISBN (Optional)</Label>
+              <Input
+                id="isbn"
+                placeholder="e.g., 978-0262033848"
+                value={formData.isbn || ""}
+                onChange={(e) => handleChange("isbn", e.target.value || null)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="genre">Genre (Optional)</Label>
+              <Input
+                id="genre"
+                placeholder="e.g., Computer Science, Textbook"
+                value={formData.genre || ""}
+                onChange={(e) => handleChange("genre", e.target.value || null)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="publication_year">Publication Year (Optional)</Label>
+              <Input
+                id="publication_year"
+                type="number"
+                placeholder="e.g., 2009"
+                value={formData.publication_year || ""}
+                onChange={(e) => handleChange("publication_year", e.target.value ? parseInt(e.target.value) : null)}
+              />
+            </div>
+            {/* TODO: Add input for cover_image_url, pages, language, pdf_url if needed from UI */}
+            {/* For now, they are null or default */}
+            {/* End of new fields */}
             <div>
               <Label htmlFor="condition">Condition *</Label>
               <Select

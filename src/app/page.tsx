@@ -55,7 +55,7 @@ export default function HomePage() {
 
   const popularResources = resources
     .filter((r) => r.status === "approved")
-    .sort((a, b) => b.downloads - a.downloads)
+    .sort((a, b) => (b.downloads || 0) - (a.downloads || 0)) // Ensure downloads are numbers for sorting
     .slice(0, 5);
 
   const announcements = [
@@ -354,7 +354,7 @@ export default function HomePage() {
                         isActive
                           ? `bg-primary text-primary-foreground`
                           : "bg-transparent text-foreground hover:bg-primary"
-                      }
+                        }
                     `}
                   >
                     <span>{semester.name}</span>
@@ -531,7 +531,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-1 mt-1">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                         <span className="text-xs text-foreground">
-                          {resource.rating}
+                          {resource.average_rating?.toFixed(1)} ({resource.total_ratings})
                         </span>
                       </div>
                     </div>
@@ -649,7 +649,7 @@ const FeedResourceCard = ({ resource }: { resource: any }) => {
           {resource.description}
         </p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span>{resource.subject}</span>
+          <span>{resource.subjectName}</span>
           <span className="text-muted-foreground/50">•</span>
           <span>{resource.semester}</span>
           <span className="text-muted-foreground/50">•</span>
@@ -657,7 +657,7 @@ const FeedResourceCard = ({ resource }: { resource: any }) => {
           <span className="text-muted-foreground/50">•</span>
           <span className="flex items-center gap-1">
             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            {resource.rating}
+            {resource.average_rating?.toFixed(1)} ({resource.total_ratings})
           </span>
         </div>
         <div className="flex gap-2 mt-4">
