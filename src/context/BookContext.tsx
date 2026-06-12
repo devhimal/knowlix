@@ -71,19 +71,19 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
     async (bookData: Omit<Book, "id" | "created_at">): Promise<Book | undefined> => {
       try {
         const {
-          coverImageUrl,
-          publicationYear,
+          cover_image_url,
+          publication_year,
           exchangeFor,
-          pdfUrl,
+          pdf_url,
           ...rest
         } = bookData;
 
         const dataToInsert = {
           ...rest,
-          cover_image_url: coverImageUrl,
-          publication_year: publicationYear,
+          cover_image_url: cover_image_url,
+          publication_year: publication_year,
           exchange_for: exchangeFor,
-          pdf_url: pdfUrl,
+          pdf_url: pdf_url,
         };
 
         const { data, error } = await supabase.from("books").insert(dataToInsert).select();
