@@ -17,7 +17,7 @@ declare module '@supabase/supabase-js' {
     // Add other custom user metadata properties if they exist in your database
     // For example, if you store role directly in user.user_metadata
     user_metadata: {
-      role?: 'admin' | 'student' | 'mentor';
+      role?: 'admin' | 'student' | 'super_admin';
       [key: string]: any; // Allow other metadata properties
     };
   }

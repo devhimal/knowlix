@@ -123,9 +123,43 @@ export default function ListBookPage() {
                 onChange={(e) => handleChange("publication_year", e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
-            {/* TODO: Add input for cover_image_url, pages, language, pdf_url if needed from UI */}
-            {/* For now, they are null or default */}
-            {/* End of new fields */}
+            <div>
+              <Label htmlFor="cover_image_url">Cover Image URL (Optional)</Label>
+              <Input
+                id="cover_image_url"
+                placeholder="https://example.com/image.jpg"
+                value={formData.cover_image_url || ""}
+                onChange={(e) => handleChange("cover_image_url", e.target.value || null)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="pages">Number of Pages (Optional)</Label>
+              <Input
+                id="pages"
+                type="number"
+                placeholder="e.g., 300"
+                value={formData.pages || ""}
+                onChange={(e) => handleChange("pages", e.target.value ? parseInt(e.target.value) : null)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="language">Language (Optional)</Label>
+              <Input
+                id="language"
+                placeholder="e.g., English"
+                value={formData.language || ""}
+                onChange={(e) => handleChange("language", e.target.value || null)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="pdf_url">Digital Copy URL (Optional - if applicable)</Label>
+              <Input
+                id="pdf_url"
+                placeholder="https://example.com/book.pdf"
+                value={formData.pdf_url || ""}
+                onChange={(e) => handleChange("pdf_url", e.target.value || null)}
+              />
+            </div>
             <div>
               <Label htmlFor="condition">Condition *</Label>
               <Select

@@ -5,7 +5,7 @@ import supabase from '@/lib/supabase'; // Import the Supabase client
 import { User, Session } from '@supabase/supabase-js';
 
 // Define roles
-export type UserRole = 'admin' | 'student' | 'mentor' | null;
+export type UserRole = 'admin' | 'student' | 'super_admin' | null;
 
 interface AuthContextType {
   user: User | null;

@@ -16,7 +16,7 @@ import { PaymentDialog } from "./PaymentDialog";
 import { usePayment } from "@/context/PaymentContext";
 
 export default function Navbar() {
-  const { user, signOut, isAuthenticated } = useAuth();
+  const { user, role, signOut, isAuthenticated } = useAuth();
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const { isSubscribed } = usePayment();
   const router = useRouter();
@@ -76,7 +76,7 @@ export default function Navbar() {
                 >
                   Books
                 </Link>
-                {["senior", "mentor", "admin"].includes(user?.role || "") && ( // Always true with mock admin
+                {["admin", "super_admin"].includes(role || "") && ( // Always true with mock admin
                   <Link
                     href="/review"
                     className="text-white/90 hover:text-white font-medium transition-colors flex items-center gap-1"
@@ -240,6 +240,16 @@ export default function Navbar() {
                 >
                   Books
                 </Link>
+                {["admin", "super_admin"].includes(role || "") && (
+                  <Link
+                    href="/review"
+                    className="px-3 py-2 text-white/90 hover:bg-white/10 rounded flex items-center gap-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <FileCheck className="h-4 w-4" />
+                    Review
+                  </Link>
+                )}
               </div>
             )}
             <div className="px-3">

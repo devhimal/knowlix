@@ -1,37 +1,53 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation"; // Import useParams
+import { useRouter, useParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import BookCard from "@/components/BookCard"; // Import BookCard
-import { useBooks } from "@/context/BookContext"; // Import useBooks
+import BookCard from "@/components/BookCard";
+import { useBooks } from "@/context/BookContext";
+import ChatDialog from "@/components/ChatDialog";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 export default function BookDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : undefined;
   const { books, loading: booksLoading } = useBooks();
+  const { user, isAuthenticated } = useAuth();
   const [book, setBook] = useState<any>(null);
-  const [localLoading, setLocalLoading] = useState(true); // Use a local loading state
+  const [localLoading, setLocalLoading] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
-    console.log("BookDetailsPage - useEffect triggered.");
-    console.log("Current ID from params (direct access):", id);
-    console.log("Books from context:", books);
-
-    if (id && !booksLoading) { // Only process if ID is present and books are not loading from context
+    if (id && !booksLoading) {
       const foundBook = books.find((b: any) => b.id === id);
       if (foundBook) {
         setBook(foundBook);
       } else {
-        setBook(null); // Book not found
+        setBook(null);
       }
-      setLocalLoading(false); // Local loading finished
+      setLocalLoading(false);
     } else if (!id) {
-      setLocalLoading(false); // No ID, so stop loading
+      setLocalLoading(false);
     }
   }, [id, books, booksLoading]);
+
+  const handleActionClick = () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to contact the seller");
+      router.push("/login");
+      return;
+    }
+
+    if (user?.id === book.seller_id) {
+      toast.error("You cannot buy/exchange your own book");
+      return;
+    }
+
+    setIsChatOpen(true);
+  };
 
   if (localLoading) {
     return (
@@ -104,44 +120,47 @@ export default function BookDetailsPage() {
           </p>
           <div className="mt-6 flex gap-4">
             {book.type === "sell" ? (
-              <>
-                <Button onClick={() => alert("Buy this book now!")}>
-                  Buy Now
-                </Button>
-                <Button variant="outline" onClick={() => alert("Contact seller for purchase details!")}>
-                  Contact Seller
-                </Button>
-              </>
+              <Button onClick={handleActionClick}>
+                Buy Now
+              </Button>
             ) : (
-              <>
-                <Button onClick={() => alert("Initiate exchange!")}>
-                  Exchange Now
-                </Button>
-                <Button variant="outline" onClick={() => alert("Contact seller for exchange details!")}>
-                  Contact Seller
-                </Button>
-              </>
+              <Button onClick={handleActionClick}>
+                Exchange Now
+              </Button>
             )}
+            <Button variant="outline" onClick={handleActionClick}>
+              Contact Seller
+            </Button>
           </div>
         </Card>
+
+        {book.seller_id && (
+          <ChatDialog
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            receiverId={book.seller_id}
+            receiverName="Seller"
+            bookTitle={book.title}
+            bookId={book.id}
+          />
+        )}
 
         <section className="mt-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-6">Other Books You Might Like</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {books
-              .filter((b: any) => b.id !== id) // Filter out the current book
-              .slice(0, 3) // Take up to 3 suggestions
+              .filter((b: any) => b.id !== id)
+              .slice(0, 3)
               .map((suggestedBook: any) => (
                 <BookCard
                   key={suggestedBook.id}
                   id={suggestedBook.id}
                   title={suggestedBook.title}
                   author={suggestedBook.author}
-                  condition={suggestedBook.condition}
-                  price={suggestedBook.price}
-                  type={suggestedBook.type}
-                  exchangeFor={suggestedBook.exchangeFor}
-                  description={suggestedBook.description}
+                  condition={suggestedBook.condition || ""}
+                  price={suggestedBook.price || 0}
+                  type={suggestedBook.type || "sell"}
+                  seller_id={suggestedBook.seller_id}
                 />
               ))}
           </div>

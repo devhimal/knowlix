@@ -20,18 +20,18 @@ export default function AdminPanel() {
     if (!loading) {
       if (!user) {
         router.push('/login');
-      } else if (role !== 'admin') {
-        router.push('/dashboard'); // Redirect if not an admin
+      } else if (!['admin', 'super_admin'].includes(role || '')) {
+        router.push('/dashboard'); // Redirect if not an admin or super_admin
       }
     }
   }, [loading, user, role, router]);
 
   // Mock transactions data, assuming usePayment will also be mocked or removed later
   const transactions = [
-    { id: 't1', resourceName: 'Calculus Notes', buyerEmail: 'student1@example.com', sellerEmail: 'mentor1@example.com', amount: 150, paymentMethod: 'esewa', status: 'completed', createdAt: '2024-04-01T10:00:00Z' },
-    { id: 't2', resourceName: 'Linear Algebra Guide', buyerEmail: 'student2@example.com', sellerEmail: 'mentor2@example.com', amount: 200, paymentMethod: 'khalti', status: 'completed', createdAt: '2024-04-02T11:00:00Z' },
+    { id: 't1', resourceName: 'Calculus Notes', buyerEmail: 'student1@example.com', sellerEmail: 'admin@example.com', amount: 150, paymentMethod: 'esewa', status: 'completed', createdAt: '2024-04-01T10:00:00Z' },
+    { id: 't2', resourceName: 'Linear Algebra Guide', buyerEmail: 'student2@example.com', sellerEmail: 'admin@example.com', amount: 200, paymentMethod: 'khalti', status: 'completed', createdAt: '2024-04-02T11:00:00Z' },
     { id: 't3', resourceName: 'Subscription - Monthly', buyerEmail: 'student3@example.com', sellerEmail: 'platform', amount: 299, paymentMethod: 'bank', status: 'completed', createdAt: '2024-04-03T12:00:00Z' },
-    { id: 't4', resourceName: 'Physics Exam Prep', buyerEmail: 'student4@example.com', sellerEmail: 'mentor1@example.com', amount: 100, paymentMethod: 'esewa', status: 'failed', createdAt: '2024-04-04T13:00:00Z' },
+    { id: 't4', resourceName: 'Physics Exam Prep', buyerEmail: 'student4@example.com', sellerEmail: 'admin@example.com', amount: 100, paymentMethod: 'esewa', status: 'failed', createdAt: '2024-04-04T13:00:00Z' },
   ];
   const totalRevenue = transactions
     .filter(t => t.status === 'completed')
@@ -39,7 +39,7 @@ export default function AdminPanel() {
 
   const [users, setUsers] = useState([
     { id: 1, name: 'John Doe', email: 'john@example.com', role: 'student', status: 'active', uploads: 12 },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'mentor', status: 'active', uploads: 8 },
+    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'admin', status: 'active', uploads: 8 },
     { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'student', status: 'active', uploads: 15 },
     { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', role: 'student', status: 'suspended', uploads: 5 },
   ]);
