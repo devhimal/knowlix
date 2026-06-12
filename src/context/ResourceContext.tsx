@@ -96,7 +96,7 @@ interface ResourceContextType {
   incrementDownload: (resourceId: string) => Promise<void>;
   updateResource: (id: string, updates: Partial<Resource>) => Promise<void>;
   deleteResource: (id: string) => Promise<void>;
-  updateResource: (id: string, updates: Partial<Resource>) => Promise<void>;
+
   fetchAllResources: () => Promise<void>; // New function for admin to fetch all resources
   loading: boolean;
 }

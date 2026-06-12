@@ -397,7 +397,7 @@ export default function ReviewQueue() {
             )}
 
             {/* Previous Reviews */}
-            {selectedResource.reviews.length > 0 && (
+            {selectedResource.reviews && selectedResource.reviews.length > 0 && (
               <div className="mb-6">
                 <h4 className="font-medium text-gray-900 mb-3">Previous Reviews</h4>
                 <div className="space-y-3">
