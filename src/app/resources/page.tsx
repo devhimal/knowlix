@@ -430,7 +430,7 @@ const ResourceCard = ({
               </span>
               <span className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                {resource.average_rating?.toFixed(1)} rating
+                {resource.average_rating ? resource.average_rating.toFixed(1) : "0.0"} rating
               </span>
             </div>
           </div>

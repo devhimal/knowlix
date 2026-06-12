@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,9 @@ export default function ChatDialog({
       <DialogContent className="sm:max-w-[425px] h-[500px] flex flex-col">
         <DialogHeader>
           <DialogTitle>Chat with {receiverName}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Send and receive messages with {receiverName} regarding {bookTitle || "a book listing"}.
+          </DialogDescription>
           {bookTitle && (
             <p className="text-sm text-muted-foreground truncate">
               Regarding: {bookTitle}

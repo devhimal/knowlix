@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   if (req.method === 'POST') {
-    const { userId, rating, comment } = req.body;
+    const { userId, userName, rating, comment } = req.body;
 
     if (!id || !userId || !rating) {
       return res.status(400).json({ error: 'Missing required fields: resourceId, userId, rating' });
@@ -51,14 +51,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Update existing rating
         response = await supabase
           .from('resource_ratings')
-          .update({ rating, comment, created_at: new Date().toISOString() }) // Update created_at to reflect last update
+          .update({ rating, comment, user_name: userName, created_at: new Date().toISOString() }) // Update created_at to reflect last update
           .eq('resource_id', id)
           .eq('user_id', userId);
       } else {
         // Insert new rating
         response = await supabase
           .from('resource_ratings')
-          .insert({ resource_id: id, user_id: userId, rating, comment });
+          .insert({ resource_id: id, user_id: userId, user_name: userName, rating, comment });
       }
 
       const { data, error } = response;

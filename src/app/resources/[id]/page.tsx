@@ -13,6 +13,7 @@ import { getDownloadUrl } from "@/lib/supabase"; // Import the helper function
 import { StarRating } from '@/components/StarRating'; // Import StarRating
 import { Textarea } from '@/components/ui/textarea'; // Import Textarea
 import { Label } from '@/components/ui/label'; // Import Label
+import { ResourceReviewList } from '@/components/ResourceReviewList'; // Import Review List
 
 export default function ResourceDetailsPage() {
   const params = useParams();
@@ -54,6 +55,7 @@ export default function ResourceDetailsPage() {
   const [resource, setResource] = useState<Resource | undefined>();
   const [userRating, setUserRating] = useState(0); // State for user's selected rating
   const [userComment, setUserComment] = useState(""); // State for user's comment
+  const [refreshReviews, setRefreshReviews] = useState(0); // Trigger to refresh review list
 
   useEffect(() => {
     fetchResources?.();
@@ -63,8 +65,6 @@ export default function ResourceDetailsPage() {
     if (resourceId && resources.length > 0) {
       const foundResource = getResourceById(resourceId);
       setResource(foundResource);
-      // Optionally fetch user's existing rating for this resource to pre-fill
-      // This would require another API call or a modification to the existing resource fetch
     }
   }, [resourceId, resources, getResourceById]);
 
@@ -111,6 +111,13 @@ export default function ResourceDetailsPage() {
       toast.error("You must be logged in to submit a rating.");
       return;
     }
+
+    // Logic: Only premium users can review premium resources
+    if (resource && !resource.isFree && !isSubscribed(user.id)) {
+      toast.error("Upgrade to Premium to leave a review for this resource.");
+      return;
+    }
+
     if (userRating === 0) {
       toast.error("Please select a star rating.");
       return;
@@ -121,10 +128,11 @@ export default function ResourceDetailsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`, // Add Authorization header
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           userId: user.id,
+          userName: user.user_metadata?.name || user.email,
           rating: userRating,
           comment: userComment,
         }),
@@ -136,8 +144,8 @@ export default function ResourceDetailsPage() {
       }
 
       toast.success("Rating submitted successfully!");
-      // Optionally re-fetch resources to update the average rating display
       fetchResources();
+      setRefreshReviews(prev => prev + 1); // Trigger review list refresh
       setUserRating(0);
       setUserComment("");
     } catch (error: any) {
@@ -185,6 +193,8 @@ export default function ResourceDetailsPage() {
     hasPurchased(resource.id) ||
     (user && user.id === resource.uploaderId);
 
+  const canReview = isAuthenticated && (resource.isFree || (user && isSubscribed(user.id)));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4">
       <div className="max-w-7xl mx-auto">
@@ -206,7 +216,7 @@ export default function ResourceDetailsPage() {
               <div className="flex items-center gap-2 mt-3">
                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                 <span className="text-sm text-gray-600">
-                  {resource.average_rating?.toFixed(1)} ({resource.total_ratings} ratings)
+                  {resource.average_rating?.toFixed(1) || "0.0"} ({resource.total_ratings || 0} ratings)
                 </span>
               </div>
             </div>
@@ -263,29 +273,57 @@ export default function ResourceDetailsPage() {
 
           {/* Rating Section */}
           <div className="mt-10 pt-8 border-t border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Rate this Resource</h2>
-            {isAuthenticated ? (
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="mb-4">
-                  <Label htmlFor="rating">Your Rating:</Label>
-                  <StarRating initialRating={userRating} onRatingChange={setUserRating} />
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Ratings & Reviews</h2>
+            
+            <div className="grid lg:grid-cols-3 gap-10">
+              {/* Review Form */}
+              <div className="lg:col-span-1">
+                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 sticky top-24">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">Leave a Review</h3>
+                  {isAuthenticated ? (
+                    canReview ? (
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-sm text-gray-600 mb-2 block">Your Rating</Label>
+                          <StarRating initialRating={userRating} onRatingChange={setUserRating} />
+                        </div>
+                        <div>
+                          <Label htmlFor="comment" className="text-sm text-gray-600 mb-2 block">Your Feedback</Label>
+                          <Textarea
+                            id="comment"
+                            value={userComment}
+                            onChange={(e) => setUserComment(e.target.value)}
+                            placeholder="How was this resource?"
+                            rows={4}
+                            className="bg-white border-gray-200"
+                          />
+                        </div>
+                        <Button onClick={handleRatingSubmit} className="w-full">
+                          Submit Review
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                        <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                          <Zap className="h-4 w-4 fill-amber-800" />
+                          Premium Review Only
+                        </p>
+                        <p className="text-xs text-amber-700 mt-1">
+                          Upgrade to Premium to leave a review for this resource.
+                        </p>
+                      </div>
+                    )
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Please log in to share your feedback.</p>
+                  )}
                 </div>
-                <div className="mb-4">
-                  <Label htmlFor="comment">Your Comment (Optional):</Label>
-                  <Textarea
-                    id="comment"
-                    value={userComment}
-                    onChange={(e) => setUserComment(e.target.value)}
-                    placeholder="Share your thoughts on this resource..."
-                    rows={4}
-                    className="mt-1"
-                  />
-                </div>
-                <Button onClick={handleRatingSubmit} className="w-full">Submit Rating</Button>
               </div>
-            ) : (
-              <p className="text-gray-600">Please log in to rate this resource.</p>
-            )}
+
+              {/* Review List */}
+              <div className="lg:col-span-2">
+                <ResourceReviewList resourceId={resourceId} refreshTrigger={refreshReviews} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
