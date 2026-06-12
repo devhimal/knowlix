@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import supabase, { getDownloadUrl } from "@/lib/supabase"; // Import getDownloadUrl
 import { Resource } from "@/context/ResourceContext"; // Changed to use alias
 import { usePayment } from "@/context/PaymentContext";
@@ -366,11 +366,6 @@ export default function StudentDashboard() {
   const transactions = user && !loadingPayments ? getUserTransactions(user.id) : [];
   const isSubscribed = user?.subscription?.isSubscribed || false;
 
-  const [recentFiles, setRecentFiles] = useState<Resource[]>([]);
-  const [recommendedResources, setRecommendedResources] = useState<Resource[]>([]);
-  const [myUploadedResources, setMyUploadedResources] = useState<Resource[]>([]);
-  const [loadingDashboardResources, setLoadingDashboardResources] = useState(true);
-
   const getPlanName = (plan: string) => {
     switch (plan) {
       case 'monthly': return 'Monthly Pro';
@@ -380,33 +375,31 @@ export default function StudentDashboard() {
     }
   };
 
-  const fetchDashboardResources = useCallback(async () => {
-    setLoadingDashboardResources(true);
-    await fetchResources(); // Fetch free resources
-    setLoadingDashboardResources(false);
-  }, [fetchResources]);
-
-  useEffect(() => {
-    fetchDashboardResources();
-  }, [fetchDashboardResources]);
-
-  useEffect(() => {
+  const recentFiles = useMemo(() => {
     if (!loadingResourcesFromContext && resources.length > 0) {
-      // All free resources fetched by fetchResources
-      const sortedResources = [...resources].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
-      setRecentFiles(sortedResources.slice(0, 4));
-
-      const sortedByDownloads = [...resources].sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
-      setRecommendedResources(sortedByDownloads.slice(0, 3));
-
-      // Filter for resources uploaded by the current user
-      if (user?.id) {
-        setMyUploadedResources(resources.filter(resource => resource.uploaderId === user.id));
-      }
+      return [...resources].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()).slice(0, 4);
     }
+    return [];
+  }, [resources, loadingResourcesFromContext]);
+
+  const recommendedResources = useMemo(() => {
+    if (!loadingResourcesFromContext && resources.length > 0) {
+      return [...resources].sort((a, b) => (b.downloads || 0) - (a.downloads || 0)).slice(0, 3);
+    }
+    return [];
+  }, [resources, loadingResourcesFromContext]);
+
+  const myUploadedResources = useMemo(() => {
+    if (user?.id && !loadingResourcesFromContext && resources.length > 0) {
+      return resources.filter(resource => resource.uploaderId === user.id);
+    }
+    return [];
   }, [resources, loadingResourcesFromContext, user]);
 
+  console.log("StudentDashboard: Rendering component. isAuthenticated:", isAuthenticated, "loading:", loading, "role:", role);
+
   if (!isAuthenticated && !loading) {
+    console.log("StudentDashboard: Redirecting unauthenticated user.");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-red-500">You must be logged in to view this page.</p>
@@ -414,7 +407,8 @@ export default function StudentDashboard() {
     );
   }
 
-  if (loading || loadingPayments || loadingDashboardResources || loadingResourcesFromContext) {
+  if (loading || loadingPayments || loadingResourcesFromContext) {
+    console.log("StudentDashboard: Displaying loading state.");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-500">Loading dashboard...</p>
@@ -422,12 +416,10 @@ export default function StudentDashboard() {
     );
   }
 
+  console.log("StudentDashboard: Displaying content based on role.");
+
   if (role === 'admin') {
     return <AdminDashboardContent />;
-  }
-
-  if (role === 'mentor') {
-    return <MentorDashboardContent />;
   }
 
   return (
@@ -445,14 +437,6 @@ export default function StudentDashboard() {
   );
 }
 
-// Placeholder for MentorDashboardContent
-const MentorDashboardContent = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <h1 className="text-3xl font-bold text-gray-900">Mentor Dashboard</h1>
-    </div>
-  );
-};
 
 // Admin Dashboard Content
 type ResourceStatus = 'pending_review' | 'approved' | 'rejected' | 'pending_admin';

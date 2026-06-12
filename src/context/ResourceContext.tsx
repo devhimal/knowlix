@@ -70,7 +70,7 @@ export interface Resource {
   status: ResourceStatus;
   downloads: number;
   average_rating?: number; // New field
-  total_ratings?: number;  // New field
+  total_ratings?: number; // New field
   aiAnalysis?: AIAnalysis;
   plagiarismResult?: PlagiarismResult;
   price?: number;
@@ -78,7 +78,6 @@ export interface Resource {
   file_path?: string;
   reviews?: ReviewFeedback[]; // Added missing property
 }
-
 
 interface ResourceContextType {
   resources: Resource[];
@@ -123,7 +122,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
       const { data, error } = await supabase
         .from("resources")
         .select("*")
-        .eq("is_free", true) // Only fetch free resources
+
         .order("created_at", { ascending: false }); // Order by most recent
 
       if (error) {
@@ -189,6 +188,10 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   }, [setLoading, setResources, supabase]);
+
+  useEffect(() => {
+    fetchResources();
+  }, []); // Run once on mount
 
   const fetchAllResources = useCallback(async () => {
     setLoading(true);
@@ -262,10 +265,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteResource = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("resources")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("resources").delete().eq("id", id);
 
       if (error) {
         throw error;
@@ -447,3 +447,4 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     </ResourceContext.Provider>
   );
 };
+

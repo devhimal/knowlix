@@ -142,6 +142,14 @@ export default function ResourceLibrary() {
     fetchResources();
   }, [fetchResources]);
 
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!user && !loading) { // Ensure loading is false to avoid redirecting during initial auth check
+      router.push("/login");
+      toast.info("Please log in to access the resource library.");
+    }
+  }, [user, loading, router]);
+
   useEffect(() => {
     setSelectedSubCategory("all");
   }, [selectedCategory]);
