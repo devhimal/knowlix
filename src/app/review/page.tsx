@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { analyzeContent, checkPlagiarism } from "@/lib/analysis";
 
 export default function ReviewQueue() {
   const { user, role, isAuthenticated, loading: authLoading } = useAuth();
@@ -76,59 +77,48 @@ export default function ReviewQueue() {
   );
 
   const handleAIAnalysis = async (resource: Resource) => {
-    toast.info("Simulating AI content analysis...");
+    toast.info("Running AI content analysis...");
 
-    // Simulate AI analysis
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // In a real app, you would pass the actual content of the resource
+      // For now we use the title and description as content for the AI to check
+      const contentToAnalyze = `${resource.title}\n\n${resource.description}`;
+      const analysisResult = await analyzeContent(contentToAnalyze);
 
-    const analysisResult = {
-      relevanceScore: Math.floor(Math.random() * 20) + 80,
-      qualityScore: Math.floor(Math.random() * 20) + 80,
-      completenessScore: Math.floor(Math.random() * 20) + 80,
-      suggestions: [
-        "Consider adding more examples for clarity",
-        "Include visual diagrams where applicable",
-      ],
-      passed: true,
-      analyzedAt: new Date().toISOString(),
-    };
+      setAIAnalysis(resource.id, analysisResult);
 
-    setAIAnalysis(resource.id, analysisResult);
-
-    if (analysisResult.passed) {
-      updateResourceStatus(resource.id, "pending_plagiarism");
-      toast.success(
-        "Simulated AI analysis passed! Moving to plagiarism check.",
-      );
-    } else {
-      updateResourceStatus(resource.id, "rejected");
-      toast.error("Simulated AI analysis failed. Resource rejected.");
+      if (analysisResult.passed) {
+        updateResourceStatus(resource.id, "pending_plagiarism");
+        toast.success("AI analysis passed! Moving to plagiarism check.");
+      } else {
+        updateResourceStatus(resource.id, "rejected");
+        toast.error("AI analysis failed. Resource rejected.");
+      }
+    } catch (error) {
+      console.error("AI Analysis failed:", error);
+      toast.error("AI Analysis service error. Please try again later.");
     }
   };
 
   const handlePlagiarismCheck = async (resource: Resource) => {
-    toast.info("Simulating plagiarism detection...");
+    toast.info("Checking for plagiarism...");
 
-    // Simulate plagiarism check
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const contentToCheck = `${resource.title}\n\n${resource.description}`;
+      const plagiarismResult = await checkPlagiarism(contentToCheck);
 
-    const plagiarismResult = {
-      similarity: Math.floor(Math.random() * 15),
-      sources: Math.random() > 0.7 ? ["https://example.com/reference"] : [],
-      passed: true,
-      checkedAt: new Date().toISOString(),
-    };
+      setPlagiarismResult(resource.id, plagiarismResult);
 
-    setPlagiarismResult(resource.id, plagiarismResult);
-
-    if (plagiarismResult.passed) {
-      updateResourceStatus(resource.id, "pending_review");
-      toast.success(
-        "Simulated Plagiarism check passed! Moving to peer review.",
-      );
-    } else {
-      updateResourceStatus(resource.id, "rejected");
-      toast.error("Simulated Plagiarism detected. Resource rejected.");
+      if (plagiarismResult.passed) {
+        updateResourceStatus(resource.id, "pending_review");
+        toast.success("Plagiarism check passed! Moving to peer review.");
+      } else {
+        updateResourceStatus(resource.id, "rejected");
+        toast.error("Plagiarism detected. Resource rejected.");
+      }
+    } catch (error) {
+      console.error("Plagiarism check failed:", error);
+      toast.error("Plagiarism service error. Please try again later.");
     }
   };
 

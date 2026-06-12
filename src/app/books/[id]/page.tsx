@@ -18,6 +18,7 @@ export default function BookDetailsPage() {
   const { user, isAuthenticated } = useAuth();
   const [book, setBook] = useState<any>(null);
   const [localLoading, setLocalLoading] = useState(true);
+  const [showConnect, setShowConnect] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
@@ -34,18 +35,24 @@ export default function BookDetailsPage() {
     }
   }, [id, books, booksLoading]);
 
-  const handleActionClick = () => {
+  const handleBuyClick = () => {
     if (!isAuthenticated) {
-      toast.error("Please login to contact the seller");
+      toast.error("Please login to buy this book");
       router.push("/login");
       return;
     }
-
     if (user?.id === book.seller_id) {
-      toast.error("You cannot buy/exchange your own book");
+      toast.error("You cannot buy your own book");
       return;
     }
+    setShowConnect(true);
+  };
 
+  const handleConnectClick = () => {
+    if (!book.seller_id) {
+      toast.error("Seller information not available");
+      return;
+    }
     setIsChatOpen(true);
   };
 
@@ -118,19 +125,35 @@ export default function BookDetailsPage() {
           <p className="text-lg text-gray-700 mb-2">
             <strong>Description:</strong> {book.description}
           </p>
-          <div className="mt-6 flex gap-4">
-            {book.type === "sell" ? (
-              <Button onClick={handleActionClick}>
-                Buy Now
-              </Button>
+          <div className="mt-6 flex flex-col gap-4 max-w-xs">
+            {!showConnect ? (
+              <>
+                {book.type === "sell" ? (
+                  <Button onClick={handleBuyClick} className="w-full">
+                    Buy Now
+                  </Button>
+                ) : (
+                  <Button onClick={handleBuyClick} className="w-full">
+                    Exchange Now
+                  </Button>
+                )}
+                <Button variant="outline" onClick={handleConnectClick} className="w-full">
+                  Contact Seller
+                </Button>
+              </>
             ) : (
-              <Button onClick={handleActionClick}>
-                Exchange Now
-              </Button>
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
+                <p className="text-sm text-blue-800 font-medium">
+                  Ready to proceed? Connect with the seller to finalize the {book.type === 'sell' ? 'purchase' : 'exchange'}.
+                </p>
+                <Button onClick={handleConnectClick} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                  Connect with Seller
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowConnect(false)} className="text-blue-600 hover:text-blue-800">
+                  Cancel
+                </Button>
+              </div>
             )}
-            <Button variant="outline" onClick={handleActionClick}>
-              Contact Seller
-            </Button>
           </div>
         </Card>
 

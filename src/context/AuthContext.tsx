@@ -27,29 +27,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null); // Add session state
 
   useEffect(() => {
+    let initialized = false;
+
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session); // Update session state
+        console.log("Auth event:", event);
+        setSession(session);
         if (session) {
           setUser(session.user);
-          // Fetch user role from public.profiles table or user metadata
-          // For now, let's assume role is in user_metadata
           setRole((session.user.user_metadata?.role as UserRole) || null);
         } else {
           setUser(null);
           setRole(null);
         }
-        setLoading(false);
+        
+        // Only set loading to false if we've already initialized or if this is a sign-in/out event after initialization
+        if (initialized) {
+          setLoading(false);
+        }
       }
     );
 
     // Initial check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session); // Update session state
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log("Initial session check:", { hasSession: !!session, error: error?.message });
+      if (error) {
+        console.error("Error getting initial session:", error.message);
+        if (error.message.includes("Refresh Token")) {
+          supabase.auth.signOut();
+        }
+      }
+      setSession(session);
       if (session) {
         setUser(session.user);
         setRole((session.user.user_metadata?.role as UserRole) || null);
+      } else {
+        setUser(null);
+        setRole(null);
       }
+    }).catch(err => {
+      console.error("Unexpected error in getSession:", err);
+    }).finally(() => {
+      initialized = true;
       setLoading(false);
     });
 

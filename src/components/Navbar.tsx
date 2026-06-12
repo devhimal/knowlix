@@ -76,6 +76,12 @@ export default function Navbar() {
                 >
                   Books
                 </Link>
+                <Link
+                  href="/my-uploads"
+                  className="text-white/90 hover:text-white font-medium transition-colors"
+                >
+                  My Uploads
+                </Link>
                 {["admin", "super_admin"].includes(role || "") && ( // Always true with mock admin
                   <Link
                     href="/review"
@@ -239,6 +245,13 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Books
+                </Link>
+                <Link
+                  href="/my-uploads"
+                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Uploads
                 </Link>
                 {["admin", "super_admin"].includes(role || "") && (
                   <Link

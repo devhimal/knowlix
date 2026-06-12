@@ -44,10 +44,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeChat, setActiveChat] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const fetchMessages = useCallback(async () => {
-    if (!user) return;
+    if (!user || authLoading) {
+      console.log("fetchMessages skipped: user is null or auth is loading", { userId: user?.id, authLoading });
+      return;
+    }
+    console.log("Fetching messages for user:", user.id);
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -56,20 +60,31 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error fetching messages:", error);
+        console.log("Error keys:", Object.keys(error));
+        console.log("Error own property names:", Object.getOwnPropertyNames(error));
+        console.log("Error stringified:", JSON.stringify(error, null, 2));
+        throw error;
+      }
       setMessages(data as Message[]);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
+    } catch (error: any) {
+      console.error("Detailed error in fetchMessages catch block:", error);
+      console.log("Catch error keys:", Object.keys(error));
+      console.log("Catch error own property names:", Object.getOwnPropertyNames(error));
+      console.log("Catch error stringified:", JSON.stringify(error, null, 2));
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   useEffect(() => {
-    fetchMessages();
+    if (!authLoading) {
+      fetchMessages();
+    }
 
     // Set up real-time subscription
-    if (user) {
+    if (user && !authLoading) {
       const subscription = supabase
         .channel("public:messages")
         .on(
@@ -103,7 +118,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         supabase.removeChannel(subscription);
       };
     }
-  }, [user, fetchMessages]);
+  }, [user, authLoading, fetchMessages]);
 
   const sendMessage = async (receiverId: string, content: string, bookId?: string) => {
     if (!user) return;
@@ -115,9 +130,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         book_id: bookId || null,
       });
 
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error sending message:", error);
+      if (error) {
+        console.error("Supabase error sending message:", error.message, error.details);
+        throw error;
+      }
+    } catch (error: any) {
+      console.error("Error in sendMessage:", error.message || error);
       throw error;
     }
   };
