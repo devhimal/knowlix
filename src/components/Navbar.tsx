@@ -10,10 +10,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { BookOpen, User, LogOut, Menu, Bell, FileCheck, Zap } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { BookOpen, User, LogOut, Menu, Bell, FileCheck, Zap, LayoutDashboard, Upload, Settings, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { PaymentDialog } from "./PaymentDialog";
 import { usePayment } from "@/context/PaymentContext";
+
+import { SmartSearch } from "./SmartSearch";
 
 export default function Navbar() {
   const { user, role, signOut, isAuthenticated } = useAuth();
@@ -33,14 +43,19 @@ export default function Navbar() {
   return (
     <nav className="bg-primary shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-16 gap-8">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
             <BookOpen className="h-8 w-8 text-white" />
-            <span className="text-xl font-bold text-white">
+            <span className="text-xl font-bold text-white hidden sm:block">
               Padyantra
             </span>
           </Link>
+
+          {/* Desktop Search */}
+          <div className="hidden md:block flex-1 max-w-md">
+            <SmartSearch />
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
@@ -97,9 +112,9 @@ export default function Navbar() {
 
           {/* User Actions */}
           <div className="hidden md:flex items-center gap-4">
-            {isAuthenticated ? ( // Always true now for UI
+            {isAuthenticated ? (
               <>
-                {!userIsSubscribed && ( // Mock subscribed is true
+                {!userIsSubscribed && (
                   <Button
                     onClick={() => setSubscriptionDialogOpen(true)}
                     variant="secondary"
@@ -168,14 +183,54 @@ export default function Navbar() {
                   </PopoverContent>
                 </Popover>
 
-                <div className="flex items-center gap-2 text-sm text-white font-medium bg-white/10 px-3 py-1.5 rounded-full">
-                  <User className="h-4 w-4" />
-                  <span>{user?.user_metadata?.name || user?.email}</span>
-                </div>
-                
-                <Button onClick={handleLogout} variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                {/* User Profile Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2 text-sm text-white font-medium bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 transition-all border-none">
+                      <User className="h-4 w-4" />
+                      <span>{user?.user_metadata?.name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
+                      <ChevronDown className="h-3 w-3 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col">
+                        <span>{user?.user_metadata?.name || 'User'}</span>
+                        <span className="text-xs font-normal text-muted-foreground">{user?.email}</span>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard" className="flex items-center w-full cursor-pointer">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/my-uploads" className="flex items-center w-full cursor-pointer">
+                        <Upload className="mr-2 h-4 w-4" />
+                        <span>My Uploads</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/upload" className="flex items-center w-full cursor-pointer">
+                        <Upload className="mr-2 h-4 w-4" />
+                        <span>Upload New</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-red-600 focus:text-red-600 cursor-pointer" 
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        handleLogout();
+                      }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <Button onClick={() => router.push("/login")} variant="secondary" size="sm">

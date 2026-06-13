@@ -14,6 +14,9 @@ import { StarRating } from '@/components/StarRating'; // Import StarRating
 import { Textarea } from '@/components/ui/textarea'; // Import Textarea
 import { Label } from '@/components/ui/label'; // Import Label
 import { ResourceReviewList } from '@/components/ResourceReviewList'; // Import Review List
+import { Brain, ShieldCheck, CheckCircle, XCircle, FileText, Info } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Card } from "@/components/ui/card";
 
 export default function ResourceDetailsPage() {
   const params = useParams();
@@ -258,6 +261,73 @@ export default function ResourceDetailsPage() {
             <Meta label="Downloads" value={resource.downloads} />
           </div>
 
+          {/* AI & PLAGIARISM RESULTS */}
+          {(resource.aiAnalysis || resource.plagiarismResult) && (
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* AI Analysis Card */}
+              {resource.aiAnalysis && (
+                <Card className="p-6 border-blue-100 bg-blue-50/30">
+                  <div className="flex items-center gap-2 mb-4 text-blue-700">
+                    <Brain className="h-5 w-5" />
+                    <h3 className="font-bold">AI Quality Analysis</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <ScoreBar label="Relevance" score={resource.aiAnalysis.relevanceScore} color="blue" />
+                    <ScoreBar label="Quality" score={resource.aiAnalysis.qualityScore} color="blue" />
+                    <ScoreBar label="Completeness" score={resource.aiAnalysis.completenessScore} color="blue" />
+                  </div>
+                  {resource.aiAnalysis.suggestions.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-blue-100">
+                      <p className="text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-1">
+                        <Info className="h-3 w-3" /> AI Suggestions
+                      </p>
+                      <ul className="text-xs text-blue-800 space-y-1">
+                        {resource.aiAnalysis.suggestions.map((s, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className="text-blue-400">•</span> {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {/* Plagiarism Card */}
+              {resource.plagiarismResult && (
+                <Card className="p-6 border-purple-100 bg-purple-50/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-purple-700">
+                      <ShieldCheck className="h-5 w-5" />
+                      <h3 className="font-bold">Plagiarism Check</h3>
+                    </div>
+                    {resource.plagiarismResult.passed ? (
+                      <Badge className="bg-green-100 text-green-700 border-none">
+                        <CheckCircle className="h-3 w-3 mr-1" /> Verified
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive">
+                        <XCircle className="h-3 w-3 mr-1" /> Flagged
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-purple-700">Similarity Score</span>
+                      <span className={`text-lg font-bold ${resource.plagiarismResult.similarity < 15 ? 'text-green-600' : 'text-red-600'}`}>
+                        {resource.plagiarismResult.similarity}%
+                      </span>
+                    </div>
+                    <Progress value={resource.plagiarismResult.similarity} className="h-2 bg-purple-100" />
+                    <p className="text-[10px] text-purple-500 italic mt-2">
+                      Checked on {new Date(resource.plagiarismResult.checkedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+
           {/* BADGE */}
           <div className="mt-8">
             {resource.isFree ? (
@@ -326,6 +396,43 @@ export default function ResourceDetailsPage() {
             </div>
           </div>
         </div>
+
+        {/* RELATED RESOURCES */}
+        <section className="mt-16">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">Related Resources</h2>
+            <Button variant="link" onClick={() => router.push('/resources')}>
+              Browse all
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {resources
+              .filter(r => r.id !== resourceId && r.category.id === resource.category.id && r.status === 'approved')
+              .slice(0, 3)
+              .map((relatedResource) => (
+                <Card key={relatedResource.id} className="p-5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push(`/resources/${relatedResource.id}`)}>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="bg-blue-50 p-2 rounded-lg">
+                      <FileText className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 line-clamp-1">{relatedResource.title}</h3>
+                      <p className="text-xs text-gray-500">{relatedResource.subject}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-1 text-xs text-amber-500 font-bold">
+                      <Star className="h-3 w-3 fill-amber-500" />
+                      {relatedResource.average_rating?.toFixed(1) || "0.0"}
+                    </div>
+                    <Badge variant="outline" className="text-[10px] uppercase">
+                      {relatedResource.isFree ? 'Free' : `NPR ${relatedResource.price}`}
+                    </Badge>
+                  </div>
+                </Card>
+              ))}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -337,6 +444,18 @@ function Meta({ label, value }: { label: string; value: any }) {
     <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
       <p className="text-xs text-gray-500">{label}</p>
       <p className="font-semibold text-gray-800 mt-1">{value}</p>
+    </div>
+  );
+}
+
+function ScoreBar({ label, score, color }: { label: string; score: number, color: string }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-gray-500">
+        <span>{label}</span>
+        <span>{score}%</span>
+      </div>
+      <Progress value={score} className={`h-1.5 bg-${color}-100`} />
     </div>
   );
 }

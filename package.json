@@ -49,6 +49,7 @@
     "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
     "formidable": "^3.5.4",
+    "fuse.js": "^7.4.2",
     "input-otp": "1.4.2",
     "lucide-react": "0.487.0",
     "mongodb": "^7.1.0",

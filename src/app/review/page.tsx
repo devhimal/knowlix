@@ -39,11 +39,11 @@ export default function ReviewQueue() {
   } = useResources();
   const { addNotification } = useNotifications();
   const router = useRouter();
-  const [selectedResource, setSelectedResource] = useState<Resource | null>(
-    null,
-  );
+  const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
   const [reviewComment, setReviewComment] = useState("");
   const [rating, setRating] = useState(5);
+
+  const selectedResource = resources.find(r => r.id === selectedResourceId) || null;
 
   useEffect(() => {
     if (
@@ -151,7 +151,7 @@ export default function ReviewQueue() {
       await addReview(resource.id, review);
     }
 
-    setSelectedResource(null);
+    setSelectedResourceId(null);
     setReviewComment("");
     setRating(5);
   };
@@ -181,7 +181,7 @@ export default function ReviewQueue() {
       resourceId: resource.id,
     });
 
-    setSelectedResource(null);
+    setSelectedResourceId(null);
     setReviewComment("");
   };
 
@@ -274,8 +274,8 @@ export default function ReviewQueue() {
                   <ResourceReviewCard
                     key={resource.id}
                     resource={resource}
-                    onSelect={setSelectedResource}
-                    selected={selectedResource?.id === resource.id}
+                    onSelect={(r) => setSelectedResourceId(r.id)}
+                    selected={selectedResourceId === resource.id}
                   />
                 ))
               ) : (
@@ -524,7 +524,7 @@ export default function ReviewQueue() {
                   Reject
                 </Button>
                 <Button
-                  onClick={() => setSelectedResource(null)}
+                  onClick={() => setSelectedResourceId(null)}
                   variant="outline"
                 >
                   Cancel

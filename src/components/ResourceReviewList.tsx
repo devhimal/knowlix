@@ -17,20 +17,21 @@ interface Rating {
 
 interface ResourceReviewListProps {
   resourceId: string;
+  type?: 'resource' | 'book';
   refreshTrigger?: number;
 }
 
-export const ResourceReviewList = ({ resourceId, refreshTrigger }: ResourceReviewListProps) => {
+import supabase from "@/lib/supabase";
+
+export const ResourceReviewList = ({ resourceId, type = 'resource', refreshTrigger }: ResourceReviewListProps) => {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchRatings = async () => {
-    setLoading(true);
     try {
-      const response = await fetch(`/api/resources/${resourceId}/ratings`);
+      const response = await fetch(`/api/resources/${resourceId}/ratings?type=${type}`);
       if (response.ok) {
         const data = await response.json();
-        // Sort by most recent
         const sortedData = data.sort((a: Rating, b: Rating) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
@@ -46,8 +47,29 @@ export const ResourceReviewList = ({ resourceId, refreshTrigger }: ResourceRevie
   useEffect(() => {
     if (resourceId) {
       fetchRatings();
+
+      // Set up real-time listener
+      const channel = supabase
+        .channel('ratings_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'resource_ratings',
+            filter: type === 'book' ? `book_id=eq.${resourceId}` : `resource_id=eq.${resourceId}`
+          },
+          () => {
+            fetchRatings();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-  }, [resourceId, refreshTrigger]);
+  }, [resourceId, type, refreshTrigger]);
 
   if (loading) {
     return (

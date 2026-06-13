@@ -30,6 +30,10 @@ export interface Book {
   type: "sell" | "exchange" | "free" | null;
   exchangeFor: string | null;
   seller_id: string | null; // Added seller_id
+  average_rating?: number;
+  total_ratings?: number;
+  file_path?: string | null;
+  cover_image_path?: string | null;
 }
 
 export interface DBBook {
@@ -50,6 +54,10 @@ export interface DBBook {
   type: "sell" | "exchange" | "free" | null;
   exchange_for: string | null;
   seller_id: string | null;
+  average_rating?: number;
+  total_ratings?: number;
+  file_path?: string | null;
+  cover_image_path?: string | null;
 }
 
 interface BookContextType {
@@ -112,15 +120,18 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
           genre: bookData.genre,
           publication_year: bookData.publication_year,
           cover_image_url: bookData.cover_image_url,
+          cover_image_path: bookData.cover_image_path,
           description: bookData.description,
           pages: bookData.pages,
           language: bookData.language,
           pdf_url: bookData.pdf_url,
+          file_path: bookData.file_path,
           condition: bookData.condition,
           price: bookData.price,
           type: bookData.type,
           exchange_for: bookData.exchangeFor,
           seller_id: user.id,
+          status: 'pending_review'
         };
 
         const { data, error } = await supabase.from("books").insert(dataToInsert).select();

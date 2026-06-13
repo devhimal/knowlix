@@ -47,28 +47,14 @@ export async function analyzeContent(content: string): Promise<AIAnalysisResult>
  * API Key: 6149d6cc38b1d1c98561601ef7096da475f7f12f0173e47f
  */
 export async function checkPlagiarism(content: string): Promise<PlagiarismResult> {
-  const apiKey = process.env.QUETEXT_API_KEY || '6149d6cc38b1d1c98561601ef7096da475f7f12f0173e47f';
-  
   try {
-    const response = await axios.post(QUETEXT_API_URL, {
-      text: content
-    }, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      }
+    const response = await axios.post('/api/analysis/plagiarism', {
+      content: content
     });
 
-    const data = response.data;
-    
-    return {
-      similarity: data.score || data.similarity_score || 0,
-      sources: data.matches?.map((m: any) => m.url) || [],
-      passed: (data.score || data.similarity_score || 0) < 15,
-      checkedAt: new Date().toISOString(),
-    };
+    return response.data;
   } catch (error) {
-    console.error("Quetext Plagiarism Check Error:", error);
+    console.error("Plagiarism Check Error:", error);
     // Fallback/Mock for demonstration
     return {
       similarity: 8,

@@ -151,6 +151,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchResources = useCallback(async () => {
+    if (loading && resources.length > 0) return; // Prevent double fetch if already loading
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -339,7 +340,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Re-fetch resources to update the UI with the latest status
-      fetchResources();
+      await fetchAllResources();
     } catch (error) {
       console.error("Error updating resource status:", error);
     }
@@ -351,23 +352,38 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     status?: ResourceStatus,
   ) => {
     try {
-      // 1. If there's a rating and reviewerId is a valid UUID, insert/upsert it
+      // 1. Fetch the existing resource first to determine target and update history
+      const { data: existingResource, error: fetchError } = await supabase
+        .from("resources")
+        .select("reviews, status")
+        .eq("id", resourceId)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error fetching resource for review:", fetchError.message);
+        throw fetchError;
+      }
+
+      // 2. If there's a rating, insert/upsert it to the resource_ratings table
       const isUuid = (id: string) =>
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
           id,
         );
 
       if (review.rating && isUuid(review.reviewerId)) {
+        // If existingResource exists, it's a resource; otherwise we assume it's a book (generic rating target)
+        const targetField = existingResource ? 'resource_id' : 'book_id';
+        
         const { error: ratingError } = await supabase
           .from("resource_ratings")
           .upsert(
             {
-              resource_id: resourceId,
+              [targetField]: resourceId,
               user_id: review.reviewerId,
               rating: review.rating,
               comment: review.comment,
             },
-            { onConflict: "resource_id,user_id" },
+            { onConflict: targetField + ",user_id" },
           );
 
         if (ratingError) {
@@ -376,42 +392,33 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // 2. Fetch the existing resource to update reviews JSON history and status
-      const { data: existingResource, error: fetchError } = await supabase
-        .from("resources")
-        .select("reviews, status")
-        .eq("id", resourceId)
-        .single();
+      // 3. Update the reviews JSON history and status if it's a Resource
+      if (existingResource) {
+        const currentReviews: ReviewFeedback[] = existingResource?.reviews || [];
+        const updatedReviews = [...currentReviews, review];
 
-      if (fetchError) {
-        console.error("Error fetching resource for review:", fetchError.message);
-        throw fetchError;
-      }
+        const updateData: Partial<DBResource> = {
+          reviews: updatedReviews,
+        };
 
-      const currentReviews: ReviewFeedback[] = existingResource?.reviews || [];
-      const updatedReviews = [...currentReviews, review];
+        if (status) {
+          updateData.status = status;
+        }
 
-      const updateData: Partial<DBResource> = {
-        reviews: updatedReviews,
-      };
+        const { error: updateError } = await supabase
+          .from("resources")
+          .update(updateData)
+          .eq("id", resourceId);
 
-      if (status) {
-        updateData.status = status;
-      }
-
-      // Update in Supabase
-      const { error: updateError } = await supabase
-        .from("resources")
-        .update(updateData)
-        .eq("id", resourceId);
-
-      if (updateError) {
-        console.error("Error updating resource with review:", updateError.message);
-        throw updateError;
+        if (updateError) {
+          console.error("Error updating resource with review:", updateError.message);
+          throw updateError;
+        }
       }
 
       // Re-fetch resources to update the UI
-      fetchResources();
+      // Use fetchAllResources if we are in an admin-like context, or just refresh everything
+      await fetchAllResources();
     } catch (error: unknown) {
       let errorMessage = "An unknown error occurred";
       if (error instanceof Error) {
@@ -442,7 +449,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Re-fetch resources to update the UI
-      fetchResources();
+      await fetchAllResources();
     } catch (error) {
       console.error("Error setting AI analysis:", error);
     }
@@ -464,7 +471,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Re-fetch resources to update the UI
-      fetchResources();
+      await fetchAllResources();
     } catch (error) {
       console.error("Error setting plagiarism result:", error);
     }

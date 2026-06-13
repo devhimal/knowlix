@@ -7,9 +7,19 @@ import { useBooks, Book } from "@/context/BookContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Book as BookIcon, Package, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { FileText, Book as BookIcon, Package, Clock, CheckCircle, XCircle, AlertCircle, Edit, Trash2, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import supabase from "@/lib/supabase";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function MyUploadsPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -18,6 +28,7 @@ export default function MyUploadsPage() {
   
   const [myResources, setMyResources] = useState<Resource[]>([]);
   const [myBooks, setMyBooks] = useState<Book[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -32,6 +43,32 @@ export default function MyUploadsPage() {
       setMyBooks(books.filter(b => b.seller_id === user.id));
     }
   }, [user, resources, books]);
+
+  const handleDeleteResource = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this resource?")) return;
+    
+    try {
+      const { error } = await supabase.from('resources').delete().eq('id', id);
+      if (error) throw error;
+      toast.success("Resource deleted successfully");
+      fetchResources();
+    } catch (error: any) {
+      toast.error("Failed to delete resource: " + error.message);
+    }
+  };
+
+  const handleDeleteBook = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this book listing?")) return;
+
+    try {
+      const { error } = await supabase.from('books').delete().eq('id', id);
+      if (error) throw error;
+      toast.success("Book listing deleted successfully");
+      fetchBooks();
+    } catch (error: any) {
+      toast.error("Failed to delete book: " + error.message);
+    }
+  };
 
   if (authLoading || resourcesLoading || booksLoading) {
     return (
@@ -100,7 +137,24 @@ export default function MyUploadsPage() {
                         <div className="bg-primary/10 p-2 rounded-lg text-primary">
                           <FileText className="w-6 h-6" />
                         </div>
-                        {getStatusBadge(resource.status)}
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(resource.status)}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => router.push(`/upload?edit=${resource.id}`)}>
+                                <Edit className="h-4 w-4 mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteResource(resource.id)}>
+                                <Trash2 className="h-4 w-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       <h3 className="font-bold text-lg mb-1 truncate">{resource.title}</h3>
                       <p className="text-sm text-gray-500 mb-4 line-clamp-2">{resource.description}</p>
@@ -156,10 +210,25 @@ export default function MyUploadsPage() {
                           <BookIcon className="w-12 h-12" />
                         </div>
                       )}
-                      <div className="absolute top-3 right-3">
+                      <div className="absolute top-3 right-3 flex items-center gap-2">
                         <Badge className="bg-white/90 text-primary hover:bg-white backdrop-blur-sm border-none">
                           {book.type === "sell" ? `NPR ${book.price}` : book.type}
                         </Badge>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-white/90 hover:bg-white">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => router.push(`/books/list?edit=${book.id}`)}>
+                              <Edit className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteBook(book.id)}>
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                     <div className="p-5">

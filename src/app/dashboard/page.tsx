@@ -195,17 +195,12 @@ const StudentDashboardContent = ({
           )}
         </div>
 
-        <Card className="p-6 mb-8 border-none shadow-sm bg-white">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <Input
-                placeholder="Search for notes, assignments, papers..."
-                className="pl-10 h-12 text-lg"
-                onFocus={() => router.push('/resources')}
-              />
+        <Card className="p-6 mb-8 border-none shadow-sm bg-white overflow-visible">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative z-50">
+              <SmartSearch />
             </div>
-            <Button size="lg" onClick={() => router.push('/resources')}>Search</Button>
+            <Button size="lg" className="h-12 px-8" onClick={() => router.push('/resources')}>Browse All</Button>
           </div>
         </Card>
 
@@ -401,18 +396,21 @@ export default function StudentDashboard() {
     };
   }, [resources, loadingResourcesFromContext, user]);
 
-  if (!isAuthenticated && !loading) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-500">You must be logged in to view this page.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium">Authenticating...</p>
+        </div>
       </div>
     );
   }
 
-  if (loading || loadingPayments || loadingResourcesFromContext) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Loading dashboard...</p>
+        <p className="text-red-500">You must be logged in to view this page.</p>
       </div>
     );
   }

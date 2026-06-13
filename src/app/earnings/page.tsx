@@ -2,37 +2,32 @@
 import Navbar from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-// import { usePayment } from '@/context/PaymentContext'; // Remove usePayment if it was Supabase-dependent
-// import { useAuth } from '@/context/AuthContext'; // Remove useAuth
-import { DollarSign, TrendingUp, Download, Calendar, CreditCard, Wallet, Building2 } from 'lucide-react';
-// import { useRouter } from 'next/navigation'; // Remove useRouter if only used for auth
+import { usePayment } from '@/context/PaymentContext';
+import { useAuth } from '@/context/AuthContext';
+import { DollarSign, TrendingUp, Download, Calendar, CreditCard, Wallet, Building2, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function Earnings() {
-  // const { getUserEarnings, getUserTransactions } = usePayment(); // Remove usePayment destructuring
-  // const { user } = useAuth(); // Remove useAuth destructuring
-  // const router = useRouter(); // Remove useRouter if only used for auth
+  const { getUserEarnings, getUserTransactions, loading: paymentLoading } = usePayment();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
 
-  // Mock user data
-  const user = {
-    id: 'mock-user-id',
-    email: 'mock@example.com',
-  };
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [authLoading, isAuthenticated, router]);
 
-  // Mock payment functions and data
-  const getUserEarnings = (_userId: string) => 1500; // Mock earnings
-  const getUserTransactions = (_userId: string) => ([ // Mock transactions
-    { id: 'tx1', resourceName: 'Calculus Notes', buyerId: 'other-user', buyerEmail: 'other@example.com', sellerId: user.id, sellerEmail: user.email, amount: 150, paymentMethod: 'esewa', status: 'completed', createdAt: '2024-04-01T10:00:00Z', transactionId: 'txn_esewa_001' },
-    { id: 'tx2', resourceName: 'Linear Algebra Guide', buyerId: 'other-user', buyerEmail: 'other@example.com', sellerId: user.id, sellerEmail: user.email, amount: 200, paymentMethod: 'khalti', status: 'completed', createdAt: '2024-04-02T11:00:00Z', transactionId: 'txn_khalti_002' },
-    { id: 'tx3', resourceName: 'Subscription - Monthly', buyerId: user.id, buyerEmail: user.email, sellerId: 'platform', sellerEmail: 'platform@example.com', amount: 299, paymentMethod: 'bank', status: 'completed', createdAt: '2024-04-03T12:00:00Z', transactionId: 'txn_bank_003' },
-    { id: 'tx4', resourceName: 'Physics Exam Prep', buyerId: 'other-user', buyerEmail: 'other@example.com', sellerId: user.id, sellerEmail: user.email, amount: 100, paymentMethod: 'esewa', status: 'failed', createdAt: '2024-04-04T13:00:00Z', transactionId: 'txn_esewa_004' },
-  ]);
+  if (authLoading || paymentLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-
-  // Removed authentication check
-  // if (!user) {
-  //   router.push('/login');
-  //   return null; // Return null or a loading indicator while redirecting
-  // }
+  if (!user) return null;
 
   const totalEarnings = getUserEarnings(user.id);
   const transactions = getUserTransactions(user.id);

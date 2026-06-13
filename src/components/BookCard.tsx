@@ -8,6 +8,8 @@ import ChatDialog from "./ChatDialog";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
+import { Star } from "lucide-react";
+
 interface BookCardProps {
   id: string;
   title: string;
@@ -16,9 +18,14 @@ interface BookCardProps {
   price?: number;
   type: "sell" | "exchange" | "free";
   seller_id?: string;
+  average_rating?: number;
+  total_ratings?: number;
 }
 
-export default function BookCard({ id, title, author, condition, price, type, seller_id }: BookCardProps) {
+export default function BookCard({ 
+  id, title, author, condition, price, type, seller_id, 
+  average_rating, total_ratings 
+}: BookCardProps) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [showContact, setShowContact] = useState(false);
@@ -49,11 +56,22 @@ export default function BookCard({ id, title, author, condition, price, type, se
 
   return (
     <>
-      <Card className="p-4 flex flex-col justify-between">
+      <Card className="p-4 flex flex-col justify-between hover:shadow-md transition-shadow">
         <div>
-          <h3 className="font-semibold text-lg mb-1">{title}</h3>
+          <h3 className="font-semibold text-lg mb-1 line-clamp-1">{title}</h3>
           <p className="text-gray-600 text-sm mb-2">by {author}</p>
-          <p className="text-gray-700 text-md">Condition: {condition}</p>
+          
+          <div className="flex items-center gap-1 mb-3">
+            <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+            <span className="text-sm font-medium text-gray-700">
+              {average_rating ? average_rating.toFixed(1) : "0.0"}
+            </span>
+            <span className="text-xs text-gray-500">
+              ({total_ratings || 0})
+            </span>
+          </div>
+
+          <p className="text-gray-700 text-sm font-medium">Condition: {condition}</p>
         </div>
         <div className="mt-4 flex items-center justify-between gap-2">
           {type === "sell" && !showContact && (

@@ -119,7 +119,7 @@ export default function UploadResource() {
           uploader_id: user.id,
           uploader_name: user.user_metadata?.name || user.email, // Use user_metadata name if available, otherwise email
           uploader_email: user.email,
-          status: "pending_review",
+          status: "pending_ai",
         })
         .select();
 

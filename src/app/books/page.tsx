@@ -57,6 +57,8 @@ export default function BooksPage() {
               price={book.price || 0}
               type={book.type || "sell"}
               seller_id={book.seller_id || undefined}
+              average_rating={book.average_rating}
+              total_ratings={book.total_ratings}
             />
           ))}
         </div>
@@ -74,6 +76,8 @@ export default function BooksPage() {
               price={book.price || 0}
               type={book.type || "exchange"}
               seller_id={book.seller_id || undefined}
+              average_rating={book.average_rating}
+              total_ratings={book.total_ratings}
             />
           ))}
         </div>
