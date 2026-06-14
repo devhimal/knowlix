@@ -58,6 +58,7 @@ export interface DBBook {
   total_ratings?: number;
   file_path?: string | null;
   cover_image_path?: string | null;
+  status?: string;
 }
 
 interface BookContextType {

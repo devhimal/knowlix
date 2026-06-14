@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Unauthorized: No access token provided.' });
   }
 
-  // Create a Supabase client
+  // Create a Supabase client that acts as the authenticated user
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

@@ -30,6 +30,7 @@ import {
 
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { SmartSearch } from "@/components/SmartSearch";
 
 // Define helper components first
 interface ActionCardProps {
@@ -435,6 +436,7 @@ export default function StudentDashboard() {
     />
   );
 }
+
 
 // Admin Dashboard Content
 type ResourceStatus = 'pending_review' | 'approved' | 'rejected' | 'pending_admin';
