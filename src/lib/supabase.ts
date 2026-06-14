@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr'; // Use createBrowserClient
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -8,7 +8,37 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase URL or Anon Key. Please check your environment variables.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createBrowserClient(
+  supabaseUrl,
+  supabaseAnonKey,
+  {
+    auth: {
+      persistSession: true, // This tells Supabase to store the session
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
+    },
+    // Add cookies object at the top-level options
+    cookies: {
+      get(name: string) {
+        if (typeof document !== 'undefined') { // Check if running in browser
+          return document.cookie.split('; ').find(row => row.startsWith(`${name}=`))?.split('=')[1];
+        }
+        return undefined; // Or handle as appropriate for server-side
+      },
+      set(name: string, value: string, options: any) {
+        if (typeof document !== 'undefined') { // Check if running in browser
+          document.cookie = `${name}=${value}; Max-Age=${options.maxAge}; Path=${options.path || '/'}; ${options.domain ? `Domain=${options.domain};` : ''} ${options.secure ? 'Secure;' : ''} SameSite=${options.sameSite || 'Lax'}`;
+        }
+      },
+      remove(name: string, options: any) {
+        if (typeof document !== 'undefined') { // Check if running in browser
+          document.cookie = `${name}=; Max-Age=0; Path=${options.path || '/'}; ${options.domain ? `Domain=${options.domain};` : ''} ${options.secure ? 'Secure;' : ''} SameSite=${options.sameSite || 'Lax'}`;
+        }
+      }
+      },
+  }
+);
 
 /**
  * Generates a signed URL to force download a file from Supabase Storage.

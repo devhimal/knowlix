@@ -65,24 +65,34 @@ export default function Navbar() {
                   Upload
                 </Link>
                 <Link
-                  href="/mentors"
-                  className="text-white/90 hover:text-white font-medium transition-colors"
-                >
-                  Mentors
-                </Link>
-                <Link
                   href="/books"
                   className="text-white/90 hover:text-white font-medium transition-colors"
                 >
                   Books
                 </Link>
-                {["senior", "mentor", "admin"].includes(user?.role || "") && ( // Always true with mock admin
+                {["admin", "super_admin"].includes(user?.role || "") && (
+                  <Link
+                    href="/admin/dashboard" // Assuming an admin dashboard path
+                    className="text-white/90 hover:text-white font-medium transition-colors"
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
+                {["super_admin", "admin", "mentor"].includes(user?.role || "") && (
                   <Link
                     href="/review"
                     className="text-white/90 hover:text-white font-medium transition-colors flex items-center gap-1"
                   >
                     <FileCheck className="h-4 w-4" />
                     Review
+                  </Link>
+                )}
+                {["student", "mentor"].includes(user?.role || "") && (
+                  <Link
+                    href="/earnings" // Assuming an earnings page path
+                    className="text-white/90 hover:text-white font-medium transition-colors"
+                  >
+                    Earnings
                   </Link>
                 )}
               </>
@@ -164,7 +174,7 @@ export default function Navbar() {
 
                 <div className="flex items-center gap-2 text-sm text-white font-medium bg-white/10 px-3 py-1.5 rounded-full">
                   <User className="h-4 w-4" />
-                  <span>{user?.user_metadata?.name || user?.email}</span>
+                  <span>{user?.user_metadata?.name || user?.email} ({user?.role})</span>
                 </div>
                 
                 <Button onClick={handleLogout} variant="ghost" size="sm" className="text-white hover:bg-white/10">
@@ -227,19 +237,40 @@ export default function Navbar() {
                   Upload
                 </Link>
                 <Link
-                  href="/mentors"
-                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Mentors
-                </Link>
-                <Link
                   href="/books"
                   className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Books
                 </Link>
+                {["admin", "super_admin"].includes(user?.role || "") && (
+                  <Link
+                    href="/admin/dashboard"
+                    className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
+                {["super_admin", "admin", "mentor"].includes(user?.role || "") && (
+                  <Link
+                    href="/review"
+                    className="px-3 py-2 text-white/90 hover:bg-white/10 rounded flex items-center gap-1"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <FileCheck className="h-4 w-4 mr-2" />
+                    Review
+                  </Link>
+                )}
+                {["student", "mentor"].includes(user?.role || "") && (
+                  <Link
+                    href="/earnings"
+                    className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Earnings
+                  </Link>
+                )}
               </div>
             )}
             <div className="px-3">

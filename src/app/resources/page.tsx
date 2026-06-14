@@ -307,7 +307,12 @@ export default function ResourceLibrary() {
       <PaymentDialog
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}
-        mode="subscription"
+        mode={selectedResource ? "resource" : "subscription"} // Dynamic mode
+        resourceId={selectedResource?.id} // Pass only the ID
+        resourceName={selectedResource?.title} // Pass the name
+        amount={selectedResource?.price} // Pass the price
+        sellerId={selectedResource?.uploaderId} // Pass the uploader ID
+        sellerEmail={selectedResource?.uploaderEmail} // Pass the uploader email
       />
     </div>
   );
@@ -354,8 +359,8 @@ const ResourceCard = ({
 
     return (
       <Button size="sm" onClick={() => onAction(resource)} variant="default">
-        <Zap className="h-4 w-4 mr-2" />
-        Get Premium
+        <ShoppingCart className="h-4 w-4 mr-2" /> {/* Changed from Zap to ShoppingCart */}
+        Buy Now
       </Button>
     );
   };

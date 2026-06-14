@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import supabase from "@/lib/supabase";
 import { categories, semesters } from "@/lib/constants"; // Import categories and semesters
+import { useNotifications } from '@/context/NotificationContext'; // Added this import
 
 export type ResourceStatus =
   | "pending_ai" // Step 1: Waiting for AI content check
@@ -115,6 +116,7 @@ export const useResources = () => {
 export const ResourceProvider = ({ children }: { children: ReactNode }) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
+  const { addNotification } = useNotifications(); // Access addNotification
 
   const fetchResources = useCallback(async () => {
     setLoading(true);
@@ -294,6 +296,17 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
   const updateResourceStatus = async (id: string, status: ResourceStatus) => {
     try {
+      // Fetch the resource to get its title for the notification
+      const { data: resourceToUpdate, error: fetchError } = await supabase
+        .from('resources')
+        .select('title, uploader_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !resourceToUpdate) {
+        throw new Error(fetchError?.message || 'Resource not found for status update');
+      }
+
       // Update in Supabase
       const { error } = await supabase
         .from("resources")
@@ -304,9 +317,21 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
+      // Add notification if resource is approved
+      if (status === 'approved') {
+        addNotification({
+          type: 'approval',
+          title: 'Resource Approved!',
+          message: `Your resource "${resourceToUpdate.title}" has been approved and is now live.`,
+          resourceId: id,
+          link: `/resources/${id}`,
+        });
+        // Optionally, also notify the uploader directly if needed (e.g., via email or in-app to specific user)
+      }
+
       // Re-fetch resources to update the UI with the latest status
       fetchResources();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating resource status:", error);
     }
   };
