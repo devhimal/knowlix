@@ -379,11 +379,13 @@ export default function StudentDashboard() {
       return { recentFiles: [], recommendedResources: [], myUploadedResources: [] };
     }
 
-    const sortedResources = [...resources].sort(
+    const approvedResources = resources.filter(r => r.status === 'approved');
+
+    const sortedResources = [...approvedResources].sort(
       (a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
     );
     
-    const sortedByDownloads = [...resources].sort(
+    const sortedByDownloads = [...approvedResources].sort(
       (a, b) => (b.downloads || 0) - (a.downloads || 0)
     );
 

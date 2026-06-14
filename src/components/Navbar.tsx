@@ -52,11 +52,6 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Search */}
-          <div className="hidden md:block flex-1 max-w-md">
-            <SmartSearch />
-          </div>
-
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
             {isAuthenticated && ( // Always true now for UI
@@ -78,12 +73,6 @@ export default function Navbar() {
                   className="text-white/90 hover:text-white font-medium transition-colors"
                 >
                   Upload
-                </Link>
-                <Link
-                  href="/mentors"
-                  className="text-white/90 hover:text-white font-medium transition-colors"
-                >
-                  Mentors
                 </Link>
                 <Link
                   href="/books"
@@ -286,13 +275,6 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Upload
-                </Link>
-                <Link
-                  href="/mentors"
-                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Mentors
                 </Link>
                 <Link
                   href="/books"

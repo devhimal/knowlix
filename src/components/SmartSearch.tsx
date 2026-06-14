@@ -24,7 +24,8 @@ export function SmartSearch() {
 
   // Combine resources and books into a single searchable list
   const searchableItems = useMemo(() => {
-    const mappedResources = resources.map(mapResourceToSearchable);
+    const approvedResources = resources.filter(r => r.status === 'approved');
+    const mappedResources = approvedResources.map(mapResourceToSearchable);
     const mappedBooks = books.map(mapBookToSearchable);
     return [...mappedResources, ...mappedBooks];
   }, [resources, books]);

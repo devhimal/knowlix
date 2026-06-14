@@ -157,7 +157,6 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
       const { data, error } = await supabase
         .from("resources")
         .select("*")
-        .eq("is_free", true) // Only fetch free resources
         .order("created_at", { ascending: false }); // Order by most recent
 
       if (error) {

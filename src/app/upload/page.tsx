@@ -495,8 +495,11 @@ const Step3 = ({ formData, handleChange, handleNext, handlePrev }: any) => {
               id="price"
               type="number"
               placeholder="100"
-              value={formData.price}
-              onChange={(e) => handleChange("price", parseInt(e.target.value))}
+              value={formData.price || ""}
+              onChange={(e) => {
+                const val = e.target.value === "" ? 0 : parseInt(e.target.value);
+                handleChange("price", isNaN(val) ? 0 : val);
+              }}
               className="pl-14"
               min="10"
               step="10"

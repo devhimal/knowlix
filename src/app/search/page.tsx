@@ -49,6 +49,14 @@ function SearchResults() {
     let items = Array.isArray(searchResult) ? searchResult : searchResult.items;
     const msg = Array.isArray(searchResult) ? "" : searchResult.message;
 
+    // Filter to only show approved resources (books don't have a status in the interface yet)
+    items = items.filter(item => {
+      if (item.itemType === 'resource') {
+        return item.originalItem.status === 'approved';
+      }
+      return true; // Books currently all show up
+    });
+
     // Apply secondary filters not handled by engine
     if (filters.type !== 'all') {
       items = items.filter(item => item.itemType === filters.type || item.type === filters.type);
