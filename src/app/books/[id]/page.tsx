@@ -9,9 +9,6 @@ import { useBooks } from "@/context/BookContext";
 import ChatDialog from "@/components/ChatDialog";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-
-import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
 import { Star, User, Book as BookIcon, Package, Clock, MessageCircle, ChevronLeft, Zap, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/StarRating";

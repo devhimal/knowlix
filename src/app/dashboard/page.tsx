@@ -168,10 +168,10 @@ const StudentDashboardContent = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-1">
-              Welcome back, {user?.name}!
+              Welcome back, {user?.user_metadata?.name}!
             </h1>
             <p className="text-gray-500">
-              {user?.course} • {user?.semester}
+              {user?.user_metadata?.course} • {user?.user_metadata?.semester}
             </p>
           </div>
 

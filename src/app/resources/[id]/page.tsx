@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useResources, Resource } from '@/context/ResourceContext';
 import { Button } from "@/components/ui/button";
 import { Download, Star, Check, Zap } from "lucide-react";
@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 
 export default function ResourceDetailsPage() {
   const params = useParams();
+  const router = useRouter();
 
   if (!params || !params.id) {
     return (

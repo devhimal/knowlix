@@ -2,10 +2,25 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import supabase from '@/lib/supabase'; // Import the Supabase client
-import { User, Session } from '@supabase/supabase-js';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 // Define roles
 export type UserRole = 'admin' | 'student' | 'super_admin' | null;
+
+// Custom User type extending Supabase's User type
+export interface User extends SupabaseUser {
+  user_metadata: {
+    name?: string;
+    course?: string;
+    semester?: string;
+    role?: UserRole;
+  };
+  subscription?: {
+    isSubscribed: boolean;
+    plan: string;
+    expiryDate: string;
+  };
+}
 
 interface AuthContextType {
   user: User | null;
@@ -14,7 +29,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   session: Session | null; // Add session to context type
   signIn: (email: string, password: string) => Promise<{ success: boolean; error: string | null }>;
-  signUp: (email: string, password: string, role: UserRole) => Promise<{ success: boolean; error: string | null }>;
+  signUp: (email: string, password: string, role: UserRole, name?: string, course?: string, semester?: string) => Promise<{ success: boolean; error: string | null }>;
   signOut: () => Promise<{ success: boolean; error: string | null }>;
 }
 
@@ -34,8 +49,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Auth event:", event);
         setSession(session);
         if (session) {
-          setUser(session.user);
-          setRole((session.user.user_metadata?.role as UserRole) || null);
+          // Cast SupabaseUser to custom User type
+          const customUser: User = {
+            ...session.user,
+            user_metadata: {
+              name: session.user.user_metadata?.name,
+              course: session.user.user_metadata?.course,
+              semester: session.user.user_metadata?.semester,
+              role: session.user.user_metadata?.role as UserRole,
+            },
+            // Placeholder for subscription data, will be fetched or updated elsewhere
+            subscription: {
+              isSubscribed: false,
+              plan: 'free',
+              expiryDate: new Date().toISOString(),
+            },
+          };
+          setUser(customUser);
+          setRole(customUser.user_metadata.role || null);
         } else {
           setUser(null);
           setRole(null);
@@ -59,8 +90,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       setSession(session);
       if (session) {
-        setUser(session.user);
-        setRole((session.user.user_metadata?.role as UserRole) || null);
+        const customUser: User = {
+          ...session.user,
+          user_metadata: {
+            name: session.user.user_metadata?.name,
+            course: session.user.user_metadata?.course,
+            semester: session.user.user_metadata?.semester,
+            role: session.user.user_metadata?.role as UserRole,
+          },
+          subscription: {
+            isSubscribed: false,
+            plan: 'free',
+            expiryDate: new Date().toISOString(),
+          },
+        };
+        setUser(customUser);
+        setRole(customUser.user_metadata.role || null);
       } else {
         setUser(null);
         setRole(null);
@@ -88,13 +133,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { success: true, error: null };
   };
 
-  const signUp = async (email: string, password: string, selectedRole: UserRole) => {
+  const signUp = async (email: string, password: string, selectedRole: UserRole, name?: string, course?: string, semester?: string) => {
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { role: selectedRole }, // Store role in user metadata
+        data: { role: selectedRole, name, course, semester }, // Store role and other metadata
       },
     });
     setLoading(false);

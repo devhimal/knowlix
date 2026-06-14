@@ -66,7 +66,7 @@ export interface Resource {
   fileSize: string;
   uploader: string;
   uploaderId: string;
-  uploaderEmail: string;
+  uploaderEmail?: string;
   uploadDate: string;
   status: ResourceStatus;
   downloads: number;
