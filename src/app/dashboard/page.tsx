@@ -360,11 +360,12 @@ const StudentDashboardContent = ({
 
 export default function StudentDashboard() {
   const { user, isAuthenticated, role, loading } = useAuth();
-  const { getUserEarnings, getUserTransactions, loading: loadingPayments } = usePayment();
+  const paymentContext = usePayment(); // Correctly assign usePayment() to paymentContext
+  const { getUserEarnings, getUserTransactions, loading: loadingPayments } = paymentContext;
   const { resources, fetchResources, loading: loadingResourcesFromContext } = useResources();
 
   const transactions = user && !loadingPayments ? getUserTransactions(user.id) : [];
-  const isSubscribed = user?.subscription?.isSubscribed || false;
+  const isSubscribed = user && !loadingPayments ? paymentContext.isSubscribed(user.id) : false;
 
   const getPlanName = (plan: string) => {
     switch (plan) {

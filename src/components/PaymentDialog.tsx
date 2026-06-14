@@ -6,13 +6,14 @@ import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Alert, AlertDescription } from './ui/alert';
 import { CheckCircle, XCircle, Loader2, CreditCard, Building2, Wallet, Zap } from 'lucide-react';
-// import { usePayment } from '../context/PaymentContext'; // Keep if PaymentContext is not being removed
-// import { useAuth } from '../context/AuthContext'; // Remove useAuth import
+import { toast } from "sonner"; // Added this import
+import { usePayment } from '../context/PaymentContext'; // Keep if PaymentContext is not being removed
+import { useAuth } from '../context/AuthContext'; // Remove useAuth import
 
 interface PaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  resourceId?: number;
+  resourceId?: string;
   resourceName?: string;
   amount?: number;
   sellerId?: string;
@@ -47,44 +48,16 @@ export const PaymentDialog = ({
     bankName: '',
   });
 
-  // const { initiatePayment, initiateSubscription } = usePayment(); // Keep if PaymentContext is not being removed
-  // const { user, updateUser } = useAuth(); // Remove useAuth destructuring
-
-  // Placeholder for user and payment functions since Supabase is removed
-  const user = { id: 'mock-user-id', email: 'mock@example.com' }; // Mock user
-  const initiatePayment = async (
-    _resourceId: number,
-    _resourceName: string,
-    _sellerId: string,
-    _sellerEmail: string,
-    _finalAmount: number,
-    _paymentMethod: 'esewa' | 'khalti' | 'bank',
-    _userId: string,
-    _userEmail: string
-  ) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return { success: true, transactionId: 'MOCK_TXN_' + Date.now() };
-  };
-
-  const initiateSubscription = async (
-    _planId: string,
-    _finalAmount: number,
-    _paymentMethod: 'esewa' | 'khalti' | 'bank',
-    _userId: string,
-    _userEmail: string
-  ) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return { success: true, transactionId: 'MOCK_SUB_' + Date.now() };
-  };
-
-  // const updateUser = (_userData: any) => console.log("Simulating user update"); // Mock updateUser
+  const { purchaseResource, initiateSubscription } = usePayment();
+  const { user } = useAuth();
 
   const finalAmount = mode === 'resource' ? (initialAmount || 0) : selectedPlan.price;
 
   const handlePayment = async () => {
-    if (!user) return; // This check will now always pass with mock user
+    if (!user || !user.email) { // Check for user.email as well
+      toast.error("User email is not available. Please log in again.");
+      return;
+    }
 
     setProcessing(true);
     setPaymentStatus('idle');
@@ -92,7 +65,7 @@ export const PaymentDialog = ({
     try {
       let result;
       if (mode === 'resource' && resourceId && resourceName) {
-        result = await initiatePayment(
+        result = await purchaseResource( // Call purchaseResource
           resourceId,
           resourceName,
           sellerId || '',
