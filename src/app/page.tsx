@@ -3,7 +3,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useResources } from "@/context/ResourceContext";
+import { useResources, Resource } from "@/context/ResourceContext";
+import { useAuth } from "@/context/AuthContext";
+import { usePayment } from "@/context/PaymentContext";
 import Link from "next/link";
 import {
   BookOpen,
@@ -21,6 +23,10 @@ import {
   Building2,
   Wrench,
   Download,
+  Check, // Add Check icon
+  Zap,   // Add Zap icon
+  Lock,  // Add Lock icon
+  ShoppingCart, // Add ShoppingCart icon
 } from "lucide-react";
 import { useState } from "react";
 import { Testimonials } from "@/components/Testimonials";
@@ -28,10 +34,14 @@ import { Newsletter } from "@/components/Newsletter";
 import { categories, semesters } from "@/lib/constants";
 import { toast } from "sonner";
 import { getDownloadUrl } from "@/lib/supabase";
+import { Progress } from "@/components/ui/progress"; // Importing Progress for loading indicator
+
 
 export default function HomePage() {
   const router = useRouter();
-  const { resources } = useResources();
+  const { resources, loading } = useResources(); // Get loading state from useResources()
+  const { user } = useAuth(); // Get user from AuthContext
+  const { hasPurchased, isSubscribed } = usePayment(); // Get payment context
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSubCategory, setSelectedSubCategory] = useState("all");
   const [selectedSemester, setSelectedSemester] = useState("all");
@@ -421,11 +431,25 @@ export default function HomePage() {
             </div>
 
             <div className="space-y-4">
-              {filteredResources.length > 0 ? (
+              {loading ? ( // Check if loading
+                <Card className="p-12 text-center">
+                  <div className="text-muted-foreground mb-4">
+                    <BookOpen className="h-16 w-16 mx-auto animate-pulse" />
+                  </div>
+                  <p className="text-foreground text-lg">Loading resources...</p>
+                  <Progress value={null} className="w-1/2 mx-auto mt-4" /> {/* Indeterminate progress */}
+                </Card>
+              ) : filteredResources.length > 0 ? ( // If not loading, check if resources exist
                 filteredResources.map((resource) => (
-                  <FeedResourceCard key={resource.id} resource={resource} />
+                  <FeedResourceCard
+                    key={resource.id}
+                    resource={resource}
+                    user={user} // Pass user to FeedResourceCard
+                    isSubscribed={user ? isSubscribed(user.id) : false} // Pass isSubscribed status
+                    hasPurchased={hasPurchased(resource.id)} // Pass hasPurchased status
+                  />
                 ))
-              ) : (
+              ) : ( // If not loading and no resources
                 <Card className="p-12 text-center">
                   <div className="text-muted-foreground mb-4">
                     <BookOpen className="h-16 w-16 mx-auto" />
@@ -632,13 +656,38 @@ export default function HomePage() {
   );
 }
 
-const FeedResourceCard = ({ resource }: { resource: any }) => {
+interface FeedResourceCardProps {
+  resource: Resource;
+  user: any; // User from AuthContext
+  isSubscribed: boolean; // From usePayment
+  hasPurchased: boolean; // From usePayment
+}
+
+const FeedResourceCard = ({
+  resource,
+  user,
+  isSubscribed,
+  hasPurchased,
+}: FeedResourceCardProps) => {
   const router = useRouter();
   const { incrementDownload } = useResources();
 
   const handleDownload = async (res: any) => {
+    if (!user) {
+      toast.error("Please log in to download resources.");
+      router.push("/login");
+      return;
+    }
+
     if (!res.file_path) {
       toast.error("File path not available for download.");
+      return;
+    }
+
+    // Check if it's a premium resource and user is not entitled
+    if (!res.isFree && !isSubscribed && !hasPurchased && user.id !== res.uploaderId) {
+      toast.info("This is a premium resource. Please subscribe or purchase to download.");
+      router.push(`/resources/${res.id}`); // Redirect to resource details page for purchase option
       return;
     }
 
@@ -655,6 +704,34 @@ const FeedResourceCard = ({ resource }: { resource: any }) => {
     toast.success(`Downloading ${res.title}`);
     window.open(downloadUrl, "_blank");
     incrementDownload(res.id); // Increment download count
+  };
+
+  const getActionButton = () => {
+    if (resource.isFree) {
+      return (
+        <Button size="sm" onClick={() => handleDownload(resource)}>
+          <Download className="h-4 w-4 mr-2" />
+          Download Free
+        </Button>
+      );
+    }
+
+    // If subscribed, purchased, or it's the user's own resource, allow download
+    if (isSubscribed || hasPurchased || user?.id === resource.uploaderId) {
+      return (
+        <Button size="sm" onClick={() => handleDownload(resource)} variant="default">
+          <Check className="h-4 w-4 mr-2" />
+          Download
+        </Button>
+      );
+    }
+
+    return (
+      <Button size="sm" onClick={() => router.push(`/resources/${resource.id}`)} variant="default">
+        <ShoppingCart className="h-4 w-4 mr-2" /> {/* Changed from Zap to ShoppingCart */}
+        Buy Now
+      </Button>
+    );
   };
 
   return (
@@ -706,9 +783,7 @@ const FeedResourceCard = ({ resource }: { resource: any }) => {
           >
             View Details
           </Button>
-          <Button size="sm" onClick={() => handleDownload(resource)}>
-            <Download className="w-4 h-4 mr-1" /> Download
-          </Button>
+          {getActionButton()}
         </div>
       </div>
     </Card>

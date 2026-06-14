@@ -193,6 +193,7 @@ export default function ResourceDetailsPage() {
 
   const canAccess =
     resource.isFree ||
+    (user && (user.role === 'admin' || user.role === 'super_admin')) || // Added this condition
     (user && isSubscribed(user.id)) ||
     hasPurchased(resource.id) ||
     (user && user.id === resource.uploaderId);

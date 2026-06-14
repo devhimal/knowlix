@@ -1,5 +1,17 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import supabase from '@/lib/supabase';
+import { useAuth } from "@/context/AuthContext"; // Added this import
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  start_date: string;
+  end_date: string;
+  status: 'active' | 'cancelled' | 'expired';
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Transaction {
   id: string;
@@ -28,7 +40,8 @@ export interface PurchasedResource {
 interface PaymentContextType {
   transactions: Transaction[];
   purchasedResources: PurchasedResource[];
-  initiatePayment: (
+  subscriptions: Subscription[]; // Added
+  purchaseResource: (
     resourceId: string,
     resourceName: string,
     sellerId: string,
@@ -37,7 +50,7 @@ interface PaymentContextType {
     paymentMethod: 'esewa' | 'khalti' | 'bank',
     buyerId: string,
     buyerEmail: string
-  ) => Promise<{ success: boolean; transactionId?: string }>;
+  ) => Promise<{ success: boolean; transactionId?: string; error: string | null }>;
   initiateSubscription: (
     plan: 'monthly' | 'semester' | 'annual',
     amount: number,
@@ -48,8 +61,15 @@ interface PaymentContextType {
   hasPurchased: (resourceId: string) => boolean;
   isSubscribed: (userId: string) => boolean;
   getUserEarnings: (userId: string) => number;
+  getEarningsBalance: (userId: string) => Promise<number | null>; // Add getEarningsBalance
   getUserTransactions: (userId: string) => Transaction[];
   getAllTransactions: () => Transaction[];
+  submitWithdrawalRequest: (
+    userId: string,
+    amount: number,
+    paymentMethod: 'esewa' | 'khalti' | 'bank',
+    accountDetails: any
+  ) => Promise<{ success: boolean; error: string | null }>;
   loading: boolean;
 }
 
@@ -66,10 +86,13 @@ export const usePayment = () => {
 export const PaymentProvider = ({ children }: { children: ReactNode }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [purchasedResources, setPurchasedResources] = useState<PurchasedResource[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]); // Added
   const [loading, setLoading] = useState(true);
 
+  const { user } = useAuth(); // Get user from AuthContext
+
   const fetchTransactions = useCallback(async () => {
-    setLoading(true);
+    setLoading(true); // Keep loading true while fetching both
     try {
       const { data, error } = await supabase
         .from('transactions')
@@ -112,15 +135,45 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
-      setLoading(false);
+      // setLoading(false); // Will be set after both fetches are done
     }
   }, []);
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+  const fetchSubscriptions = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('end_date', { ascending: false }); // Get most recent first
 
-  const initiatePayment = async (
+      if (error) {
+        throw error;
+      }
+      setSubscriptions(data as Subscription[]);
+    } catch (error) {
+      console.error('Error fetching subscriptions:', error);
+    }
+  }, []);
+
+
+  useEffect(() => {
+    // Combine fetching logic
+    const loadAllData = async () => {
+      setLoading(true);
+      await fetchTransactions(); // This no longer sets loading to false
+      if (user?.id) {
+        await fetchSubscriptions(user.id);
+      } else {
+        setSubscriptions([]);
+      }
+      setLoading(false);
+    };
+
+    loadAllData();
+  }, [fetchTransactions, fetchSubscriptions, user?.id]);
+
+  const purchaseResource = async (
     resourceId: string,
     resourceName: string,
     sellerId: string,
@@ -129,12 +182,13 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     paymentMethod: 'esewa' | 'khalti' | 'bank',
     buyerId: string,
     buyerEmail: string
-  ): Promise<{ success: boolean; transactionId?: string }> => {
+  ): Promise<{ success: boolean; transactionId?: string; error: string | null }> => {
     // Simulate payment processing
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Random success/failure (90% success rate for demo)
-    const success = Math.random() > 0.1;
+    const paymentSuccess = Math.random() > 0.1;
+    const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     const newTransaction: Partial<Transaction> = {
       type: 'resource_purchase',
@@ -146,73 +200,133 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
       sellerEmail,
       amount,
       paymentMethod,
-      status: success ? 'completed' : 'failed',
-      transactionId: `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      status: paymentSuccess ? 'completed' : 'failed',
+      transactionId,
       createdAt: new Date().toISOString(),
     };
 
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert([newTransaction])
-        .select();
+      if (!paymentSuccess) {
+        // Record failed transaction but don't proceed with balance update or resource_purchases
+        await supabase.from('transactions').insert([newTransaction]);
+        fetchTransactions();
+        return { success: false, error: 'Payment failed.', transactionId };
+      }
 
-      if (error) {
-        throw error;
+      // Record transaction
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert([newTransaction]);
+
+      if (transactionError) {
+        throw transactionError;
+      }
+
+      // Record resource purchase
+      const { error: purchaseError } = await supabase
+        .from('resource_purchases')
+        .insert({
+          buyer_id: buyerId,
+          resource_id: resourceId,
+          amount,
+        });
+
+      if (purchaseError) {
+        throw purchaseError;
+      }
+
+      // Update seller's balance in profiles table
+      const { error: balanceError } = await supabase.rpc('increment_user_balance', {
+        user_id: sellerId,
+        amount_to_add: amount,
+      });
+
+      if (balanceError) {
+        throw balanceError;
       }
 
       // Re-fetch transactions to update the state
       fetchTransactions();
       
-      return { success, transactionId: data[0]?.transactionId };
-    } catch (error) {
-      console.error('Error initiating payment:', error);
-      return { success: false };
+      return { success: true, error: null, transactionId };
+    } catch (error: any) {
+      console.error('Error purchasing resource:', error);
+      // Ensure we still re-fetch even on error to capture any partial updates if applicable
+      fetchTransactions();
+      return { success: false, error: error.message, transactionId };
     }
   };
 
   const initiateSubscription = async (
-    plan: 'monthly' | 'semester' | 'annual',
+    plan_id: 'monthly' | 'semester' | 'annual',
     amount: number,
     paymentMethod: 'esewa' | 'khalti' | 'bank',
     buyerId: string,
     buyerEmail: string
-  ): Promise<{ success: boolean; transactionId?: string }> => {
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  ): Promise<{ success: boolean; transactionId?: string; error?: string }> => { // Added error to return type
+    // Determine end_date based on plan_id
+    const endDate = new Date();
+    let durationInMonths = 0;
+    if (plan_id === 'monthly') durationInMonths = 1;
+    else if (plan_id === 'semester') durationInMonths = 6;
+    else if (plan_id === 'annual') durationInMonths = 12;
+    endDate.setMonth(endDate.getMonth() + durationInMonths);
 
-    // Random success/failure (90% success rate for demo)
-    const success = Math.random() > 0.1;
-
-    const newTransaction: Partial<Transaction> = {
-      type: 'subscription',
-      subscriptionPlan: plan,
-      buyerId,
-      buyerEmail,
-      amount,
-      paymentMethod,
-      status: success ? 'completed' : 'failed',
-      transactionId: `SUB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-    };
-
+    // Make API call to our backend /api/subscriptions
     try {
-      const { data, error } = await supabase
+      const apiResponse = await fetch("/api/subscriptions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: buyerId,
+          plan_id: plan_id,
+          end_date: endDate.toISOString(),
+        }),
+      });
+
+      if (!apiResponse.ok) {
+        const errorData = await apiResponse.json();
+        throw new Error(errorData.error || "Failed to create subscription via API.");
+      }
+
+      const apiResult = await apiResponse.json();
+      console.log("Subscription API success:", apiResult);
+
+      // Record a transaction for the payment, now that subscription creation is successful
+      const transactionId = `SUB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newTransaction: Partial<Transaction> = {
+        type: 'subscription',
+        subscriptionPlan: plan_id,
+        buyerId,
+        buyerEmail,
+        amount,
+        paymentMethod,
+        status: 'completed', // Mark as completed since API call was successful
+        transactionId: transactionId,
+        createdAt: new Date().toISOString(),
+      };
+
+      const { data, error: transactionError } = await supabase
         .from('transactions')
         .insert([newTransaction])
         .select();
 
-      if (error) {
-        throw error;
+      if (transactionError) {
+        throw transactionError;
       }
 
-      // Re-fetch transactions to update the state
+      // Re-fetch transactions and subscriptions to update the state
       fetchTransactions();
+      if (user?.id) { // Ensure user is available for fetching subscriptions
+        fetchSubscriptions(user.id);
+      }
       
-      return { success, transactionId: data[0]?.transactionId };
-    } catch (error) {
+      return { success: true, transactionId: transactionId }; // Return transactionId directly
+    } catch (error: any) {
       console.error('Error initiating subscription:', error);
-      return { success: false };
+      return { success: false, error: error.message };
     }
   };
 
@@ -230,26 +344,80 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     return transactions.filter(t => t.sellerId === userId || t.buyerId === userId);
   };
 
+  const getEarningsBalance = useCallback(async (userId: string): Promise<number | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+      return data?.balance || 0;
+    } catch (error) {
+      console.error('Error fetching earnings balance:', error);
+      return null;
+    }
+  }, []);
+
   const isSubscribed = (userId: string): boolean => {
-    return transactions.some(t => t.buyerId === userId && t.type === 'subscription' && t.status === 'completed');
+    const activeSubscription = subscriptions.find(
+      (sub) =>
+        sub.user_id === userId &&
+        sub.status === 'active' &&
+        new Date(sub.end_date) > new Date()
+    );
+    return !!activeSubscription;
   };
 
   const getAllTransactions = (): Transaction[] => {
     return transactions;
   };
 
+  const submitWithdrawalRequest = useCallback(async (
+    userId: string,
+    amount: number,
+    paymentMethod: 'esewa' | 'khalti' | 'bank',
+    accountDetails: any
+  ): Promise<{ success: boolean; error: string | null }> => {
+    try {
+      const { error } = await supabase
+        .from('withdrawal_requests')
+        .insert({
+          user_id: userId,
+          amount,
+          payment_method: paymentMethod,
+          account_details_snapshot: accountDetails,
+          status: 'pending' // Default status
+        });
+
+      if (error) {
+        throw error;
+      }
+      return { success: true, error: null };
+    } catch (error: any) {
+      console.error('Error submitting withdrawal request:', error);
+      return { success: false, error: error.message };
+    }
+  }, []);
+
   return (
     <PaymentContext.Provider
       value={{
         transactions,
         purchasedResources,
-        initiatePayment,
+        subscriptions, // Added
+        purchaseResource,
         initiateSubscription,
         hasPurchased,
         isSubscribed,
         getUserEarnings,
         getUserTransactions,
         getAllTransactions,
+        getEarningsBalance,
+        submitWithdrawalRequest,
         loading,
       }}
     >

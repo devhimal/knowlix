@@ -86,13 +86,29 @@ export default function Navbar() {
                 >
                   My Uploads
                 </Link>
-                {["admin", "super_admin"].includes(role || "") && ( // Always true with mock admin
+                {["admin", "super_admin"].includes(user?.role || "") && (
+                  <Link
+                    href="/admin/dashboard" // Assuming an admin dashboard path
+                    className="text-white/90 hover:text-white font-medium transition-colors"
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
+                {["super_admin", "admin", "mentor"].includes(user?.role || "") && (
                   <Link
                     href="/review"
                     className="text-white/90 hover:text-white font-medium transition-colors flex items-center gap-1"
                   >
                     <FileCheck className="h-4 w-4" />
                     Review
+                  </Link>
+                )}
+                {["student", "mentor"].includes(user?.role || "") && (
+                  <Link
+                    href="/earnings" // Assuming an earnings page path
+                    className="text-white/90 hover:text-white font-medium transition-colors"
+                  >
+                    Earnings
                   </Link>
                 )}
               </>
@@ -201,12 +217,7 @@ export default function Navbar() {
                         <span>My Uploads</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/upload" className="flex items-center w-full cursor-pointer">
-                        <Upload className="mr-2 h-4 w-4" />
-                        <span>Upload New</span>
-                      </Link>
-                    </DropdownMenuItem>
+
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       className="text-red-600 focus:text-red-600 cursor-pointer" 
@@ -290,14 +301,32 @@ export default function Navbar() {
                 >
                   My Uploads
                 </Link>
-                {["admin", "super_admin"].includes(role || "") && (
+                {["admin", "super_admin"].includes(user?.role || "") && (
                   <Link
-                    href="/review"
-                    className="px-3 py-2 text-white/90 hover:bg-white/10 rounded flex items-center gap-2"
+                    href="/admin/dashboard"
+                    className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <FileCheck className="h-4 w-4" />
+                    Admin Dashboard
+                  </Link>
+                )}
+                {["super_admin", "admin", "mentor"].includes(user?.role || "") && (
+                  <Link
+                    href="/review"
+                    className="px-3 py-2 text-white/90 hover:bg-white/10 rounded flex items-center gap-1"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <FileCheck className="h-4 w-4 mr-2" />
                     Review
+                  </Link>
+                )}
+                {["student", "mentor"].includes(user?.role || "") && (
+                  <Link
+                    href="/earnings"
+                    className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Earnings
                   </Link>
                 )}
               </div>

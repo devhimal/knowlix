@@ -16,13 +16,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [currentTab, setCurrentTab] = useState('signin'); // 'signin' or 'signup'
   const [selectedRole, setSelectedRole] = useState<UserRole>('student');
-  const { signIn, signUp, loading } = useAuth();
+  const { signIn, signUp, loading, checkEmailExists } = useAuth(); // Destructure checkEmailExists
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (loading) return; // Prevent multiple submissions
+
     if (currentTab === 'signup') {
+      // Proactively check if email already exists
+      const emailAlreadyExists = await checkEmailExists(email);
+      if (emailAlreadyExists) {
+        toast.error("An account with this email already exists. Please log in or use a different email to continue.");
+        return;
+      }
+
       const { success, error } = await signUp(email, password, selectedRole);
       if (success) {
         toast.success('Account created! Please check your email to verify and then sign in.');
