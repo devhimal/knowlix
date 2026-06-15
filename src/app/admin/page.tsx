@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { usePayment } from '@/context/PaymentContext'; // Keep usePayment for now
+import { usePayment } from '@/context/PaymentContext'; 
 import Navbar from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Users, FileText, Flag, CheckCircle, XCircle, Trash2, DollarSign, Calend
 
 export default function AdminPanel() {
   const { user, role, loading } = useAuth();
-  // const { getAllTransactions } = usePayment(); // Keep usePayment for now
+  
   const router = useRouter();
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function AdminPanel() {
     }
   }, [loading, user, role, router]);
 
-  // Mock transactions data, assuming usePayment will also be mocked or removed later
+  
   const transactions = [
     { id: 't1', resourceName: 'Calculus Notes', buyerEmail: 'student1@example.com', sellerEmail: 'admin@example.com', amount: 150, paymentMethod: 'esewa', status: 'completed', createdAt: '2024-04-01T10:00:00Z' },
     { id: 't2', resourceName: 'Linear Algebra Guide', buyerEmail: 'student2@example.com', sellerEmail: 'admin@example.com', amount: 200, paymentMethod: 'khalti', status: 'completed', createdAt: '2024-04-02T11:00:00Z' },
@@ -83,8 +83,8 @@ export default function AdminPanel() {
     );
   }
 
-  // If user is not admin, the useEffect will redirect them.
-  // We can render null or a basic message here as the redirection handles it.
+  
+  
   if (!user || role !== 'admin') {
     return null; 
   }
@@ -95,7 +95,7 @@ export default function AdminPanel() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Panel</h1>
 
-        {/* Stats */}
+        {}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <StatCard icon={<Users />} value={stats.totalUsers} label="Total Users" color="blue" />
           <StatCard icon={<FileText />} value={stats.totalResources} label="Total Resources" color="green" />
@@ -103,7 +103,7 @@ export default function AdminPanel() {
           <StatCard icon={<Flag />} value={stats.flaggedContent} label="Flagged Content" color="red" />
         </div>
 
-        {/* Tabs */}
+        {}
         <Tabs defaultValue="users" className="space-y-6">
           <TabsList>
             <TabsTrigger value="users">User Management</TabsTrigger>

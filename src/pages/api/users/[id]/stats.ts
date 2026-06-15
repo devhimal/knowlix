@@ -9,7 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { id } = req.query; // user_id
+  const { id } = req.query; 
 
   if (req.method === 'GET') {
     const token = req.headers.authorization?.split(' ')[1];
@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized: No access token provided.' });
     }
 
-    // Create a Supabase client that acts as the authenticated user
+    
     const supabase = createClient(supabaseUrl!, supabaseAnonKey!, {
       global: {
         headers: {
@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     try {
-      // Fetch uploads count
+      
       const { count: uploadsCount, error: uploadsError } = await supabase
         .from('resources')
         .select('id', { count: 'exact' })
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (uploadsError) throw uploadsError;
 
-      // Fetch total downloads for user's resources
+      
       const { data: downloadsData, error: downloadsError } = await supabase
         .from('resources')
         .select('downloads')
@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const totalDownloads = downloadsData?.reduce((sum, resource) => sum + resource.downloads, 0) || 0;
 
-      // Fetch average rating for user's resources
+      
       const { data: avgRatingData, error: avgRatingError } = await supabase
         .from('resources')
         .select('average_rating')
@@ -64,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         uploads: uploadsCount || 0,
         downloads: totalDownloads,
         averageRating: parseFloat(averageRating.toFixed(1)),
-        points: 0, // Placeholder for now
+        points: 0, 
       });
 
     } catch (error: any) {

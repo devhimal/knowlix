@@ -1,28 +1,28 @@
-import { NextApiRequest, NextApiResponse } from "next"; // Added this import
+import { NextApiRequest, NextApiResponse } from "next"; 
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const supabase = createServerSupabaseClient(req, res); // Get server-side Supabase client
-  const { id } = req.query; // Subscription ID
+  const supabase = createServerSupabaseClient(req, res); 
+  const { id } = req.query; 
 
   if (req.method === "PUT") {
-    const { status } = req.body; // e.g., 'cancelled', 'expired'
+    const { status } = req.body; 
 
     if (!id) {
       return res.status(400).json({ error: "Subscription ID is required" });
     }
 
-    // You might want to add more robust authorization here.
-    // For example, checking if auth.uid() matches the user_id associated with this subscription ID.
+    
+    
 
     const { data, error } = await supabase
       .from("subscriptions")
-      .update({ status, updated_at: new Date().toISOString() }) // Manually update updated_at for now
+      .update({ status, updated_at: new Date().toISOString() }) 
       .eq("id", id)
-      .select(); // Add .select() to ensure data is an array
+      .select(); 
 
     if (error) {
       console.error("Error updating subscription:", error);

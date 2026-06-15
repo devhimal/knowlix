@@ -2,11 +2,11 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createServerSupabaseClient(req, res); // Get server-side Supabase client
+  const supabase = createServerSupabaseClient(req, res); 
   if (req.method === 'GET') {
     const { seller_id, buyer_id } = req.query;
 
-    // --- 1. Verify Authentication & Authorization ---
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         query = query.eq('buyer_id', buyer_id);
     } else {
-        // If no specific seller_id or buyer_id, user can only view their own transactions
+        
         query = query.or(`seller_id.eq.${user.id},buyer_id.eq.${user.id}`);
     }
 

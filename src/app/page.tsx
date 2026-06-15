@@ -23,10 +23,10 @@ import {
   Building2,
   Wrench,
   Download,
-  Check, // Add Check icon
-  Zap,   // Add Zap icon
-  Lock,  // Add Lock icon
-  ShoppingCart, // Add ShoppingCart icon
+  Check, 
+  Zap,   
+  Lock,  
+  ShoppingCart, 
 } from "lucide-react";
 import { useState } from "react";
 import { Testimonials } from "@/components/Testimonials";
@@ -68,7 +68,7 @@ export default function HomePage() {
 
   const popularResources = resources
     .filter((r) => r.status === "approved")
-    .sort((a, b) => (b.downloads || 0) - (a.downloads || 0)) // Ensure downloads are numbers for sorting
+    .sort((a, b) => (b.downloads || 0) - (a.downloads || 0)) 
     .slice(0, 5);
 
   const announcements = [
@@ -115,9 +115,9 @@ export default function HomePage() {
 
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
+      {}
       <section className="relative pt-20 pb-24 lg:pt-32 lg:pb-40 bg-white">
-        {/* Background Decorations */}
+        {}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full overflow-hidden pointer-events-none z-0">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
           <div
@@ -128,7 +128,7 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col lg:flex-row items-center gap-16">
-            {/* Left Content */}
+            {}
             <div className="flex-1 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary font-medium text-sm mb-6 animate-fade-in">
                 <Star className="h-4 w-4 fill-primary" />

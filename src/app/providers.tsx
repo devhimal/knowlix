@@ -14,7 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <NotificationProvider>
         <ResourceProvider>
-          <MentorProvider> {/* Add MentorProvider here */}
+          <MentorProvider> {}
             <PaymentProvider>
               <BookProvider>
                 <ChatProvider>

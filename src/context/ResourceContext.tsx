@@ -8,17 +8,17 @@ import React, {
   useCallback,
 } from "react";
 import supabase from "@/lib/supabase";
-import { categories, semesters } from "@/lib/constants"; // Import categories and semesters
-import { useNotifications } from '@/context/NotificationContext'; // Added this import
+import { categories, semesters } from "@/lib/constants"; 
+import { useNotifications } from '@/context/NotificationContext'; 
 
 export type ResourceStatus =
-  | "pending_ai" // Step 1: Waiting for AI content check
-  | "pending_plagiarism" // Step 2: Waiting for plagiarism check
-  | "pending_review" // Step 3: Waiting for senior/mentor review
-  | "pending_admin" // Step 4: Waiting for admin approval
-  | "approved" // Step 5: Approved and live
-  | "rejected" // Rejected at any stage
-  | "flagged"; // Flagged by users
+  | "pending_ai" 
+  | "pending_plagiarism" 
+  | "pending_review" 
+  | "pending_admin" 
+  | "approved" 
+  | "rejected" 
+  | "flagged"; 
 
 export interface ReviewFeedback {
   reviewerId: string;
@@ -30,16 +30,16 @@ export interface ReviewFeedback {
 }
 
 export interface AIAnalysis {
-  relevanceScore: number; // 0-100
-  qualityScore: number; // 0-100
-  completenessScore: number; // 0-100
+  relevanceScore: number; 
+  qualityScore: number; 
+  completenessScore: number; 
   suggestions: string[];
   passed: boolean;
   analyzedAt: string;
 }
 
 export interface PlagiarismResult {
-  similarity: number; // 0-100
+  similarity: number; 
   sources: string[];
   passed: boolean;
   checkedAt: string;
@@ -71,14 +71,14 @@ export interface Resource {
   uploadDate: string;
   status: ResourceStatus;
   downloads: number;
-  average_rating?: number; // New field
-  total_ratings?: number; // New field
+  average_rating?: number; 
+  total_ratings?: number; 
   aiAnalysis?: AIAnalysis;
   plagiarismResult?: PlagiarismResult;
   price?: number;
   isFree: boolean;
   file_path?: string;
-  reviews?: ReviewFeedback[]; // Added missing property
+  reviews?: ReviewFeedback[]; 
 }
 
 export interface DBResource {
@@ -150,7 +150,7 @@ export const useResources = () => {
 export const ResourceProvider = ({ children }: { children: ReactNode }) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
-  const { addNotification } = useNotifications(); // Access addNotification
+  const { addNotification } = useNotifications(); 
 
   const fetchResources = useCallback(async () => {
     if (loading && resources.length > 0) return; // Prevent double fetch if already loading
@@ -294,7 +294,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [setResources]);
 
-  // addResource is removed from context as it's directly handled by Supabase in upload page
+  
 
   const deleteResource = async (id: string) => {
     try {
@@ -306,7 +306,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         throw error;
       }
-      fetchResources(); // Re-fetch to update UI
+      fetchResources(); 
     } catch (error) {
       console.error("Error deleting resource:", error);
     }
@@ -322,7 +322,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         throw error;
       }
-      fetchResources(); // Re-fetch to update UI
+      fetchResources(); 
     } catch (error) {
       console.error("Error updating resource:", error);
     }
@@ -330,7 +330,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
   const updateResourceStatus = async (id: string, status: ResourceStatus) => {
     try {
-      // Fetch the resource to get its title for the notification
+      
       const { data: resourceToUpdate, error: fetchError } = await supabase
         .from('resources')
         .select('title, uploader_id')
@@ -341,7 +341,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(fetchError?.message || 'Resource not found for status update');
       }
 
-      // Update in Supabase
+      
       const { error } = await supabase
         .from("resources")
         .update({ status: status })
@@ -351,7 +351,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      // Add notification if resource is approved
+      
       if (status === 'approved') {
         addNotification({
           type: 'approval',
@@ -360,7 +360,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
           resourceId: id,
           link: `/resources/${id}`,
         });
-        // Optionally, also notify the uploader directly if needed (e.g., via email or in-app to specific user)
+        
       }
 
       // Re-fetch resources to update the UI with the latest status
@@ -462,7 +462,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
   const setAIAnalysis = async (resourceId: string, analysis: AIAnalysis) => {
     try {
-      // Update in Supabase
+      
       const { error } = await supabase
         .from("resources")
         .update({ ai_analysis: analysis })
@@ -484,7 +484,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     result: PlagiarismResult,
   ) => {
     try {
-      // Update in Supabase
+      
       const { error } = await supabase
         .from("resources")
         .update({ plagiarism_result: result })
@@ -511,28 +511,28 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
   const incrementDownload = async (resourceId: string) => {
     try {
-      // Optimistically update the UI
+      
       setResources((prev) =>
         prev.map((r) =>
           r.id === resourceId ? { ...r, downloads: r.downloads + 1 } : r,
         ),
       );
 
-      // Update in Supabase
+      
       const { error } = await supabase.rpc("increment_resource_downloads", {
         resource_id: resourceId,
       });
 
       if (error) {
         console.error("Error incrementing download count:", error);
-        // Revert optimistic update if Supabase update fails
+        
         setResources((prev) =>
           prev.map((r) =>
             r.id === resourceId ? { ...r, downloads: r.downloads - 1 } : r,
           ),
         );
       } else {
-        // Re-fetch resources to update the UI with the latest download counts
+        
         fetchResources();
       }
     } catch (error) {

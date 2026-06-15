@@ -7,15 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import BookCard from "@/components/BookCard";
-import { useBooks } from "@/context/BookContext"; // New import
+import { useBooks } from "@/context/BookContext"; 
 
 export default function BooksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
-  const { books } = useBooks(); // Use the BookContext
+  const { books } = useBooks(); 
 
   const handleSearch = () => {
-    // Implement search logic later
+    
     console.log("Searching for:", searchQuery);
   };
 
@@ -63,7 +63,7 @@ export default function BooksPage() {
           ))}
         </div>
 
-        {/* Books for Exchange Section */}
+        {}
         <h2 className="text-3xl font-bold text-gray-900 mb-4">Books for Exchange</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {books.filter((book) => book.type === "exchange").map((book) => (

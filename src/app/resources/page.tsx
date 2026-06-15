@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PaymentDialog } from "@/components/PaymentDialog";
 import { usePayment } from "@/context/PaymentContext";
-import { categories, semesters } from "@/lib/constants"; // Import categories and semesters
+import { categories, semesters } from "@/lib/constants"; 
 
 import { useResources, Resource } from "@/context/ResourceContext";
 import { useAuth } from "@/context/AuthContext";
@@ -101,7 +101,7 @@ export default function ResourceLibrary() {
   }, [engine, searchQuery, selectedCategory, selectedSubCategory, selectedSemester, selectedFileType, sortBy]);
 
   const handleResourceAction = async (resource: Resource) => {
-    // Made async
+    
     if (!user) {
       toast.error("Please log in to access resources.");
       return;
@@ -112,7 +112,7 @@ export default function ResourceLibrary() {
       return;
     }
 
-    // Generate signed download URL
+    
     const downloadUrl = await getDownloadUrl(
       resource.file_path,
       resource.title + "." + resource.fileType.split("/").pop(),
@@ -123,14 +123,14 @@ export default function ResourceLibrary() {
       return;
     }
 
-    // If resource is free, allow direct download
+    
     if (resource.isFree) {
       toast.success(`Downloading ${resource.title}...`);
       window.open(downloadUrl, "_blank");
       return;
     }
 
-    // If subscribed, purchased, or it's the user's own resource, allow download
+    
     if (
       (user && isSubscribed(user.id)) ||
       hasPurchased(resource.id) ||
@@ -141,20 +141,20 @@ export default function ResourceLibrary() {
       return;
     }
 
-    // Otherwise, show payment dialog
+    
     setSelectedResource(resource);
     setPaymentDialogOpen(true);
     toast.info("This is a premium resource. Please subscribe or purchase.");
   };
 
-  // Fetch resources on mount
+  
   useEffect(() => {
     fetchResources();
   }, [fetchResources]);
 
-  // Redirect unauthenticated users
+  
   useEffect(() => {
-    if (!user && !loading) { // Ensure loading is false to avoid redirecting during initial auth check
+    if (!user && !loading) { 
       router.push("/login");
       toast.info("Please log in to access the resource library.");
     }
@@ -176,10 +176,10 @@ export default function ResourceLibrary() {
           Resource Library
         </h1>
 
-        {/* Search and Filters */}
+        {}
         <Card className="p-6 mb-8">
           <div className="space-y-4">
-            {/* Search Bar */}
+            {}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
@@ -190,7 +190,7 @@ export default function ResourceLibrary() {
               />
             </div>
 
-            {/* Filters */}
+            {}
             <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
               <Filter className="h-4 w-4" />
               <span>Filters:</span>
@@ -287,12 +287,12 @@ export default function ResourceLibrary() {
           </div>
         </Card>
 
-        {/* Results Count */}
+        {}
         <div className="mb-4 text-gray-600">
           Showing {filteredResources.length} resources
         </div>
 
-        {/* Resources Grid */}
+        {}
         <div className="grid gap-4">
           {filteredResources.map((resource) => (
             <ResourceCard
@@ -313,16 +313,16 @@ export default function ResourceLibrary() {
         )}
       </div>
 
-      {/* Payment Dialog */}
+      {}
       <PaymentDialog
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}
-        mode={selectedResource ? "resource" : "subscription"} // Dynamic mode
-        resourceId={selectedResource?.id} // Pass only the ID
-        resourceName={selectedResource?.title} // Pass the name
-        amount={selectedResource?.price} // Pass the price
-        sellerId={selectedResource?.uploaderId} // Pass the uploader ID
-        sellerEmail={selectedResource?.uploaderEmail} // Pass the uploader email
+        mode={selectedResource ? "resource" : "subscription"} 
+        resourceId={selectedResource?.id} 
+        resourceName={selectedResource?.title} 
+        amount={selectedResource?.price} 
+        sellerId={selectedResource?.uploaderId} 
+        sellerEmail={selectedResource?.uploaderEmail} 
       />
     </div>
   );
@@ -369,7 +369,7 @@ const ResourceCard = ({
 
     return (
       <Button size="sm" onClick={() => onAction(resource)} variant="default">
-        <ShoppingCart className="h-4 w-4 mr-2" /> {/* Changed from Zap to ShoppingCart */}
+        <ShoppingCart className="h-4 w-4 mr-2" /> {}
         Buy Now
       </Button>
     );

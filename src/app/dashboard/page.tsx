@@ -356,7 +356,7 @@ const StudentDashboardContent = ({
 
 export default function StudentDashboard() {
   const { user, isAuthenticated, role, loading } = useAuth();
-  const paymentContext = usePayment(); // Correctly assign usePayment() to paymentContext
+  const paymentContext = usePayment(); 
   const { getUserEarnings, getUserTransactions, loading: loadingPayments } = paymentContext;
   const { resources, fetchResources, loading: loadingResourcesFromContext } = useResources();
 
@@ -439,7 +439,7 @@ export default function StudentDashboard() {
 }
 
 
-// Admin Dashboard Content
+
 type ResourceStatus = 'pending_review' | 'approved' | 'rejected' | 'pending_admin';
 
 const AdminDashboardContent = () => {

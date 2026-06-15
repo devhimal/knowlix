@@ -52,9 +52,9 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {}
           <div className="hidden md:flex items-center gap-6">
-            {isAuthenticated && ( // Always true now for UI
+            {isAuthenticated && ( 
               <>
                 <Link
                   href="/dashboard"
@@ -88,7 +88,7 @@ export default function Navbar() {
                 </Link>
                 {["admin", "super_admin"].includes(user?.role || "") && (
                   <Link
-                    href="/admin/dashboard" // Assuming an admin dashboard path
+                    href="/admin/dashboard" 
                     className="text-white/90 hover:text-white font-medium transition-colors"
                   >
                     Admin Dashboard
@@ -105,7 +105,7 @@ export default function Navbar() {
                 )}
                 {["student", "mentor"].includes(user?.role || "") && (
                   <Link
-                    href="/earnings" // Assuming an earnings page path
+                    href="/earnings" 
                     className="text-white/90 hover:text-white font-medium transition-colors"
                   >
                     Earnings
@@ -115,7 +115,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* User Actions */}
+          {}
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
@@ -131,7 +131,7 @@ export default function Navbar() {
                   </Button>
                 )}
 
-                {/* Notifications */}
+                {}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="sm" className="relative text-white hover:bg-white/10">
@@ -239,7 +239,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
+          {}
           <button
             className="md:hidden p-2 text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -248,12 +248,12 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Mobile Menu */}
+        {}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-white/10">
-            {isAuthenticated && ( // Always true now for UI
+            {isAuthenticated && ( 
               <div className="flex flex-col gap-1 mb-4">
-                {!userIsSubscribed && ( // Mock subscribed is true
+                {!userIsSubscribed && ( 
                   <Button
                     onClick={() => {
                       setSubscriptionDialogOpen(true);
@@ -332,7 +332,7 @@ export default function Navbar() {
               </div>
             )}
             <div className="px-3">
-              {isAuthenticated ? ( // Always true now for UI
+              {isAuthenticated ? ( 
                 <Button
                   onClick={handleLogout}
                   variant="outline"

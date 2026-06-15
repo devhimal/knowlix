@@ -12,10 +12,10 @@ ALTER TABLE public.mentors ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Enable read access for all users" ON public.mentors FOR SELECT USING (true);
 CREATE POLICY "Enable insert for authenticated users only" ON public.mentors FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Enable update for authenticated users only" ON public.mentors FOR UPDATE USING (auth.uid() = id); -- Assuming mentor id matches auth.uid
-CREATE POLICY "Enable delete for authenticated users only" ON public.mentors FOR DELETE USING (auth.uid() = id); -- Assuming mentor id matches auth.uid
+CREATE POLICY "Enable update for authenticated users only" ON public.mentors FOR UPDATE USING (auth.uid() = id); 
+CREATE POLICY "Enable delete for authenticated users only" ON public.mentors FOR DELETE USING (auth.uid() = id); 
 
--- Sample Mentor Data
+
 INSERT INTO public.mentors (name, email, bio, specialties, profile_picture_url)
 VALUES
 ('Dr. Emily White', 'emily.white@example.com', 'Professor of AI and Machine Learning, specializing in natural language processing.', ARRAY['AI', 'Machine Learning', 'NLP', 'Python'], 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'),

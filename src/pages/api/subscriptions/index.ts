@@ -11,11 +11,11 @@ export default async function handler(
 
   console.log('API Subscriptions: Incoming request method -', req.method);
 
-  console.log('API Subscriptions: Request cookies -', req.headers.cookie); // Log incoming cookies
+  console.log('API Subscriptions: Request cookies -', req.headers.cookie); 
 
 
 
-  const supabase = createServerSupabaseClient(req, res); // Get server-side Supabase client
+  const supabase = createServerSupabaseClient(req, res); 
 
 
 
@@ -25,9 +25,9 @@ export default async function handler(
 
 
 
-    // Get authenticated user
+    
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(); // <-- This is where the problem is
+    const { data: { user }, error: authError } = await supabase.auth.getUser(); 
 
 
 
@@ -43,9 +43,9 @@ export default async function handler(
 
     }
 
-    const authenticated_user_id = user.id; // Use the authenticated user's ID
+    const authenticated_user_id = user.id; 
 
-    // Basic validation (only for plan_id and end_date now)
+    
     if (!plan_id || !end_date) {
       return res
         .status(400)
@@ -65,7 +65,7 @@ export default async function handler(
       .status(201)
       .json({ message: "Subscription created successfully", data });
   } else if (req.method === "GET") {
-    // Retrieve a user's subscription status
+    
     const { user_id } = req.query;
 
     if (!user_id) {
@@ -76,7 +76,7 @@ export default async function handler(
       .from("subscriptions")
       .select("*")
       .eq("user_id", user_id)
-      .order("end_date", { ascending: false }); // Get most recent subscription first
+      .order("end_date", { ascending: false }); 
 
     if (error) {
       console.error("Error fetching subscriptions:", error);

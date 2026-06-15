@@ -15,13 +15,13 @@ CREATE TABLE transactions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Optional: Add RLS policies for security
+
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
--- Allow authenticated users to view their own transactions
+
 CREATE POLICY "Users can view their own transactions" ON transactions
 FOR SELECT USING (auth.uid() = buyer_id OR auth.uid() = seller_id);
 
--- Allow authenticated users to insert new transactions
+
 CREATE POLICY "Users can insert their own transactions" ON transactions
 FOR INSERT WITH CHECK (auth.uid() = buyer_id);

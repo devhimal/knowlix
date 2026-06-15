@@ -5,9 +5,9 @@ export default function Footer() {
   return (
     <footer className="bg-card py-16 px-6">
       <div className="max-w-7xl mx-auto bg-secondary text-foreground  p-10 relative overflow-hidden">
-        {/* Content */}
+        {}
         <div className="grid md:grid-cols-4 gap-10">
-          {/* Brand */}
+          {}
           <div>
             <h2 className="text-2xl font-bold mb-4">Padyantra</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
@@ -16,7 +16,7 @@ export default function Footer() {
               efficiency and knowledge sharing.
             </p>
 
-            {/* Social Icons */}
+            {}
             <div className="flex gap-4 mt-6">
               <a className="hover:text-primary transition">
                 <Twitter size={20} />
@@ -31,7 +31,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Sitemap */}
+          {}
           <div>
             <h3 className="text-lg font-semibold mb-4">Site Map</h3>
             <ul className="space-y-2 text-muted-foreground">
@@ -63,7 +63,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Resources */}
+          {}
           <div>
             <h3 className="text-lg font-semibold mb-4">Academic</h3>
             <ul className="space-y-2 text-muted-foreground">
@@ -95,7 +95,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Legal */}
+          {}
           <div>
             <h3 className="text-lg font-semibold mb-4">Legal</h3>
             <ul className="space-y-2 text-muted-foreground">
@@ -121,7 +121,7 @@ export default function Footer() {
               </li>
             </ul>
 
-            {/* Back to Top */}
+            {}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               className="flex items-center gap-2 mt-6 text-sm border border-border px-3 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition"
@@ -131,7 +131,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom */}
+        {}
         <div className="border-t border-border mt-10 pt-6 text-center text-sm text-muted-foreground">
           © {new Date().getFullYear()} Padyantra. All rights reserved.
         </div>

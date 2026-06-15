@@ -6,9 +6,9 @@ import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Alert, AlertDescription } from './ui/alert';
 import { CheckCircle, XCircle, Loader2, CreditCard, Building2, Wallet, Zap } from 'lucide-react';
-import { toast } from "sonner"; // Added this import
-import { usePayment } from '../context/PaymentContext'; // Keep if PaymentContext is not being removed
-import { useAuth } from '../context/AuthContext'; // Remove useAuth import
+import { toast } from "sonner"; 
+import { usePayment } from '../context/PaymentContext'; 
+import { useAuth } from '../context/AuthContext'; 
 
 interface PaymentDialogProps {
   open: boolean;
@@ -38,7 +38,7 @@ export const PaymentDialog = ({
   mode = 'subscription',
 }: PaymentDialogProps) => {
   const [paymentMethod, setPaymentMethod] = useState<'esewa' | 'khalti' | 'bank'>('esewa');
-  const [selectedPlan, setSelectedPlan] = useState<any>(SUBSCRIPTION_PLANS[1]); // Default to semester
+  const [selectedPlan, setSelectedPlan] = useState<any>(SUBSCRIPTION_PLANS[1]); 
   const [processing, setProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [transactionId, setTransactionId] = useState('');
@@ -54,7 +54,7 @@ export const PaymentDialog = ({
   const finalAmount = mode === 'resource' ? (initialAmount || 0) : selectedPlan.price;
 
   const handlePayment = async () => {
-    if (!user || !user.email) { // Check for user.email as well
+    if (!user || !user.email) { 
       toast.error("User email is not available. Please log in again.");
       return;
     }
@@ -65,7 +65,7 @@ export const PaymentDialog = ({
     try {
       let result;
       if (mode === 'resource' && resourceId && resourceName) {
-        result = await purchaseResource( // Call purchaseResource
+        result = await purchaseResource( 
           resourceId,
           resourceName,
           sellerId || '',
@@ -85,18 +85,18 @@ export const PaymentDialog = ({
         );
 
         if (result.success) {
-          // Update user subscription status - now simulated
-          // const monthsToAdd = selectedPlan.id === 'monthly' ? 1 : selectedPlan.id === 'semester' ? 6 : 12;
-          // const expiryDate = new Date();
-          // expiryDate.setMonth(expiryDate.getMonth() + monthsToAdd);
+          
+          
+          
+          
 
-          // updateUser({ // Simulated updateUser
-          //   subscription: {
-          //     isSubscribed: true,
-          //     plan: selectedPlan.id,
-          //     expiryDate: expiryDate.toISOString(),
-          //   }
-          // });
+          
+          
+          
+          
+          
+          
+          
           console.log("Simulating subscription update for user:", user.id);
         }
       }
@@ -145,7 +145,7 @@ export const PaymentDialog = ({
 
         {paymentStatus === 'idle' && (
           <div className="space-y-6">
-            {/* Plan/Resource Summary */}
+            {}
             {mode === 'subscription' && (
               <div className="space-y-3">
                 <Label>Select a Plan</Label>
@@ -187,12 +187,12 @@ export const PaymentDialog = ({
               </div>
             )}
 
-            {/* Payment Method Selection */}
+            {}
             <div>
               <Label className="mb-3 block">Select Payment Method</Label>
               <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
                 <div className="grid grid-cols-3 gap-2">
-                  {/* eSewa */}
+                  {}
                   <label className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
                     paymentMethod === 'esewa' ? 'border-[#60A05B] bg-green-50' : 'border-gray-100 hover:border-gray-200'
                   }`}>
@@ -201,7 +201,7 @@ export const PaymentDialog = ({
                     <span className="text-xs font-medium">eSewa</span>
                   </label>
 
-                  {/* Khalti */}
+                  {}
                   <label className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
                     paymentMethod === 'khalti' ? 'border-[#5C2D91] bg-purple-50' : 'border-gray-100 hover:border-gray-200'
                   }`}>
@@ -210,7 +210,7 @@ export const PaymentDialog = ({
                     <span className="text-xs font-medium">Khalti</span>
                   </label>
 
-                  {/* Bank Transfer */}
+                  {}
                   <label className={`flex flex-col items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
                     paymentMethod === 'bank' ? 'border-[#3b82f6] bg-blue-50' : 'border-gray-100 hover:border-gray-200'
                   }`}>
@@ -222,7 +222,7 @@ export const PaymentDialog = ({
               </RadioGroup>
             </div>
 
-            {/* Action Buttons */}
+            {}
             <div className="pt-2">
               <Button
                 onClick={handlePayment}
@@ -245,7 +245,7 @@ export const PaymentDialog = ({
           </div>
         )}
 
-        {/* Success State */}
+        {}
         {paymentStatus === 'success' && (
           <div className="py-8 text-center">
             <div className="relative mb-4">
@@ -276,7 +276,7 @@ export const PaymentDialog = ({
           </div>
         )}
 
-        {/* Failed State */}
+        {}
         {paymentStatus === 'failed' && (
           <div className="py-8 text-center">
             <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
