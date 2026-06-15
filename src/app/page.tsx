@@ -40,7 +40,7 @@ import { Progress } from "@/components/ui/progress"; // Importing Progress for l
 export default function HomePage() {
   const router = useRouter();
   const { resources, loading } = useResources(); // Get loading state from useResources()
-  const { user } = useAuth(); // Get user from AuthContext
+  const { user, isAuthenticated } = useAuth(); // Get user and isAuthenticated from AuthContext
   const { hasPurchased, isSubscribed } = usePayment(); // Get payment context
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSubCategory, setSelectedSubCategory] = useState("all");
@@ -153,7 +153,7 @@ export default function HomePage() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
                 <Button
-                  onClick={() => router.push("/login")}
+                  onClick={() => isAuthenticated ? router.push("/resources") : router.push("/login")}
                   size="lg"
                   className="h-14 px-10 text-lg shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
                 >
