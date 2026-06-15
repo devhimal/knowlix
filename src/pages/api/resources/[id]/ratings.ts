@@ -10,39 +10,39 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { id } = req.query; 
+  const { id, type = 'resource' } = req.query; // id is the target ID, type is 'resource' or 'book'
   const token = req.headers.authorization?.split(' ')[1];
 
-  if (!token) {
+  if (!token && req.method === 'POST') {
     return res.status(401).json({ error: 'Unauthorized: No access token provided.' });
   }
 
   
   const supabase = createClient(supabaseUrl!, supabaseAnonKey!, {
     global: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     },
   });
 
+  const targetField = type === 'book' ? 'book_id' : 'resource_id';
+
   if (req.method === 'POST') {
-    const { userId, rating, comment } = req.body;
+    const { userId, userName, rating, comment } = req.body;
 
     if (!id || !userId || !rating) {
-      return res.status(400).json({ error: 'Missing required fields: resourceId, userId, rating' });
+      return res.status(400).json({ error: `Missing required fields: ${type}Id, userId, rating` });
     }
 
     try {
-      
+      // Check if user has already rated this target
       const { data: existingRating, error: fetchError } = await supabase
         .from('resource_ratings')
         .select('*')
-        .eq('resource_id', id)
+        .eq(targetField, id)
         .eq('user_id', userId)
         .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116') { 
+      if (fetchError && fetchError.code !== 'PGRST116') {
         throw fetchError;
       }
 
@@ -51,14 +51,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         response = await supabase
           .from('resource_ratings')
-          .update({ rating, comment, created_at: new Date().toISOString() }) 
-          .eq('resource_id', id)
+          .update({ rating, comment, user_name: userName, created_at: new Date().toISOString() })
+          .eq(targetField, id)
           .eq('user_id', userId);
       } else {
-        
+        // Insert new rating
+        const insertData = {
+          user_id: userId,
+          user_name: userName,
+          rating,
+          comment,
+          [targetField]: id
+        };
         response = await supabase
           .from('resource_ratings')
-          .insert({ resource_id: id, user_id: userId, rating, comment });
+          .insert(insertData);
       }
 
       const { data, error } = response;
@@ -77,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data, error } = await supabase
         .from('resource_ratings')
         .select('*')
-        .eq('resource_id', id);
+        .eq(targetField, id);
 
       if (error) {
         throw error;

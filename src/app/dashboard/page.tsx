@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import supabase, { getDownloadUrl } from "@/lib/supabase"; 
-import { Resource } from "@/context/ResourceContext"; 
-import { usePayment } from "@/context/PaymentContext";
-import { useAuth } from "@/context/AuthContext";
+import React, { useEffect, useState, useMemo } from "react";
+import supabase, { getDownloadUrl } from "@/lib/supabase";
+import { Resource } from "@/context/ResourceContext";
+import { usePayment, Transaction } from "@/context/PaymentContext";
+import { useAuth, User } from "@/context/AuthContext";
 import { useResources } from "@/context/ResourceContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,9 +30,17 @@ import {
 
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { SmartSearch } from "@/components/SmartSearch";
 
+// Define helper components first
+interface ActionCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  onClick: () => void;
+}
 
-const ActionCard = ({ icon, title, description, onClick }: any) => (
+const ActionCard = ({ icon, title, description, onClick }: ActionCardProps) => (
   <Card
     className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
     onClick={onClick}
@@ -43,7 +51,13 @@ const ActionCard = ({ icon, title, description, onClick }: any) => (
   </Card>
 );
 
-const StatCard = ({ icon, value, label }: any) => (
+interface StatCardProps {
+  icon: React.ReactNode;
+  value: string | number;
+  label: string;
+}
+
+const StatCard = ({ icon, value, label }: StatCardProps) => (
   <Card className="p-6">
     <div className="flex items-center justify-between mb-2">
       <div className="text-muted-foreground">{icon}</div>
@@ -55,7 +69,7 @@ const StatCard = ({ icon, value, label }: any) => (
 
 const FileCard = ({ file }: { file: Resource }) => {
   const router = useRouter();
-  const { incrementDownload } = useResources(); 
+  const { incrementDownload } = useResources();
 
   const handleViewDetails = () => {
     router.push(`/resources/${file.id}`);
@@ -68,19 +82,16 @@ const FileCard = ({ file }: { file: Resource }) => {
     }
 
     try {
-      
       const downloadUrl = await getDownloadUrl(file.file_path, file.title);
       
       if (downloadUrl) {
-        
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = file.title; 
+        a.download = file.title;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
 
-        
         await incrementDownload(file.id);
         toast.success(`Downloading "${file.title}"!`);
       } else {
@@ -125,15 +136,15 @@ const FileCard = ({ file }: { file: Resource }) => {
 };
 
 interface StudentDashboardContentProps {
-  user: any; 
+  user: User | null;
   isSubscribed: boolean;
   getPlanName: (plan: string) => string;
   recentFiles: Resource[];
   recommendedResources: Resource[];
-  transactions: any[]; 
+  transactions: Transaction[];
   loadingPayments: boolean;
   getUserEarnings: (userId: string) => number;
-  myUploadedResources: Resource[]; 
+  myUploadedResources: Resource[];
 }
 
 const StudentDashboardContent = ({
@@ -147,20 +158,20 @@ const StudentDashboardContent = ({
   getUserEarnings,
   myUploadedResources,
 }: StudentDashboardContentProps) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const earnings = user ? getUserEarnings(user.id) : 0;
   const router = useRouter();
 
   return (
     <div className="min-h-screen bg-gray-50/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-1">
-              Welcome back, {user?.name}!
+              Welcome back, {user?.user_metadata?.name}!
             </h1>
             <p className="text-gray-500">
-              {user?.course} • {user?.semester}
+              {user?.user_metadata?.course} • {user?.user_metadata?.semester}
             </p>
           </div>
 
@@ -185,25 +196,17 @@ const StudentDashboardContent = ({
           )}
         </div>
 
-        {}
-        <Card className="p-6 mb-8 border-none shadow-sm bg-white">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <Input
-                placeholder="Search for notes, assignments, papers..."
-                className="pl-10 h-12 text-lg"
-                onFocus={() => router.push('/resources')}
-              />
+        <Card className="p-6 mb-8 border-none shadow-sm bg-white overflow-visible">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative z-50">
+              <SmartSearch />
             </div>
-            <Button size="lg" onClick={() => router.push('/resources')}>Search</Button>
+            <Button size="lg" className="h-12 px-8" onClick={() => router.push('/resources')}>Browse All</Button>
           </div>
         </Card>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {}
           <div className="lg:col-span-2 space-y-8">
-            {}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <ActionCard
                 icon={<BookOpen className="h-6 w-6 text-primary" />}
@@ -227,7 +230,6 @@ const StudentDashboardContent = ({
               />
             </div>
 
-            {}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard icon={<FileText className="h-4 w-4" />} value="12" label="Uploads" />
               <StatCard icon={<Download className="h-4 w-4" />} value="45" label="Downloads" />
@@ -235,7 +237,6 @@ const StudentDashboardContent = ({
               <StatCard icon={<TrendingUp className="h-4 w-4" />} value="234" label="Points" />
             </div>
 
-            {}
             <section>
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Upload className="h-5 w-5 text-green-500" />
@@ -252,7 +253,6 @@ const StudentDashboardContent = ({
               </div>
             </section>
 
-            {}
             <section className="mt-8">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
@@ -269,7 +269,6 @@ const StudentDashboardContent = ({
               </div>
             </section>
 
-            {}
             <section className="mt-8">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Star className="h-5 w-5 text-yellow-500" />
@@ -287,9 +286,7 @@ const StudentDashboardContent = ({
             </section>
           </div>
 
-          {}
           <div className="space-y-8">
-            {}
             {isSubscribed && (
               <Card className="p-6 bg-gradient-to-br from-primary to-teal-700 text-white border-none shadow-lg">
                 <div className="flex items-center justify-between mb-4">
@@ -315,7 +312,6 @@ const StudentDashboardContent = ({
               </Card>
             )}
 
-            {}
             <section>
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-primary" />
@@ -376,31 +372,46 @@ export default function StudentDashboard() {
     }
   };
 
-  const recentFiles = useMemo(() => {
-    if (!loadingResourcesFromContext && resources.length > 0) {
-      return [...resources].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()).slice(0, 4);
-    }
-    return [];
-  }, [resources, loadingResourcesFromContext]);
+  useEffect(() => {
+    fetchResources(); // Fetch free resources
+  }, [fetchResources]);
 
-  const recommendedResources = useMemo(() => {
-    if (!loadingResourcesFromContext && resources.length > 0) {
-      return [...resources].sort((a, b) => (b.downloads || 0) - (a.downloads || 0)).slice(0, 3);
+  const { recentFiles, recommendedResources, myUploadedResources } = useMemo(() => {
+    if (loadingResourcesFromContext || resources.length === 0) {
+      return { recentFiles: [], recommendedResources: [], myUploadedResources: [] };
     }
-    return [];
-  }, [resources, loadingResourcesFromContext]);
 
-  const myUploadedResources = useMemo(() => {
-    if (user?.id && !loadingResourcesFromContext && resources.length > 0) {
-      return resources.filter(resource => resource.uploaderId === user.id);
-    }
-    return [];
+    const approvedResources = resources.filter(r => r.status === 'approved');
+
+    const sortedResources = [...approvedResources].sort(
+      (a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+    );
+    
+    const sortedByDownloads = [...approvedResources].sort(
+      (a, b) => (b.downloads || 0) - (a.downloads || 0)
+    );
+
+    return {
+      recentFiles: sortedResources.slice(0, 4),
+      recommendedResources: sortedByDownloads.slice(0, 3),
+      myUploadedResources: user?.id 
+        ? resources.filter(resource => resource.uploaderId === user.id)
+        : []
+    };
   }, [resources, loadingResourcesFromContext, user]);
 
-  console.log("StudentDashboard: Rendering component. isAuthenticated:", isAuthenticated, "loading:", loading, "role:", role);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (!isAuthenticated && !loading) {
-    console.log("StudentDashboard: Redirecting unauthenticated user.");
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-red-500">You must be logged in to view this page.</p>
@@ -408,18 +419,7 @@ export default function StudentDashboard() {
     );
   }
 
-  if (loading || loadingPayments || loadingResourcesFromContext) {
-    console.log("StudentDashboard: Displaying loading state.");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Loading dashboard...</p>
-      </div>
-    );
-  }
-
-  console.log("StudentDashboard: Displaying content based on role.");
-
-  if (role === 'admin') {
+  if (role === 'admin' || role === 'super_admin') {
     return <AdminDashboardContent />;
   }
 
@@ -448,7 +448,7 @@ const AdminDashboardContent = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [totalBooks, setTotalBooks] = useState<number | null>(null);
-  const router = useRouter(); 
+  const router = useRouter();
 
   useEffect(() => {
     fetchAllResources();
@@ -456,7 +456,6 @@ const AdminDashboardContent = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      
       const { count: usersCount, error: usersError } = await supabase
         .from('profiles')
         .select('*', { count: 'exact' });
@@ -466,7 +465,6 @@ const AdminDashboardContent = () => {
         setTotalUsers(usersCount);
       }
 
-      
       const { count: booksCount, error: booksError } = await supabase
         .from('books')
         .select('*', { count: 'exact' });
@@ -487,7 +485,6 @@ const AdminDashboardContent = () => {
     return matchesStatus && matchesSearch;
   });
 
-  
   const approvedResources = resources.filter(r => r.status === 'approved').length;
   const pendingReviewResources = resources.filter(r => r.status === 'pending_review' || r.status === 'pending_admin').length;
   const rejectedResources = resources.filter(r => r.status === 'rejected').length;
@@ -495,7 +492,7 @@ const AdminDashboardContent = () => {
   const handleUpdateStatus = async (id: string, newStatus: ResourceStatus) => {
     await updateResourceStatus(id, newStatus);
     toast.success(`Resource status updated to ${newStatus.replace('_', ' ')}!`);
-    fetchAllResources(); 
+    fetchAllResources();
   };
 
   const handleDeleteResource = async (id: string, title: string) => {
@@ -503,7 +500,7 @@ const AdminDashboardContent = () => {
       try {
         await deleteResource(id);
         toast.success(`Resource "${title}" deleted successfully!`);
-        fetchAllResources(); 
+        fetchAllResources();
       } catch (error) {
         console.error("Error deleting resource:", error);
         toast.error(`Failed to delete resource "${title}".`);
@@ -523,7 +520,6 @@ const AdminDashboardContent = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
 
-      {}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard icon={<Users className="h-4 w-4" />} value={totalUsers !== null ? totalUsers : '...'} label="Total Users" />
         <StatCard icon={<BookOpen className="h-4 w-4" />} value={totalBooks !== null ? totalBooks : '...'} label="Total Books" />
@@ -531,14 +527,12 @@ const AdminDashboardContent = () => {
         <StatCard icon={<Download className="h-4 w-4" />} value={resources.reduce((sum, r) => sum + r.downloads, 0)} label="Total Downloads" />
       </div>
 
-      {}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <StatCard icon={<Check className="h-4 w-4 text-green-500" />} value={approvedResources} label="Approved Resources" />
         <StatCard icon={<Search className="h-4 w-4 text-orange-500" />} value={pendingReviewResources} label="Pending Review" />
         <StatCard icon={<Zap className="h-4 w-4 text-red-500" />} value={rejectedResources} label="Rejected Resources" />
       </div>
 
-      {}
       <section className="mt-8">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Manage Resources</h2>
         <div className="flex items-center gap-2 mb-4">
@@ -566,19 +560,19 @@ const AdminDashboardContent = () => {
             <table className="w-full caption-bottom text-sm">
               <thead className="[&_tr]:border-b">
                 <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Title</th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Uploader</th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Status</th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">Actions</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Title</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Uploader</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
                 {filteredResources.length > 0 ? (
                   filteredResources.map((resource) => (
                     <tr key={resource.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                      <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0 font-medium">{resource.title}</td>
-                      <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">{resource.uploader}</td>
-                      <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
+                      <td className="p-4 align-middle font-medium">{resource.title}</td>
+                      <td className="p-4 align-middle">{resource.uploader}</td>
+                      <td className="p-4 align-middle">
                         <Badge
                           variant={
                             resource.status === 'approved' ? 'default' :
@@ -589,7 +583,7 @@ const AdminDashboardContent = () => {
                           {resource.status.replace('_', ' ')}
                         </Badge>
                       </td>
-                      <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
+                      <td className="p-4 align-middle">
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => router.push(`/resources/${resource.id}`)}>
                             <Eye className="h-4 w-4" />

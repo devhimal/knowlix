@@ -4,6 +4,7 @@ CREATE TABLE public.resource_ratings (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     resource_id UUID NOT NULL REFERENCES public.resources(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_name TEXT,
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
     CONSTRAINT unique_resource_user_rating UNIQUE (resource_id, user_id)

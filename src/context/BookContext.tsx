@@ -8,7 +8,8 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import supabase from "@/lib/supabase"; 
+import supabase from "@/lib/supabase"; // Client-side Supabase client
+import { useAuth } from "./AuthContext";
 
 export interface Book {
   id: string;
@@ -28,12 +29,42 @@ export interface Book {
   price: number | null;
   type: "sell" | "exchange" | "free" | null;
   exchangeFor: string | null;
+  seller_id: string | null; // Added seller_id
+  average_rating?: number;
+  total_ratings?: number;
+  file_path?: string | null;
+  cover_image_path?: string | null;
+}
+
+export interface DBBook {
+  id: string;
+  created_at: string;
+  title: string;
+  author: string;
+  isbn: string | null;
+  genre: string | null;
+  publication_year: number | null;
+  cover_image_url: string | null;
+  description: string | null;
+  pages: number | null;
+  language: string | null;
+  pdf_url: string | null;
+  condition: string | null;
+  price: number | null;
+  type: "sell" | "exchange" | "free" | null;
+  exchange_for: string | null;
+  seller_id: string | null;
+  average_rating?: number;
+  total_ratings?: number;
+  file_path?: string | null;
+  cover_image_path?: string | null;
+  status?: string;
 }
 
 interface BookContextType {
   books: Book[];
   fetchBooks: () => Promise<void>;
-  addBook: (bookData: Omit<Book, "id" | "created_at">) => Promise<Book | undefined>;
+  addBook: (bookData: Omit<Book, "id" | "created_at" | "seller_id">) => Promise<Book | undefined>;
   loading: boolean;
 }
 
@@ -50,6 +81,7 @@ export const useBooks = () => {
 export const BookProvider = ({ children }: { children: ReactNode }) => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const fetchBooks = useCallback(async () => {
     setLoading(true);
@@ -59,7 +91,13 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         throw error;
       }
-      setBooks(data as Book[]);
+
+      const mappedBooks: Book[] = (data as DBBook[]).map((dbBook) => ({
+        ...dbBook,
+        exchangeFor: dbBook.exchange_for,
+      }));
+
+      setBooks(mappedBooks);
     } catch (error) {
       console.error("Error fetching books:", error);
     } finally {
@@ -68,22 +106,33 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const addBook = useCallback(
-    async (bookData: Omit<Book, "id" | "created_at">): Promise<Book | undefined> => {
+    async (
+      bookData: Omit<Book, "id" | "created_at" | "seller_id">,
+    ): Promise<Book | undefined> => {
       try {
-        const {
-          cover_image_url,
-          publication_year,
-          exchangeFor,
-          pdf_url,
-          ...rest
-        } = bookData;
+        if (!user) {
+          throw new Error("You must be logged in to list a book");
+        }
 
-        const dataToInsert = {
-          ...rest,
-          cover_image_url: cover_image_url,
-          publication_year: publication_year,
-          exchange_for: exchangeFor,
-          pdf_url: pdf_url,
+        const dataToInsert: Omit<DBBook, "id" | "created_at"> = {
+          title: bookData.title,
+          author: bookData.author,
+          isbn: bookData.isbn,
+          genre: bookData.genre,
+          publication_year: bookData.publication_year,
+          cover_image_url: bookData.cover_image_url,
+          cover_image_path: bookData.cover_image_path,
+          description: bookData.description,
+          pages: bookData.pages,
+          language: bookData.language,
+          pdf_url: bookData.pdf_url,
+          file_path: bookData.file_path,
+          condition: bookData.condition,
+          price: bookData.price,
+          type: bookData.type,
+          exchange_for: bookData.exchangeFor,
+          seller_id: user.id,
+          status: 'pending_review'
         };
 
         const { data, error } = await supabase.from("books").insert(dataToInsert).select();
@@ -92,15 +141,22 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
           throw error;
         }
 
-        
+        // Re-fetch books to update the context state
         fetchBooks();
-        return data ? (data[0] as Book) : undefined;
+        if (data && data[0]) {
+          const dbBook = data[0] as DBBook;
+          return {
+            ...dbBook,
+            exchangeFor: dbBook.exchange_for,
+          };
+        }
+        return undefined;
       } catch (error) {
         console.error("Error adding book:", error);
         return undefined;
       }
     },
-    [fetchBooks],
+    [fetchBooks, user],
   );
 
   useEffect(() => {

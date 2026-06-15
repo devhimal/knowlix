@@ -45,7 +45,6 @@ export default function BooksPage() {
           </div>
         </Card>
 
-        {}
         <h2 className="text-3xl font-bold text-gray-900 mb-4">Books for Sale</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {books.filter((book) => book.type === "sell").map((book) => (
@@ -54,11 +53,12 @@ export default function BooksPage() {
               id={book.id}
               title={book.title}
               author={book.author}
-              condition={book.condition}
-              price={book.price}
-              type={book.type}
-              exchangeFor={book.exchangeFor}
-              description={book.description}
+              condition={book.condition || ""}
+              price={book.price || 0}
+              type={book.type || "sell"}
+              seller_id={book.seller_id || undefined}
+              average_rating={book.average_rating}
+              total_ratings={book.total_ratings}
             />
           ))}
         </div>
@@ -72,11 +72,12 @@ export default function BooksPage() {
               id={book.id}
               title={book.title}
               author={book.author}
-              condition={book.condition}
-              price={book.price}
-              type={book.type}
-              exchangeFor={book.exchangeFor}
-              description={book.description}
+              condition={book.condition || ""}
+              price={book.price || 0}
+              type={book.type || "exchange"}
+              seller_id={book.seller_id || undefined}
+              average_rating={book.average_rating}
+              total_ratings={book.total_ratings}
             />
           ))}
         </div>

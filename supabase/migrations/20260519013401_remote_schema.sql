@@ -51,7 +51,7 @@ alter table "public"."profiles" add constraint "profiles_id_fkey" FOREIGN KEY (i
 
 alter table "public"."profiles" validate constraint "profiles_id_fkey";
 
-alter table "public"."profiles" add constraint "role_check" CHECK ((role = ANY (ARRAY['admin'::text, 'student'::text, 'mentor'::text]))) not valid;
+alter table "public"."profiles" add constraint "role_check" CHECK ((role = ANY (ARRAY['admin'::text, 'student'::text, 'super_admin'::text]))) not valid;
 
 alter table "public"."profiles" validate constraint "role_check";
 

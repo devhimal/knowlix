@@ -34,12 +34,14 @@ import { Newsletter } from "@/components/Newsletter";
 import { categories, semesters } from "@/lib/constants";
 import { toast } from "sonner";
 import { getDownloadUrl } from "@/lib/supabase";
+import { Progress } from "@/components/ui/progress"; // Importing Progress for loading indicator
+
 
 export default function HomePage() {
   const router = useRouter();
-  const { resources } = useResources();
-  const { user } = useAuth(); 
-  const { hasPurchased, isSubscribed } = usePayment(); 
+  const { resources, loading } = useResources(); // Get loading state from useResources()
+  const { user } = useAuth(); // Get user from AuthContext
+  const { hasPurchased, isSubscribed } = usePayment(); // Get payment context
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSubCategory, setSelectedSubCategory] = useState("all");
   const [selectedSemester, setSelectedSemester] = useState("all");
@@ -429,7 +431,15 @@ export default function HomePage() {
             </div>
 
             <div className="space-y-4">
-              {filteredResources.length > 0 ? (
+              {loading ? ( // Check if loading
+                <Card className="p-12 text-center">
+                  <div className="text-muted-foreground mb-4">
+                    <BookOpen className="h-16 w-16 mx-auto animate-pulse" />
+                  </div>
+                  <p className="text-foreground text-lg">Loading resources...</p>
+                  <Progress value={null} className="w-1/2 mx-auto mt-4" /> {/* Indeterminate progress */}
+                </Card>
+              ) : filteredResources.length > 0 ? ( // If not loading, check if resources exist
                 filteredResources.map((resource) => (
                   <FeedResourceCard
                     key={resource.id}
@@ -439,7 +449,7 @@ export default function HomePage() {
                     hasPurchased={hasPurchased(resource.id)} // Pass hasPurchased status
                   />
                 ))
-              ) : (
+              ) : ( // If not loading and no resources
                 <Card className="p-12 text-center">
                   <div className="text-muted-foreground mb-4">
                     <BookOpen className="h-16 w-16 mx-auto" />
