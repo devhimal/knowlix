@@ -18,6 +18,7 @@ import { categories, semesters } from "@/lib/constants"; // Import categories an
 
 import { useResources, Resource } from "@/context/ResourceContext";
 import { useAuth } from "@/context/AuthContext";
+import { SearchEngine, mapResourceToSearchable } from "@/lib/search/SearchEngine";
 import {
   Search,
   Filter,
@@ -29,9 +30,11 @@ import {
   Lock,
   Check,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getDownloadUrl } from "@/lib/supabase"; // Import the helper function
+import { getDownloadUrl } from "@/lib/supabase";
+import { useMemo } from "react";
 
 export default function ResourceLibrary() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,39 +51,43 @@ export default function ResourceLibrary() {
   const { hasPurchased, isSubscribed } = usePayment();
   const { user } = useAuth();
   const { resources, loading, fetchResources } = useResources();
-  console.log("Raw resources from context:", resources); // Debug log
 
   const router = useRouter();
 
-  // Filter to show only approved resources
-  const approvedResources = resources.filter((r) => r.status === "approved");
-  console.log("Approved resources (after status filter):", approvedResources); // Debug log
+  // Initialize Search Engine
+  const searchableItems = useMemo(() => 
+    resources.map(mapResourceToSearchable), 
+  [resources]);
 
-  const filteredResources = approvedResources
-    .filter((resource) => {
-      const matchesSearch =
-        resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        resource.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        resource.subjectName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "all" || resource.category.id === selectedCategory;
-      const matchesSubCategory =
-        selectedSubCategory === "all" ||
-        resource.subCategory.id === selectedSubCategory;
-      const matchesSemester =
-        selectedSemester === "all" || resource.semester === selectedSemester;
-      const matchesFileType =
-        selectedFileType === "all" || resource.fileType === selectedFileType;
+  const engine = useMemo(() => new SearchEngine(searchableItems), [searchableItems]);
 
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesSubCategory &&
-        matchesSemester &&
-        matchesFileType
-      );
-    })
-    .sort((a, b) => {
+  const { filteredResources, searchMessage } = useMemo(() => {
+    // 1. Get initial set from search engine
+    const searchResult = engine.search(searchQuery, {
+      category: selectedCategory,
+    });
+    
+    let items = Array.isArray(searchResult) ? searchResult : searchResult.items;
+    const msg = Array.isArray(searchResult) ? "" : searchResult.message;
+
+    // 2. Map back to original resource objects for the UI
+    let results = items
+      .map(item => item.originalItem as Resource)
+      .filter(r => r.status === "approved"); // Library only shows approved
+
+    // 3. Apply secondary specific filters
+    if (selectedSubCategory !== "all") {
+      results = results.filter(r => r.subCategory.id === selectedSubCategory);
+    }
+    if (selectedSemester !== "all") {
+      results = results.filter(r => r.semester === selectedSemester);
+    }
+    if (selectedFileType !== "all") {
+      results = results.filter(r => r.fileType === selectedFileType);
+    }
+
+    // 4. Sort
+    results.sort((a, b) => {
       if (sortBy === "popular") return b.downloads - a.downloads;
       if (sortBy === "rating") return (b.average_rating || 0) - (a.average_rating || 0);
       if (sortBy === "recent")
@@ -89,6 +96,9 @@ export default function ResourceLibrary() {
         );
       return 0;
     });
+
+    return { filteredResources: results, searchMessage: msg };
+  }, [engine, searchQuery, selectedCategory, selectedSubCategory, selectedSemester, selectedFileType, sortBy]);
 
   const handleResourceAction = async (resource: Resource) => {
     // Made async
@@ -443,7 +453,12 @@ const ResourceCard = ({
               </span>
               <span className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                {resource.average_rating?.toFixed(1)} rating
+                <span className="font-medium text-gray-900">
+                  {resource.average_rating ? resource.average_rating.toFixed(1) : "0.0"}
+                </span>
+                <span className="text-gray-500">
+                  ({resource.total_ratings || 0} ratings)
+                </span>
               </span>
             </div>
           </div>

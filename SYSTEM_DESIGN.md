@@ -96,7 +96,7 @@
   email: String (unique, indexed),
   password: String (hashed - bcrypt),
   fullName: String,
-  role: String (enum: ['student', 'senior', 'mentor', 'admin']),
+  role: String (enum: ['student', 'admin', 'super_admin']),
   institution: String,
   classLevel: String,
   profilePicture: String (URL),

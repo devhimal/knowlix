@@ -119,7 +119,7 @@ export default function UploadResource() {
           uploader_id: user.id,
           uploader_name: user.user_metadata?.name || user.email, // Use user_metadata name if available, otherwise email
           uploader_email: user.email,
-          status: "pending_review",
+          status: "pending_ai",
         })
         .select();
 
@@ -495,8 +495,11 @@ const Step3 = ({ formData, handleChange, handleNext, handlePrev }: any) => {
               id="price"
               type="number"
               placeholder="100"
-              value={formData.price}
-              onChange={(e) => handleChange("price", parseInt(e.target.value))}
+              value={formData.price || ""}
+              onChange={(e) => {
+                const val = e.target.value === "" ? 0 : parseInt(e.target.value);
+                handleChange("price", isNaN(val) ? 0 : val);
+              }}
               className="pl-14"
               min="10"
               step="10"

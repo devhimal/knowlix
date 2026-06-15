@@ -5,6 +5,7 @@ import { PaymentProvider } from "@/context/PaymentContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { ResourceProvider } from "@/context/ResourceContext";
 import { BookProvider } from "@/context/BookContext";
+import { ChatProvider } from "@/context/ChatContext";
 import { MentorProvider } from "@/context/MentorContext"; // Import MentorProvider
 import { Toaster } from "@/components/ui/sonner";
 
@@ -16,8 +17,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <MentorProvider> {/* Add MentorProvider here */}
             <PaymentProvider>
               <BookProvider>
-                {children}
-                <Toaster />
+                <ChatProvider>
+                  {children}
+                  <Toaster />
+                </ChatProvider>
               </BookProvider>
             </PaymentProvider>
           </MentorProvider>

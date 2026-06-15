@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useResources, Resource } from '@/context/ResourceContext';
 import { Button } from "@/components/ui/button";
 import { Download, Star, Check, Zap } from "lucide-react";
@@ -13,9 +13,14 @@ import { getDownloadUrl } from "@/lib/supabase"; // Import the helper function
 import { StarRating } from '@/components/StarRating'; // Import StarRating
 import { Textarea } from '@/components/ui/textarea'; // Import Textarea
 import { Label } from '@/components/ui/label'; // Import Label
+import { ResourceReviewList } from '@/components/ResourceReviewList'; // Import Review List
+import { Brain, ShieldCheck, CheckCircle, XCircle, FileText, Info } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Card } from "@/components/ui/card";
 
 export default function ResourceDetailsPage() {
   const params = useParams();
+  const router = useRouter();
 
   if (!params || !params.id) {
     return (
@@ -54,6 +59,7 @@ export default function ResourceDetailsPage() {
   const [resource, setResource] = useState<Resource | undefined>();
   const [userRating, setUserRating] = useState(0); // State for user's selected rating
   const [userComment, setUserComment] = useState(""); // State for user's comment
+  const [refreshReviews, setRefreshReviews] = useState(0); // Trigger to refresh review list
 
   useEffect(() => {
     fetchResources?.();
@@ -63,8 +69,6 @@ export default function ResourceDetailsPage() {
     if (resourceId && resources.length > 0) {
       const foundResource = getResourceById(resourceId);
       setResource(foundResource);
-      // Optionally fetch user's existing rating for this resource to pre-fill
-      // This would require another API call or a modification to the existing resource fetch
     }
   }, [resourceId, resources, getResourceById]);
 
@@ -111,6 +115,13 @@ export default function ResourceDetailsPage() {
       toast.error("You must be logged in to submit a rating.");
       return;
     }
+
+    // Logic: Only premium users can review premium resources
+    if (resource && !resource.isFree && !isSubscribed(user.id)) {
+      toast.error("Upgrade to Premium to leave a review for this resource.");
+      return;
+    }
+
     if (userRating === 0) {
       toast.error("Please select a star rating.");
       return;
@@ -121,10 +132,11 @@ export default function ResourceDetailsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`, // Add Authorization header
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           userId: user.id,
+          userName: user.user_metadata?.name || user.email,
           rating: userRating,
           comment: userComment,
         }),
@@ -136,8 +148,8 @@ export default function ResourceDetailsPage() {
       }
 
       toast.success("Rating submitted successfully!");
-      // Optionally re-fetch resources to update the average rating display
       fetchResources();
+      setRefreshReviews(prev => prev + 1); // Trigger review list refresh
       setUserRating(0);
       setUserComment("");
     } catch (error: any) {
@@ -186,6 +198,8 @@ export default function ResourceDetailsPage() {
     hasPurchased(resource.id) ||
     (user && user.id === resource.uploaderId);
 
+  const canReview = isAuthenticated && (resource.isFree || (user && isSubscribed(user.id)));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4">
       <div className="max-w-7xl mx-auto">
@@ -207,7 +221,7 @@ export default function ResourceDetailsPage() {
               <div className="flex items-center gap-2 mt-3">
                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                 <span className="text-sm text-gray-600">
-                  {resource.average_rating?.toFixed(1)} ({resource.total_ratings} ratings)
+                  {resource.average_rating?.toFixed(1) || "0.0"} ({resource.total_ratings || 0} ratings)
                 </span>
               </div>
             </div>
@@ -249,6 +263,73 @@ export default function ResourceDetailsPage() {
             <Meta label="Downloads" value={resource.downloads} />
           </div>
 
+          {/* AI & PLAGIARISM RESULTS */}
+          {(resource.aiAnalysis || resource.plagiarismResult) && (
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* AI Analysis Card */}
+              {resource.aiAnalysis && (
+                <Card className="p-6 border-blue-100 bg-blue-50/30">
+                  <div className="flex items-center gap-2 mb-4 text-blue-700">
+                    <Brain className="h-5 w-5" />
+                    <h3 className="font-bold">AI Quality Analysis</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <ScoreBar label="Relevance" score={resource.aiAnalysis.relevanceScore} color="blue" />
+                    <ScoreBar label="Quality" score={resource.aiAnalysis.qualityScore} color="blue" />
+                    <ScoreBar label="Completeness" score={resource.aiAnalysis.completenessScore} color="blue" />
+                  </div>
+                  {resource.aiAnalysis.suggestions.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-blue-100">
+                      <p className="text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-1">
+                        <Info className="h-3 w-3" /> AI Suggestions
+                      </p>
+                      <ul className="text-xs text-blue-800 space-y-1">
+                        {resource.aiAnalysis.suggestions.map((s, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className="text-blue-400">•</span> {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {/* Plagiarism Card */}
+              {resource.plagiarismResult && (
+                <Card className="p-6 border-purple-100 bg-purple-50/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-purple-700">
+                      <ShieldCheck className="h-5 w-5" />
+                      <h3 className="font-bold">Plagiarism Check</h3>
+                    </div>
+                    {resource.plagiarismResult.passed ? (
+                      <Badge className="bg-green-100 text-green-700 border-none">
+                        <CheckCircle className="h-3 w-3 mr-1" /> Verified
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive">
+                        <XCircle className="h-3 w-3 mr-1" /> Flagged
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm text-purple-700">Similarity Score</span>
+                      <span className={`text-lg font-bold ${resource.plagiarismResult.similarity < 15 ? 'text-green-600' : 'text-red-600'}`}>
+                        {resource.plagiarismResult.similarity}%
+                      </span>
+                    </div>
+                    <Progress value={resource.plagiarismResult.similarity} className="h-2 bg-purple-100" />
+                    <p className="text-[10px] text-purple-500 italic mt-2">
+                      Checked on {new Date(resource.plagiarismResult.checkedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+
           {/* BADGE */}
           <div className="mt-8">
             {resource.isFree ? (
@@ -264,31 +345,96 @@ export default function ResourceDetailsPage() {
 
           {/* Rating Section */}
           <div className="mt-10 pt-8 border-t border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Rate this Resource</h2>
-            {isAuthenticated ? (
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="mb-4">
-                  <Label htmlFor="rating">Your Rating:</Label>
-                  <StarRating initialRating={userRating} onRatingChange={setUserRating} />
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Ratings & Reviews</h2>
+            
+            <div className="grid lg:grid-cols-3 gap-10">
+              {/* Review Form */}
+              <div className="lg:col-span-1">
+                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 sticky top-24">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">Leave a Review</h3>
+                  {isAuthenticated ? (
+                    canReview ? (
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-sm text-gray-600 mb-2 block">Your Rating</Label>
+                          <StarRating initialRating={userRating} onRatingChange={setUserRating} />
+                        </div>
+                        <div>
+                          <Label htmlFor="comment" className="text-sm text-gray-600 mb-2 block">Your Feedback</Label>
+                          <Textarea
+                            id="comment"
+                            value={userComment}
+                            onChange={(e) => setUserComment(e.target.value)}
+                            placeholder="How was this resource?"
+                            rows={4}
+                            className="bg-white border-gray-200"
+                          />
+                        </div>
+                        <Button onClick={handleRatingSubmit} className="w-full">
+                          Submit Review
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                        <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                          <Zap className="h-4 w-4 fill-amber-800" />
+                          Premium Review Only
+                        </p>
+                        <p className="text-xs text-amber-700 mt-1">
+                          Upgrade to Premium to leave a review for this resource.
+                        </p>
+                      </div>
+                    )
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Please log in to share your feedback.</p>
+                  )}
                 </div>
-                <div className="mb-4">
-                  <Label htmlFor="comment">Your Comment (Optional):</Label>
-                  <Textarea
-                    id="comment"
-                    value={userComment}
-                    onChange={(e) => setUserComment(e.target.value)}
-                    placeholder="Share your thoughts on this resource..."
-                    rows={4}
-                    className="mt-1"
-                  />
-                </div>
-                <Button onClick={handleRatingSubmit} className="w-full">Submit Rating</Button>
               </div>
-            ) : (
-              <p className="text-gray-600">Please log in to rate this resource.</p>
-            )}
+
+              {/* Review List */}
+              <div className="lg:col-span-2">
+                <ResourceReviewList resourceId={resourceId} refreshTrigger={refreshReviews} />
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* RELATED RESOURCES */}
+        <section className="mt-16">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">Related Resources</h2>
+            <Button variant="link" onClick={() => router.push('/resources')}>
+              Browse all
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {resources
+              .filter(r => r.id !== resourceId && r.category.id === resource.category.id && r.status === 'approved')
+              .slice(0, 3)
+              .map((relatedResource) => (
+                <Card key={relatedResource.id} className="p-5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push(`/resources/${relatedResource.id}`)}>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="bg-blue-50 p-2 rounded-lg">
+                      <FileText className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 line-clamp-1">{relatedResource.title}</h3>
+                      <p className="text-xs text-gray-500">{relatedResource.subject}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-1 text-xs text-amber-500 font-bold">
+                      <Star className="h-3 w-3 fill-amber-500" />
+                      {relatedResource.average_rating?.toFixed(1) || "0.0"}
+                    </div>
+                    <Badge variant="outline" className="text-[10px] uppercase">
+                      {relatedResource.isFree ? 'Free' : `NPR ${relatedResource.price}`}
+                    </Badge>
+                  </div>
+                </Card>
+              ))}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -300,6 +446,18 @@ function Meta({ label, value }: { label: string; value: any }) {
     <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
       <p className="text-xs text-gray-500">{label}</p>
       <p className="font-semibold text-gray-800 mt-1">{value}</p>
+    </div>
+  );
+}
+
+function ScoreBar({ label, score, color }: { label: string; score: number, color: string }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-gray-500">
+        <span>{label}</span>
+        <span>{score}%</span>
+      </div>
+      <Progress value={score} className={`h-1.5 bg-${color}-100`} />
     </div>
   );
 }

@@ -190,7 +190,7 @@ The **Academic Resource Platform** is a social learning network designed to faci
   email: String (unique, indexed),
   password: String (hashed with bcrypt),
   fullName: String,
-  role: String (enum: ['student', 'senior', 'mentor', 'admin']),
+  role: String (enum: ['student', 'admin', 'super_admin']),
   
   profile: {
     institution: String,
@@ -2337,7 +2337,7 @@ const registerValidation = [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 8 }),
   body('fullName').trim().notEmpty(),
-  body('role').isIn(['student', 'senior', 'mentor', 'admin'])
+  body('role').isIn(['student', 'admin', 'super_admin'])
 ];
 
 const resourceValidation = [
