@@ -298,6 +298,17 @@ export default function BookDetailsPage() {
           </div>
         </div>
 
+        {isChatOpen && book && (
+          <ChatDialog
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            receiverId={book.seller_id}
+            receiverName="Seller"
+            bookTitle={book.title}
+            bookId={book.id}
+          />
+        )}
+
         {/* Related Books */}
         <section className="mt-20">
           <div className="flex items-center justify-between mb-8">

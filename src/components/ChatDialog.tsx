@@ -39,9 +39,17 @@ export default function ChatDialog({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const chatMessages = messages.filter(
-    (m) =>
-      (m.sender_id === user?.id && m.receiver_id === receiverId) ||
-      (m.sender_id === receiverId && m.receiver_id === user?.id)
+    (m) => {
+      const isCorrectConversation = 
+        (m.sender_id === user?.id && m.receiver_id === receiverId) ||
+        (m.sender_id === receiverId && m.receiver_id === user?.id);
+      
+      // If a bookId is provided, only show messages related to that book
+      if (bookId) {
+        return isCorrectConversation && m.book_id === bookId;
+      }
+      return isCorrectConversation;
+    }
   );
 
   useEffect(() => {
