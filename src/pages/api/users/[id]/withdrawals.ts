@@ -2,22 +2,22 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createServerSupabaseClient(req, res); // Get server-side Supabase client
+  const supabase = createServerSupabaseClient(req, res); 
   if (req.method === 'GET') {
-    const { id: userId } = req.query; // User ID whose withdrawal requests are to be fetched
+    const { id: userId } = req.query; 
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
-    // --- 1. Verify Authentication & Authorization ---
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user || user.id !== userId) {
       return res.status(401).json({ error: 'Unauthorized: User ID does not match authenticated user or no user found.' });
     }
 
-    // --- 2. Fetch Withdrawal Requests ---
+    
     const { data: withdrawalRequests, error: fetchError } = await supabase
       .from('withdrawal_requests')
       .select('*')

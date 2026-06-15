@@ -3,25 +3,25 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button"; // Assuming this path
-import { Input } from "@/components/ui/input"; // Assuming this path
-import { Label } from "@/components/ui/label"; // Assuming this path
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Assuming this path
+import { Button } from "@/components/ui/button"; 
+import { Input } from "@/components/ui/input"; 
+import { Label } from "@/components/ui/label"; 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; 
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Assuming this path
-import { toast } from "sonner"; // Assuming this path
+} from "@/components/ui/select"; 
+import { toast } from "sonner"; 
 
 interface Transaction {
   id: string;
   type: string;
   amount: number;
   description?: string;
-  resource_name?: string; // Added for sales history display
+  resource_name?: string; 
   created_at: string;
 }
 
@@ -47,11 +47,11 @@ export default function EarningsPage() {
 
 
   const fetchData = async () => {
-    if (!user) return; // Ensure user is available before fetching
+    if (!user) return; 
 
     setDataLoading(true);
     try {
-      // Fetch user profile (for balance)
+      
       const profileRes = await fetch(`/api/users/${user.id}/profile`);
       const profileData = await profileRes.json();
       if (profileRes.ok) {
@@ -60,7 +60,7 @@ export default function EarningsPage() {
         toast.error(`Failed to fetch balance: ${profileData.error}`);
       }
 
-      // Fetch sales transactions (where user is seller)
+      
       const transactionsRes = await fetch(`/api/transactions?seller_id=${user.id}`);
       const transactionsData = await transactionsRes.json();
       if (transactionsRes.ok) {
@@ -69,7 +69,7 @@ export default function EarningsPage() {
         toast.error(`Failed to fetch transactions: ${transactionsData.error}`);
       }
 
-      // Fetch withdrawal requests
+      
       const withdrawalsRes = await fetch(`/api/users/${user.id}/withdrawals`);
       const withdrawalsData = await withdrawalsRes.json();
       if (withdrawalsRes.ok) {
@@ -135,7 +135,7 @@ export default function EarningsPage() {
       toast.success("Withdrawal request submitted successfully!");
       setWithdrawalAmount("");
       setWithdrawalMethod("");
-      // Re-fetch data to update balance and withdrawal requests
+      
       fetchData();
 
     } catch (err: any) {
@@ -145,7 +145,7 @@ export default function EarningsPage() {
     }
   };
 
-  if (dataLoading && !user) { // Only show full page loading if user is not yet authenticated
+  if (dataLoading && !user) { 
     return (
       <div className="flex justify-center items-center min-h-screen">
         <p>Loading...</p>

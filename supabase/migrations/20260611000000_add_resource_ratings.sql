@@ -35,7 +35,7 @@ FOR DELETE
 TO authenticated
 USING (auth.uid() = user_id);
 
--- Optional: For public viewing of ratings
+
 CREATE POLICY "Allow public read access for ratings"
 ON public.resource_ratings
 FOR SELECT
@@ -46,7 +46,7 @@ ALTER TABLE public.resources
 ADD COLUMN average_rating NUMERIC(2, 1) DEFAULT 0.0,
 ADD COLUMN total_ratings INTEGER DEFAULT 0;
 
--- Function to update average_rating and total_ratings in resources table
+
 CREATE OR REPLACE FUNCTION public.update_resource_average_rating()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -59,12 +59,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger for inserts and updates on resource_ratings
+
 CREATE TRIGGER resource_ratings_after_insert_update
 AFTER INSERT OR UPDATE ON public.resource_ratings
 FOR EACH ROW EXECUTE FUNCTION public.update_resource_average_rating();
 
--- Function for deletes (if a rating is deleted, update average)
+
 CREATE OR REPLACE FUNCTION public.update_resource_average_rating_on_delete()
 RETURNS TRIGGER AS $$
 BEGIN

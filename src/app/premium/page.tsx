@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext"; // Assuming this path
+import { useAuth } from "@/context/AuthContext"; 
 import { Button } from "@/components/ui/button";
-import { usePayment } from "@/context/PaymentContext"; // Assuming this path
+import { usePayment } from "@/context/PaymentContext"; 
 
 export default function PremiumPage() {
   const { user, isAuthenticated } = useAuth();
@@ -14,7 +14,7 @@ export default function PremiumPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  // Check if user is already subscribed (using the context)
+  
   const userIsAlreadySubscribed = user ? isSubscribed(user.id) : false;
 
   const handleSubscribe = async () => {
@@ -28,11 +28,11 @@ export default function PremiumPage() {
     setMessage(null);
 
     try {
-      // For simplicity, we'll hardcode a plan_id and end_date for now.
-      // In a real app, you'd have plan selection and proper date calculation.
+      
+      
       const plan_id = "premium_monthly";
       const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1); // 1 month subscription
+      endDate.setMonth(endDate.getMonth() + 1); 
 
       const response = await fetch("/api/subscriptions", {
         method: "POST",
@@ -53,8 +53,8 @@ export default function PremiumPage() {
 
       const result = await response.json();
       setMessage(result.message || "Subscription successful!");
-      // Optionally, refresh user context or payment context here if they don't auto-update
-      // For now, we'll just show the message.
+      
+      
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
     } finally {

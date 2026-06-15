@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation"; // Import useParams
+import { useRouter, useParams } from "next/navigation"; 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import BookCard from "@/components/BookCard"; // Import BookCard
-import { useBooks } from "@/context/BookContext"; // Import useBooks
+import BookCard from "@/components/BookCard"; 
+import { useBooks } from "@/context/BookContext"; 
 
 export default function BookDetailsPage() {
   const router = useRouter();
@@ -13,23 +13,23 @@ export default function BookDetailsPage() {
   const id = params?.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : undefined;
   const { books, loading: booksLoading } = useBooks();
   const [book, setBook] = useState<any>(null);
-  const [localLoading, setLocalLoading] = useState(true); // Use a local loading state
+  const [localLoading, setLocalLoading] = useState(true); 
 
   useEffect(() => {
     console.log("BookDetailsPage - useEffect triggered.");
     console.log("Current ID from params (direct access):", id);
     console.log("Books from context:", books);
 
-    if (id && !booksLoading) { // Only process if ID is present and books are not loading from context
+    if (id && !booksLoading) { 
       const foundBook = books.find((b: any) => b.id === id);
       if (foundBook) {
         setBook(foundBook);
       } else {
-        setBook(null); // Book not found
+        setBook(null); 
       }
-      setLocalLoading(false); // Local loading finished
+      setLocalLoading(false); 
     } else if (!id) {
-      setLocalLoading(false); // No ID, so stop loading
+      setLocalLoading(false); 
     }
   }, [id, books, booksLoading]);
 
@@ -129,8 +129,8 @@ export default function BookDetailsPage() {
           <h2 className="text-3xl font-bold text-gray-900 mb-6">Other Books You Might Like</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {books
-              .filter((b: any) => b.id !== id) // Filter out the current book
-              .slice(0, 3) // Take up to 3 suggestions
+              .filter((b: any) => b.id !== id) 
+              .slice(0, 3) 
               .map((suggestedBook: any) => (
                 <BookCard
                   key={suggestedBook.id}

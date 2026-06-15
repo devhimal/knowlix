@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { usePayment } from "@/context/PaymentContext";
-import { getDownloadUrl } from "@/lib/supabase"; // Import the helper function
-import { StarRating } from '@/components/StarRating'; // Import StarRating
-import { Textarea } from '@/components/ui/textarea'; // Import Textarea
-import { Label } from '@/components/ui/label'; // Import Label
+import { getDownloadUrl } from "@/lib/supabase"; 
+import { StarRating } from '@/components/StarRating'; 
+import { Textarea } from '@/components/ui/textarea'; 
+import { Label } from '@/components/ui/label'; 
 
 export default function ResourceDetailsPage() {
   const params = useParams();
@@ -48,12 +48,12 @@ export default function ResourceDetailsPage() {
   const { getResourceById, loading, fetchResources, resources, incrementDownload } =
     useResources();
 
-  const { user, isAuthenticated, session } = useAuth(); // Destructure isAuthenticated and session
+  const { user, isAuthenticated, session } = useAuth(); 
   const { hasPurchased, isSubscribed } = usePayment();
 
   const [resource, setResource] = useState<Resource | undefined>();
-  const [userRating, setUserRating] = useState(0); // State for user's selected rating
-  const [userComment, setUserComment] = useState(""); // State for user's comment
+  const [userRating, setUserRating] = useState(0); 
+  const [userComment, setUserComment] = useState(""); 
 
   useEffect(() => {
     fetchResources?.();
@@ -63,13 +63,13 @@ export default function ResourceDetailsPage() {
     if (resourceId && resources.length > 0) {
       const foundResource = getResourceById(resourceId);
       setResource(foundResource);
-      // Optionally fetch user's existing rating for this resource to pre-fill
-      // This would require another API call or a modification to the existing resource fetch
+      
+      
     }
   }, [resourceId, resources, getResourceById]);
 
   const handleDownload = async (res: Resource) => {
-    // Made async
+    
     if (!res.isFree && !user) {
       toast.error("Please log in first to download premium resources.");
       return;
@@ -80,7 +80,7 @@ export default function ResourceDetailsPage() {
       return;
     }
 
-    // Generate signed download URL
+    
     const downloadUrl = await getDownloadUrl(
       res.file_path,
       res.title + "." + res.fileType.split("/").pop(),
@@ -99,7 +99,7 @@ export default function ResourceDetailsPage() {
     ) {
       toast.success(`Downloading ${res.title}`);
       window.open(downloadUrl, "_blank");
-      incrementDownload(res.id); // Increment download count
+      incrementDownload(res.id); 
       return;
     }
 
@@ -121,7 +121,7 @@ export default function ResourceDetailsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`, // Add Authorization header
+          'Authorization': `Bearer ${session.access_token}`, 
         },
         body: JSON.stringify({
           userId: user.id,
@@ -136,7 +136,7 @@ export default function ResourceDetailsPage() {
       }
 
       toast.success("Rating submitted successfully!");
-      // Optionally re-fetch resources to update the average rating display
+      
       fetchResources();
       setUserRating(0);
       setUserComment("");
@@ -181,7 +181,7 @@ export default function ResourceDetailsPage() {
 
   const canAccess =
     resource.isFree ||
-    (user && (user.role === 'admin' || user.role === 'super_admin')) || // Added this condition
+    (user && (user.role === 'admin' || user.role === 'super_admin')) || 
     (user && isSubscribed(user.id)) ||
     hasPurchased(resource.id) ||
     (user && user.id === resource.uploaderId);
@@ -189,9 +189,9 @@ export default function ResourceDetailsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* HEADER CARD */}
+        {}
         <div className="bg-white shadow-lg rounded-2xl p-6 md:p-10 border border-gray-100">
-          {/* Top Section */}
+          {}
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
@@ -212,7 +212,7 @@ export default function ResourceDetailsPage() {
               </div>
             </div>
 
-            {/* CTA */}
+            {}
             <div>
               <Button
                 onClick={() => handleDownload(resource)}
@@ -233,12 +233,12 @@ export default function ResourceDetailsPage() {
             </div>
           </div>
 
-          {/* Description */}
+          {}
           <p className="mt-6 text-gray-700 leading-relaxed">
             {resource.description}
           </p>
 
-          {/* META GRID */}
+          {}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <Meta label="Category" value={resource.category.name} />
             <Meta label="Sub Category" value={resource.subCategory.name} />
@@ -249,7 +249,7 @@ export default function ResourceDetailsPage() {
             <Meta label="Downloads" value={resource.downloads} />
           </div>
 
-          {/* BADGE */}
+          {}
           <div className="mt-8">
             {resource.isFree ? (
               <Badge className="bg-green-100 text-green-700">
@@ -262,7 +262,7 @@ export default function ResourceDetailsPage() {
             )}
           </div>
 
-          {/* Rating Section */}
+          {}
           <div className="mt-10 pt-8 border-t border-gray-100">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Rate this Resource</h2>
             {isAuthenticated ? (
@@ -294,7 +294,7 @@ export default function ResourceDetailsPage() {
   );
 }
 
-/* 🔥 Small reusable meta component */
+
 function Meta({ label, value }: { label: string; value: any }) {
   return (
     <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">

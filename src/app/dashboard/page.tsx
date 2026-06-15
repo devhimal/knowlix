@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import supabase, { getDownloadUrl } from "@/lib/supabase"; // Import getDownloadUrl
-import { Resource } from "@/context/ResourceContext"; // Changed to use alias
+import supabase, { getDownloadUrl } from "@/lib/supabase"; 
+import { Resource } from "@/context/ResourceContext"; 
 import { usePayment } from "@/context/PaymentContext";
 import { useAuth } from "@/context/AuthContext";
 import { useResources } from "@/context/ResourceContext";
@@ -31,7 +31,7 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-// Define helper components first as they are used by others
+
 const ActionCard = ({ icon, title, description, onClick }: any) => (
   <Card
     className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
@@ -55,7 +55,7 @@ const StatCard = ({ icon, value, label }: any) => (
 
 const FileCard = ({ file }: { file: Resource }) => {
   const router = useRouter();
-  const { incrementDownload } = useResources(); // Access incrementDownload from context
+  const { incrementDownload } = useResources(); 
 
   const handleViewDetails = () => {
     router.push(`/resources/${file.id}`);
@@ -68,19 +68,19 @@ const FileCard = ({ file }: { file: Resource }) => {
     }
 
     try {
-      // Use the getDownloadUrl helper function
+      
       const downloadUrl = await getDownloadUrl(file.file_path, file.title);
       
       if (downloadUrl) {
-        // Initiate download
+        
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = file.title; // Suggest a filename
+        a.download = file.title; 
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
 
-        // Increment download count in DB
+        
         await incrementDownload(file.id);
         toast.success(`Downloading "${file.title}"!`);
       } else {
@@ -125,15 +125,15 @@ const FileCard = ({ file }: { file: Resource }) => {
 };
 
 interface StudentDashboardContentProps {
-  user: any; // Consider a more specific User type from AuthContext
+  user: any; 
   isSubscribed: boolean;
   getPlanName: (plan: string) => string;
   recentFiles: Resource[];
   recommendedResources: Resource[];
-  transactions: any[]; // Consider a more specific Transaction type from PaymentContext
+  transactions: any[]; 
   loadingPayments: boolean;
   getUserEarnings: (userId: string) => number;
-  myUploadedResources: Resource[]; // Added for user-specific uploads
+  myUploadedResources: Resource[]; 
 }
 
 const StudentDashboardContent = ({
@@ -153,7 +153,7 @@ const StudentDashboardContent = ({
   return (
     <div className="min-h-screen bg-gray-50/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Header */}
+        {}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-1">
@@ -185,7 +185,7 @@ const StudentDashboardContent = ({
           )}
         </div>
 
-        {/* Quick Search */}
+        {}
         <Card className="p-6 mb-8 border-none shadow-sm bg-white">
           <div className="flex gap-4">
             <div className="flex-1 relative">
@@ -201,9 +201,9 @@ const StudentDashboardContent = ({
         </Card>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+          {}
           <div className="lg:col-span-2 space-y-8">
-            {/* Quick Actions */}
+            {}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <ActionCard
                 icon={<BookOpen className="h-6 w-6 text-primary" />}
@@ -227,7 +227,7 @@ const StudentDashboardContent = ({
               />
             </div>
 
-            {/* Stats */}
+            {}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard icon={<FileText className="h-4 w-4" />} value="12" label="Uploads" />
               <StatCard icon={<Download className="h-4 w-4" />} value="45" label="Downloads" />
@@ -235,7 +235,7 @@ const StudentDashboardContent = ({
               <StatCard icon={<TrendingUp className="h-4 w-4" />} value="234" label="Points" />
             </div>
 
-            {/* My Uploaded Resources */}
+            {}
             <section>
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Upload className="h-5 w-5 text-green-500" />
@@ -252,7 +252,7 @@ const StudentDashboardContent = ({
               </div>
             </section>
 
-            {/* Recently Uploaded */}
+            {}
             <section className="mt-8">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
@@ -269,7 +269,7 @@ const StudentDashboardContent = ({
               </div>
             </section>
 
-            {/* Recommended Resources */}
+            {}
             <section className="mt-8">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Star className="h-5 w-5 text-yellow-500" />
@@ -287,9 +287,9 @@ const StudentDashboardContent = ({
             </section>
           </div>
 
-          {/* Sidebar */}
+          {}
           <div className="space-y-8">
-            {/* Subscription Card */}
+            {}
             {isSubscribed && (
               <Card className="p-6 bg-gradient-to-br from-primary to-teal-700 text-white border-none shadow-lg">
                 <div className="flex items-center justify-between mb-4">
@@ -315,7 +315,7 @@ const StudentDashboardContent = ({
               </Card>
             )}
 
-            {/* Recent Transactions */}
+            {}
             <section>
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-primary" />
@@ -360,7 +360,7 @@ const StudentDashboardContent = ({
 
 export default function StudentDashboard() {
   const { user, isAuthenticated, role, loading } = useAuth();
-  const paymentContext = usePayment(); // Correctly assign usePayment() to paymentContext
+  const paymentContext = usePayment(); 
   const { getUserEarnings, getUserTransactions, loading: loadingPayments } = paymentContext;
   const { resources, fetchResources, loading: loadingResourcesFromContext } = useResources();
 
@@ -439,7 +439,7 @@ export default function StudentDashboard() {
 }
 
 
-// Admin Dashboard Content
+
 type ResourceStatus = 'pending_review' | 'approved' | 'rejected' | 'pending_admin';
 
 const AdminDashboardContent = () => {
@@ -448,7 +448,7 @@ const AdminDashboardContent = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [totalBooks, setTotalBooks] = useState<number | null>(null);
-  const router = useRouter(); // Moved here
+  const router = useRouter(); 
 
   useEffect(() => {
     fetchAllResources();
@@ -456,7 +456,7 @@ const AdminDashboardContent = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      // Fetch total users
+      
       const { count: usersCount, error: usersError } = await supabase
         .from('profiles')
         .select('*', { count: 'exact' });
@@ -466,7 +466,7 @@ const AdminDashboardContent = () => {
         setTotalUsers(usersCount);
       }
 
-      // Fetch total books
+      
       const { count: booksCount, error: booksError } = await supabase
         .from('books')
         .select('*', { count: 'exact' });
@@ -487,7 +487,7 @@ const AdminDashboardContent = () => {
     return matchesStatus && matchesSearch;
   });
 
-  // Calculate resource counts by status
+  
   const approvedResources = resources.filter(r => r.status === 'approved').length;
   const pendingReviewResources = resources.filter(r => r.status === 'pending_review' || r.status === 'pending_admin').length;
   const rejectedResources = resources.filter(r => r.status === 'rejected').length;
@@ -495,7 +495,7 @@ const AdminDashboardContent = () => {
   const handleUpdateStatus = async (id: string, newStatus: ResourceStatus) => {
     await updateResourceStatus(id, newStatus);
     toast.success(`Resource status updated to ${newStatus.replace('_', ' ')}!`);
-    fetchAllResources(); // Re-fetch all resources to update counts and list
+    fetchAllResources(); 
   };
 
   const handleDeleteResource = async (id: string, title: string) => {
@@ -503,7 +503,7 @@ const AdminDashboardContent = () => {
       try {
         await deleteResource(id);
         toast.success(`Resource "${title}" deleted successfully!`);
-        fetchAllResources(); // Re-fetch all resources to update counts and list
+        fetchAllResources(); 
       } catch (error) {
         console.error("Error deleting resource:", error);
         toast.error(`Failed to delete resource "${title}".`);
@@ -523,7 +523,7 @@ const AdminDashboardContent = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
 
-      {/* Overview Statistics */}
+      {}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard icon={<Users className="h-4 w-4" />} value={totalUsers !== null ? totalUsers : '...'} label="Total Users" />
         <StatCard icon={<BookOpen className="h-4 w-4" />} value={totalBooks !== null ? totalBooks : '...'} label="Total Books" />
@@ -531,14 +531,14 @@ const AdminDashboardContent = () => {
         <StatCard icon={<Download className="h-4 w-4" />} value={resources.reduce((sum, r) => sum + r.downloads, 0)} label="Total Downloads" />
       </div>
 
-      {/* Resource Status Counts */}
+      {}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <StatCard icon={<Check className="h-4 w-4 text-green-500" />} value={approvedResources} label="Approved Resources" />
         <StatCard icon={<Search className="h-4 w-4 text-orange-500" />} value={pendingReviewResources} label="Pending Review" />
         <StatCard icon={<Zap className="h-4 w-4 text-red-500" />} value={rejectedResources} label="Rejected Resources" />
       </div>
 
-      {/* Resources Management */}
+      {}
       <section className="mt-8">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Manage Resources</h2>
         <div className="flex items-center gap-2 mb-4">

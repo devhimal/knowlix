@@ -1,6 +1,6 @@
-import { createServerClient } from '@supabase/ssr'; // Use createServerClient
+import { createServerClient } from '@supabase/ssr'; 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { serialize } from 'cookie'; // Assuming 'cookie' package is installed
+import { serialize } from 'cookie'; 
 
 export function createServerSupabaseClient(req: NextApiRequest, res: NextApiResponse) {
   return createServerClient(
@@ -11,10 +11,10 @@ export function createServerSupabaseClient(req: NextApiRequest, res: NextApiResp
         get(name: string) {
           return req.cookies[name];
         },
-        set(name: string, value: string, options: any) { // Use 'any' for options to avoid CookieOptions type mismatch
+        set(name: string, value: string, options: any) { 
           res.setHeader('Set-Cookie', serialize(name, value, options));
         },
-        remove(name: string, options: any) { // Use 'any' for options
+        remove(name: string, options: any) { 
           res.setHeader('Set-Cookie', serialize(name, '', options));
         },
       },

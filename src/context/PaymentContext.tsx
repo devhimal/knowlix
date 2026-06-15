@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import supabase from '@/lib/supabase';
-import { useAuth } from "@/context/AuthContext"; // Added this import
+import { useAuth } from "@/context/AuthContext"; 
 
 export interface Subscription {
   id: string;
@@ -40,7 +40,7 @@ export interface PurchasedResource {
 interface PaymentContextType {
   transactions: Transaction[];
   purchasedResources: PurchasedResource[];
-  subscriptions: Subscription[]; // Added
+  subscriptions: Subscription[]; 
   purchaseResource: (
     resourceId: string,
     resourceName: string,
@@ -61,7 +61,7 @@ interface PaymentContextType {
   hasPurchased: (resourceId: string) => boolean;
   isSubscribed: (userId: string) => boolean;
   getUserEarnings: (userId: string) => number;
-  getEarningsBalance: (userId: string) => Promise<number | null>; // Add getEarningsBalance
+  getEarningsBalance: (userId: string) => Promise<number | null>; 
   getUserTransactions: (userId: string) => Transaction[];
   getAllTransactions: () => Transaction[];
   submitWithdrawalRequest: (
@@ -86,13 +86,13 @@ export const usePayment = () => {
 export const PaymentProvider = ({ children }: { children: ReactNode }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [purchasedResources, setPurchasedResources] = useState<PurchasedResource[]>([]);
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]); // Added
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]); 
   const [loading, setLoading] = useState(true);
 
-  const { user } = useAuth(); // Get user from AuthContext
+  const { user } = useAuth(); 
 
   const fetchTransactions = useCallback(async () => {
-    setLoading(true); // Keep loading true while fetching both
+    setLoading(true); 
     try {
       const { data, error } = await supabase
         .from('transactions')
@@ -121,7 +121,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
       }));
       setTransactions(fetchedTransactions);
 
-      // For purchased resources, filter resource_purchase transactions that are completed
+      
       const fetchedPurchasedResources: PurchasedResource[] = data
         .filter((tx: any) => tx.type === 'resource_purchase' && tx.status === 'completed')
         .map((tx: any) => ({
@@ -135,7 +135,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
-      // setLoading(false); // Will be set after both fetches are done
+      
     }
   }, []);
 
@@ -145,7 +145,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         .from('subscriptions')
         .select('*')
         .eq('user_id', userId)
-        .order('end_date', { ascending: false }); // Get most recent first
+        .order('end_date', { ascending: false }); 
 
       if (error) {
         throw error;
@@ -158,10 +158,10 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
 
 
   useEffect(() => {
-    // Combine fetching logic
+    
     const loadAllData = async () => {
       setLoading(true);
-      await fetchTransactions(); // This no longer sets loading to false
+      await fetchTransactions(); 
       if (user?.id) {
         await fetchSubscriptions(user.id);
       } else {
@@ -183,10 +183,10 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     buyerId: string,
     buyerEmail: string
   ): Promise<{ success: boolean; transactionId?: string; error: string | null }> => {
-    // Simulate payment processing
+    
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Random success/failure (90% success rate for demo)
+    
     const paymentSuccess = Math.random() > 0.1;
     const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -207,13 +207,13 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       if (!paymentSuccess) {
-        // Record failed transaction but don't proceed with balance update or resource_purchases
+        
         await supabase.from('transactions').insert([newTransaction]);
         fetchTransactions();
         return { success: false, error: 'Payment failed.', transactionId };
       }
 
-      // Record transaction
+      
       const { error: transactionError } = await supabase
         .from('transactions')
         .insert([newTransaction]);
@@ -222,7 +222,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         throw transactionError;
       }
 
-      // Record resource purchase
+      
       const { error: purchaseError } = await supabase
         .from('resource_purchases')
         .insert({
@@ -235,7 +235,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         throw purchaseError;
       }
 
-      // Update seller's balance in profiles table
+      
       const { error: balanceError } = await supabase.rpc('increment_user_balance', {
         user_id: sellerId,
         amount_to_add: amount,
@@ -245,13 +245,13 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         throw balanceError;
       }
 
-      // Re-fetch transactions to update the state
+      
       fetchTransactions();
       
       return { success: true, error: null, transactionId };
     } catch (error: any) {
       console.error('Error purchasing resource:', error);
-      // Ensure we still re-fetch even on error to capture any partial updates if applicable
+      
       fetchTransactions();
       return { success: false, error: error.message, transactionId };
     }
@@ -263,8 +263,8 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     paymentMethod: 'esewa' | 'khalti' | 'bank',
     buyerId: string,
     buyerEmail: string
-  ): Promise<{ success: boolean; transactionId?: string; error?: string }> => { // Added error to return type
-    // Determine end_date based on plan_id
+  ): Promise<{ success: boolean; transactionId?: string; error?: string }> => { 
+    
     const endDate = new Date();
     let durationInMonths = 0;
     if (plan_id === 'monthly') durationInMonths = 1;
@@ -272,7 +272,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     else if (plan_id === 'annual') durationInMonths = 12;
     endDate.setMonth(endDate.getMonth() + durationInMonths);
 
-    // Make API call to our backend /api/subscriptions
+    
     try {
       const apiResponse = await fetch("/api/subscriptions", {
         method: "POST",
@@ -294,7 +294,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
       const apiResult = await apiResponse.json();
       console.log("Subscription API success:", apiResult);
 
-      // Record a transaction for the payment, now that subscription creation is successful
+      
       const transactionId = `SUB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const newTransaction: Partial<Transaction> = {
         type: 'subscription',
@@ -303,7 +303,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         buyerEmail,
         amount,
         paymentMethod,
-        status: 'completed', // Mark as completed since API call was successful
+        status: 'completed', 
         transactionId: transactionId,
         createdAt: new Date().toISOString(),
       };
@@ -317,13 +317,13 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         throw transactionError;
       }
 
-      // Re-fetch transactions and subscriptions to update the state
+      
       fetchTransactions();
-      if (user?.id) { // Ensure user is available for fetching subscriptions
+      if (user?.id) { 
         fetchSubscriptions(user.id);
       }
       
-      return { success: true, transactionId: transactionId }; // Return transactionId directly
+      return { success: true, transactionId: transactionId }; 
     } catch (error: any) {
       console.error('Error initiating subscription:', error);
       return { success: false, error: error.message };
@@ -390,7 +390,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
           amount,
           payment_method: paymentMethod,
           account_details_snapshot: accountDetails,
-          status: 'pending' // Default status
+          status: 'pending' 
         });
 
       if (error) {
@@ -408,7 +408,7 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
       value={{
         transactions,
         purchasedResources,
-        subscriptions, // Added
+        subscriptions, 
         purchaseResource,
         initiateSubscription,
         hasPurchased,

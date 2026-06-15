@@ -41,9 +41,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       const fileBuffer = fs.readFileSync(file.filepath);
       const pdfDoc = await PDFDocument.load(fileBuffer);
-      // TODO: Implement proper PDF outline (Table of Contents) extraction using pdf-lib.
-      // The pdf-lib library requires a more involved process to extract TOC with page numbers.
-      // For now, an empty array is used as a placeholder to unblock the build.
+      
+      
+      
       const toc: { title: string; page: number }[] = [];
 
       await Resource.updateOne(

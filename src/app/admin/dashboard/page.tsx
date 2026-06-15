@@ -15,7 +15,7 @@ interface WithdrawalRequest {
   status: string;
   request_date: string;
   approved_date?: string;
-  // Potentially add student_name/email if joined from profile table in API
+  
 }
 
 export default function AdminDashboardPage() {
@@ -30,9 +30,9 @@ export default function AdminDashboardPage() {
       router.push("/login");
       return;
     }
-    // Client-side role check, mirroring backend for UX
+    
     if (user && user.role !== 'admin' && user.role !== 'super_admin') {
-      router.push("/dashboard"); // Redirect non-admins
+      router.push("/dashboard"); 
       toast.error("You do not have administrative access.");
       return;
     }
@@ -72,7 +72,7 @@ export default function AdminDashboardPage() {
 
       if (response.ok) {
         toast.success(`Withdrawal request ${status} successfully!`);
-        fetchWithdrawalRequests(); // Refresh the list
+        fetchWithdrawalRequests(); 
       } else {
         toast.error(`Failed to ${status} request: ${result.error}`);
       }
@@ -91,9 +91,9 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // Double check role after loading, in case initial user object was null/stale
+  
   if (user.role !== 'admin' && user.role !== 'super_admin') {
-    return null; // Should have redirected, but as a fallback
+    return null; 
   }
 
   return (

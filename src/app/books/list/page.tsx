@@ -8,19 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner"; // Assuming sonner is available
-import { useBooks, Book } from "@/context/BookContext"; // New import
+import { toast } from "sonner"; 
+import { useBooks, Book } from "@/context/BookContext"; 
 
 interface BookFormData {
   title: string;
   author: string;
-  isbn: string | null; // Added missing property
-  genre: string | null; // Added missing property
-  publication_year: number | null; // Added missing property
-  cover_image_url: string | null; // Added missing property
-  pages: number | null; // Added missing property
-  language: string | null; // Added missing property
-  pdf_url: string | null; // Added missing property
+  isbn: string | null; 
+  genre: string | null; 
+  publication_year: number | null; 
+  cover_image_url: string | null; 
+  pages: number | null; 
+  language: string | null; 
+  pdf_url: string | null; 
   condition: "new" | "used-like-new" | "used-good" | "used-fair" | "";
   type: "sell" | "exchange" | "free";
   price: number;
@@ -32,21 +32,21 @@ export default function ListBookPage() {
   const [formData, setFormData] = useState<BookFormData>({
     title: "",
     author: "",
-    isbn: null, // Initialized missing property
-    genre: null, // Initialized missing property
-    publication_year: null, // Initialized missing property
-    cover_image_url: null, // Initialized missing property
-    pages: null, // Initialized missing property
-    language: null, // Initialized missing property
-    pdf_url: null, // Initialized missing property
+    isbn: null, 
+    genre: null, 
+    publication_year: null, 
+    cover_image_url: null, 
+    pages: null, 
+    language: null, 
+    pdf_url: null, 
     condition: "",
-    type: "sell", // sell, exchange, free
+    type: "sell", 
     price: 0,
     exchangeFor: "",
     description: "",
   });
   const router = useRouter();
-  const { addBook } = useBooks(); // Use the addBook function from BookContext
+  const { addBook } = useBooks(); 
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -54,12 +54,12 @@ export default function ListBookPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const bookToSubmit: Omit<Book, 'id' | 'created_at'> = { // Removed sellerId, sellerName, postedDate from Omit
+    const bookToSubmit: Omit<Book, 'id' | 'created_at'> = { 
       ...formData,
       condition: formData.condition as "new" | "used-like-new" | "used-good" | "used-fair",
       type: formData.type as "sell" | "exchange" | "free",
     };
-    addBook(bookToSubmit); // Use addBook from context
+    addBook(bookToSubmit); 
     toast.success("Book listed successfully!");
     router.push("/books");
   };
@@ -94,7 +94,7 @@ export default function ListBookPage() {
                 required
               />
             </div>
-            {/* New fields added */}
+            {}
             <div>
               <Label htmlFor="isbn">ISBN (Optional)</Label>
               <Input
@@ -123,9 +123,9 @@ export default function ListBookPage() {
                 onChange={(e) => handleChange("publication_year", e.target.value ? parseInt(e.target.value) : null)}
               />
             </div>
-            {/* TODO: Add input for cover_image_url, pages, language, pdf_url if needed from UI */}
-            {/* For now, they are null or default */}
-            {/* End of new fields */}
+            {}
+            {}
+            {}
             <div>
               <Label htmlFor="condition">Condition *</Label>
               <Select

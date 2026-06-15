@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
-// import { useRouter } from 'next/navigation'; // Remove useRouter if only used for auth redirection
-// import { useAuth } from '@/context/AuthContext'; // Remove useAuth
+
+
 import { useResources, Resource, ResourceStatus } from '@/context/ResourceContext';
 import { useNotifications } from '@/context/NotificationContext';
 import Navbar from '@/components/Navbar';
@@ -27,29 +27,29 @@ import {
 import { toast } from 'sonner';
 
 export default function ReviewQueue() {
-  // const { user, isAuthenticated } = useAuth(); // Remove useAuth destructuring
+  
   const { resources, updateResourceStatus, addReview, setAIAnalysis, setPlagiarismResult } = useResources();
   const { addNotification } = useNotifications();
-  // const router = useRouter(); // Remove useRouter if only used for auth redirection
+  
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [reviewComment, setReviewComment] = useState('');
   const [rating, setRating] = useState(5);
 
-  // Mock user and authentication status
-  const user = { id: 'mock-user-id', name: 'Mock Admin', role: 'admin' }; // Mock admin user for UI display
-  const isAuthenticated = true; // Always true for UI display
+  
+  const user = { id: 'mock-user-id', name: 'Mock Admin', role: 'admin' }; 
+  const isAuthenticated = true; 
 
   useEffect(() => {
-    // Remove authentication and role check if only UI is needed
-    // if (!isAuthenticated || !['senior', 'mentor', 'admin'].includes(user?.role || '')) {
-    //   router.push('/dashboard');
-    // }
+    
+    
+    
+    
     console.log("Review Queue loaded - (Authentication check removed)");
-  }, []); // Remove isAuthenticated, user, router from dependency array
+  }, []); 
 
-  // Get resources based on user role and workflow stage
+  
   const getResourcesForReview = () => {
-    // Mocking behavior based on mock user role
+    
     if (user?.role === 'admin') {
       return resources.filter(r => r.status === 'pending_admin');
     } else if (user?.role === 'mentor' || user?.role === 'senior') {
@@ -65,7 +65,7 @@ export default function ReviewQueue() {
   const handleAIAnalysis = async (resource: Resource) => {
     toast.info('Simulating AI content analysis...');
     
-    // Simulate AI analysis
+    
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const analysisResult = {
@@ -94,7 +94,7 @@ export default function ReviewQueue() {
   const handlePlagiarismCheck = async (resource: Resource) => {
     toast.info('Simulating plagiarism detection...');
     
-    // Simulate plagiarism check
+    
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const plagiarismResult = {
@@ -202,7 +202,7 @@ export default function ReviewQueue() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Review Queue</h1>
         <p className="text-gray-600 mb-8">Review and approve academic resources</p>
 
-        {/* Stats */}
+        {}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <StatCard 
             icon={<Brain />} 
@@ -230,7 +230,7 @@ export default function ReviewQueue() {
           />
         </div>
 
-        {/* Tabs */}
+        {}
         <Tabs defaultValue="pending" className="space-y-6">
           <TabsList>
             <TabsTrigger value="pending">Pending Review ({pendingResources.length})</TabsTrigger>
@@ -300,12 +300,12 @@ export default function ReviewQueue() {
           </TabsContent>
         </Tabs>
 
-        {/* Review Panel */}
+        {}
         {selectedResource && (
           <Card className="mt-8 p-6 border-2 border-blue-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Review: {selectedResource.title}</h3>
             
-            {/* Workflow Progress */}
+            {}
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-gray-700">Workflow Progress</span>
@@ -323,7 +323,7 @@ export default function ReviewQueue() {
               </div>
             </div>
 
-            {/* AI Analysis Results */}
+            {}
             {selectedResource.aiAnalysis && (
               <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
@@ -357,7 +357,7 @@ export default function ReviewQueue() {
               </div>
             )}
 
-            {/* Plagiarism Results */}
+            {}
             {selectedResource.plagiarismResult && (
               <div className="mb-6 p-4 bg-purple-50 rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
@@ -396,7 +396,7 @@ export default function ReviewQueue() {
               </div>
             )}
 
-            {/* Previous Reviews */}
+            {}
             {selectedResource.reviews && selectedResource.reviews.length > 0 && (
               <div className="mb-6">
                 <h4 className="font-medium text-gray-900 mb-3">Previous Reviews</h4>
@@ -426,7 +426,7 @@ export default function ReviewQueue() {
               </div>
             )}
 
-            {/* Review Form */}
+            {}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

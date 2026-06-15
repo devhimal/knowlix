@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -10,14 +10,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { id } = req.query; // resource_id
+  const { id } = req.query; 
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
     return res.status(401).json({ error: 'Unauthorized: No access token provided.' });
   }
 
-  // Create a Supabase client that acts as the authenticated user
+  
   const supabase = createClient(supabaseUrl!, supabaseAnonKey!, {
     global: {
       headers: {
@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      // Check if user has already rated this resource
+      
       const { data: existingRating, error: fetchError } = await supabase
         .from('resource_ratings')
         .select('*')
@@ -42,20 +42,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .eq('user_id', userId)
         .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+      if (fetchError && fetchError.code !== 'PGRST116') { 
         throw fetchError;
       }
 
       let response;
       if (existingRating) {
-        // Update existing rating
+        
         response = await supabase
           .from('resource_ratings')
-          .update({ rating, comment, created_at: new Date().toISOString() }) // Update created_at to reflect last update
+          .update({ rating, comment, created_at: new Date().toISOString() }) 
           .eq('resource_id', id)
           .eq('user_id', userId);
       } else {
-        // Insert new rating
+        
         response = await supabase
           .from('resource_ratings')
           .insert({ resource_id: id, user_id: userId, rating, comment });

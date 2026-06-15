@@ -7,6 +7,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Grant usage to authenticated users (or specific roles as needed)
+
 GRANT EXECUTE ON FUNCTION public.increment_user_balance(UUID, NUMERIC) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.increment_user_balance(UUID, NUMERIC) TO service_role;

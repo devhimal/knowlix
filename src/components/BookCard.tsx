@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react"; // Import useState
+import { useState } from "react"; 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation"; 
 
 export default function BookCard({ id, title, author, condition, price, type }: any) {
   const router = useRouter();
-  const [showContact, setShowContact] = useState(false); // State to control contact button visibility
+  const [showContact, setShowContact] = useState(false); 
 
-  console.log(`BookCard for ${title} (ID: ${id}) received type: ${type}`); // Add console log
+  console.log(`BookCard for ${title} (ID: ${id}) received type: ${type}`); 
 
   const handleActionClick = () => {
     setShowContact(true);
@@ -18,7 +18,7 @@ export default function BookCard({ id, title, author, condition, price, type }: 
 
   const handleContactClick = () => {
     console.log(`Contact seller for book ID: ${id}, type: ${type}`);
-    // Implement actual contact logic here (e.g., open a modal, navigate to chat)
+    
     alert(`Contacting seller for "${title}" (${type})`);
   };
 

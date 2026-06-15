@@ -2,12 +2,12 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createServerSupabaseClient(req, res); // Get server-side Supabase client
+  const supabase = createServerSupabaseClient(req, res); 
   if (req.method === 'PUT') {
-    const { id: withdrawalRequestId } = req.query; // Withdrawal Request ID
-    const { status } = req.body; // New status: 'approved' or 'rejected'
+    const { id: withdrawalRequestId } = req.query; 
+    const { status } = req.body; 
 
-    // --- 1. Basic Validation ---
+    
     if (!withdrawalRequestId || !status) {
       return res.status(400).json({ error: 'Missing withdrawalRequestId or status' });
     }
@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Invalid status. Must be "approved" or "rejected".' });
     }
 
-    // --- 2. Verify Admin Authentication/Authorization ---
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Forbidden: User does not have admin privileges.' });
     }
 
-    // --- 3. Fetch Withdrawal Request Details ---
+    
     const { data: withdrawalRequest, error: fetchError } = await supabase
       .from('withdrawal_requests')
       .select('id, student_id, amount, status, method')
@@ -48,9 +48,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: `Withdrawal request is already ${withdrawalRequest.status}.` });
     }
 
-    // --- 4. Process Approval/Rejection ---
+    
     if (status === 'approved') {
-      // Deduct from student's balance and record transaction
+      
       const { data: studentProfile, error: studentProfileError } = await supabase
         .from('profiles')
         .select('id, balance')
@@ -64,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const newStudentBalance = studentProfile.balance - withdrawalRequest.amount;
       if (newStudentBalance < 0) {
-          // This should ideally not happen if checks were done correctly at request creation
+          
           return res.status(400).json({ error: 'Student has insufficient balance for approval.' });
       }
 
@@ -83,8 +83,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .insert([
           {
             type: 'withdrawal',
-            buyer_id: studentProfile.id, // Buyer_id can be used as user_id for withdrawal transactions
-            amount: -withdrawalRequest.amount, // Negative amount for withdrawal
+            buyer_id: studentProfile.id, 
+            amount: -withdrawalRequest.amount, 
             payment_method: withdrawalRequest.method,
             status: 'completed',
             transaction_id: `withdrawal_${Date.now()}_${withdrawalRequestId}`,
@@ -94,17 +94,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (transactionError) {
         console.error('Error recording withdrawal transaction:', transactionError);
-        // IMPORTANT: Rollback balance update in a real transaction
+        
         return res.status(500).json({ error: 'Failed to record withdrawal transaction.' });
       }
     }
 
-    // --- 5. Update Withdrawal Request Status ---
+    
     const { data, error } = await supabase
       .from('withdrawal_requests')
       .update({ status, approved_date: new Date().toISOString() })
       .eq('id', withdrawalRequestId)
-      .select(); // Add .select() to ensure data is an array
+      .select(); 
 
     if (error) {
       console.error('Error updating withdrawal request status:', error);

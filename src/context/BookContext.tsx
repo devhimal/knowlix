@@ -8,7 +8,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import supabase from "@/lib/supabase"; // Client-side Supabase client
+import supabase from "@/lib/supabase"; 
 
 export interface Book {
   id: string;
@@ -23,7 +23,7 @@ export interface Book {
   pages: number | null;
   language: string | null;
   pdf_url: string | null;
-  // New properties for market functionality
+  
   condition: string | null;
   price: number | null;
   type: "sell" | "exchange" | "free" | null;
@@ -92,7 +92,7 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
           throw error;
         }
 
-        // Re-fetch books to update the context state with the new book and its auto-generated ID/created_at
+        
         fetchBooks();
         return data ? (data[0] as Book) : undefined;
       } catch (error) {
@@ -112,7 +112,7 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
       value={{
         books,
         fetchBooks,
-        addBook, // Expose addBook
+        addBook, 
         loading,
       }}
     >

@@ -14,18 +14,18 @@ import { toast } from 'sonner';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [currentTab, setCurrentTab] = useState('signin'); // 'signin' or 'signup'
+  const [currentTab, setCurrentTab] = useState('signin'); 
   const [selectedRole, setSelectedRole] = useState<UserRole>('student');
-  const { signIn, signUp, loading, checkEmailExists } = useAuth(); // Destructure checkEmailExists
+  const { signIn, signUp, loading, checkEmailExists } = useAuth(); 
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (loading) return; // Prevent multiple submissions
+    if (loading) return; 
 
     if (currentTab === 'signup') {
-      // Proactively check if email already exists
+      
       const emailAlreadyExists = await checkEmailExists(email);
       if (emailAlreadyExists) {
         toast.error("An account with this email already exists. Please log in or use a different email to continue.");
@@ -39,7 +39,7 @@ export default function LoginPage() {
       } else {
         toast.error(error || 'Signup failed.');
       }
-    } else { // signin
+    } else { 
       const { success, error } = await signIn(email, password);
       if (success) {
         toast.success('Signed in successfully!');
