@@ -26,6 +26,7 @@ import {
   Check,
   Eye,
   Trash2,
+  FileCheck,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -82,12 +83,12 @@ const FileCard = ({ file }: { file: Resource }) => {
     }
 
     try {
-      const downloadUrl = await getDownloadUrl(file.file_path, file.title);
+      const downloadUrl = await getDownloadUrl(file.file_path, file.file_name); // Use file.file_name
       
       if (downloadUrl) {
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = file.title;
+        a.download = file.file_name; // Set the download attribute
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -518,7 +519,21 @@ const AdminDashboardContent = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => router.push('/admin')}>
+            Admin Panel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/admin/dashboard')}>
+            Withdrawals
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/review')}>
+            <FileCheck className="h-4 w-4 mr-2" />
+            Review Queue
+          </Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard icon={<Users className="h-4 w-4" />} value={totalUsers !== null ? totalUsers : '...'} label="Total Users" />

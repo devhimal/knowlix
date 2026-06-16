@@ -112,33 +112,43 @@ export default function ResourceLibrary() {
       return;
     }
 
-    
-    const downloadUrl = await getDownloadUrl(
-      resource.file_path,
-      resource.title + "." + resource.fileType.split("/").pop(),
-    );
+    // Generate signed download URL
+      const downloadUrl = await getDownloadUrl(
+        resource.file_path,
+        resource.file_name, // Use resource.file_name directly
+      );
 
-    if (!downloadUrl) {
-      toast.error("Failed to prepare download. Please try again.");
-      return;
-    }
+      if (!downloadUrl) {
+        toast.error("Failed to prepare download. Please try again.");
+        return;
+      }
 
-    
-    if (resource.isFree) {
-      toast.success(`Downloading ${resource.title}...`);
-      window.open(downloadUrl, "_blank");
-      return;
-    }
+      // If resource is free, allow direct download
+      if (resource.isFree) {
+        toast.success(`Downloading ${resource.file_name}...`);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = resource.file_name; // Set the download attribute
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
 
-    
-    if (
-      (user && isSubscribed(user.id)) ||
-      hasPurchased(resource.id) ||
-      user.id === resource.uploaderId
-    ) {
-      toast.success(`Downloading ${resource.title}...`);
-      window.open(downloadUrl, "_blank");
-      return;
+      // If subscribed, purchased, or it's the user's own resource, allow download
+      if (
+        (user && isSubscribed(user.id)) ||
+        hasPurchased(resource.id) ||
+        user.id === resource.uploaderId
+      ) {
+        toast.success(`Downloading ${resource.file_name}...`);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = resource.file_name; // Set the download attribute
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
     }
 
     

@@ -14,6 +14,7 @@ import { StarRating } from '@/components/StarRating'; // Import StarRating
 import { Textarea } from '@/components/ui/textarea'; // Import Textarea
 import { Label } from '@/components/ui/label'; // Import Label
 import { ResourceReviewList } from '@/components/ResourceReviewList'; // Import Review List
+import Link from "next/link";
 import { Brain, ShieldCheck, CheckCircle, XCircle, FileText, Info } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
@@ -21,6 +22,16 @@ import { Card } from "@/components/ui/card";
 export default function ResourceDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const { getResourceById, loading, fetchResources, resources, incrementDownload } =
+    useResources();
+
+  const { user, isAuthenticated, session } = useAuth(); // Destructure isAuthenticated and session
+  const { hasPurchased, isSubscribed } = usePayment();
+
+  const [resource, setResource] = useState<Resource | undefined>();
+  const [userRating, setUserRating] = useState(0); // State for user's selected rating
+  const [userComment, setUserComment] = useState(""); // State for user's comment
+  const [refreshReviews, setRefreshReviews] = useState(0); // Trigger to refresh review list
 
   if (!params || !params.id) {
     return (
@@ -34,15 +45,15 @@ export default function ResourceDetailsPage() {
             Resource Not Found
           </h1>
           <p className="text-gray-500 mt-2 mb-6">
-            The resource may have been removed or doesn’t exist.
+            The resource may have been removed or doesn&apos;t exist.
           </p>
 
-          <a
+          <Link
             href="/"
             className="inline-flex px-5 py-2.5 rounded-lg bg-black text-white hover:bg-gray-800 transition"
           >
             Go Home
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -63,7 +74,7 @@ export default function ResourceDetailsPage() {
 
   useEffect(() => {
     fetchResources?.();
-  }, []);
+  }, [fetchResources]);
 
   useEffect(() => {
     if (resourceId && resources.length > 0) {
@@ -87,7 +98,7 @@ export default function ResourceDetailsPage() {
     
     const downloadUrl = await getDownloadUrl(
       res.file_path,
-      res.title + "." + res.fileType.split("/").pop(),
+      res.file_name, // Use res.file_name directly
     );
 
     if (!downloadUrl) {
@@ -101,9 +112,14 @@ export default function ResourceDetailsPage() {
       hasPurchased(res.id) ||
       (user && user.id === res.uploaderId)
     ) {
-      toast.success(`Downloading ${res.title}`);
-      window.open(downloadUrl, "_blank");
-      incrementDownload(res.id); 
+      toast.success(`Downloading ${res.file_name}`);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = res.file_name; // Set the download attribute
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      incrementDownload(res.id); // Increment download count
       return;
     }
 

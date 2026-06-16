@@ -1,7 +1,10 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useResources, ResourceStatus } from '@/context/ResourceContext';
+import supabase from '@/lib/supabase';
+import { toast } from 'sonner';
 import { usePayment } from '@/context/PaymentContext'; 
 import Navbar from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
@@ -9,22 +12,89 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, FileText, Flag, CheckCircle, XCircle, Trash2, DollarSign, Calendar, CreditCard, Loader2 } from 'lucide-react';
+import { Users, FileText, Flag, CheckCircle, XCircle, Trash2, DollarSign, Calendar, CreditCard, Loader2, FileCheck, Eye, Zap } from 'lucide-react';
 
 export default function AdminPanel() {
-  const { user, role, loading } = useAuth();
-  
+  const { user, role, session, loading: authLoading } = useAuth();
+  const { resources, fetchAllResources, updateResourceStatus, deleteResource } = useResources();
   const router = useRouter();
 
+  const [users, setUsers] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
+  const [errorState, setErrorState] = useState<string | null>(null);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const fetchOptions: RequestInit = {};
+      if (session?.access_token) {
+        fetchOptions.headers = {
+          'Authorization': `Bearer ${session.access_token}`
+        };
+      }
+      
+      const response = await fetch('/api/admin/users', fetchOptions);
+      const data = await response.json();
+      if (response.ok) {
+        setUsers(data);
+      } else {
+        const msg = data.error || data.message || 'Unknown error fetching users';
+        console.error('Fetch Users Error:', msg);
+        toast.error(msg);
+        setErrorState(msg);
+      }
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to connect to users API');
+    }
+  }, []);
+
+  const fetchTransactions = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        toast.error('Failed to load transactions');
+      } else {
+        setTransactions(data || []);
+      }
+    } catch (error) {
+      console.error('Error in fetchTransactions:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    if (!loading) {
+    // Only attempt to load data if authentication is resolved
+    if (!authLoading) {
       if (!user) {
         router.push('/login');
       } else if (!['admin', 'super_admin'].includes(role || '')) {
-        router.push('/dashboard'); // Redirect if not an admin or super_admin
+        router.push('/dashboard');
+      } else {
+        const loadAllData = async () => {
+          setLoadingData(true);
+          setErrorState(null);
+          try {
+            // Ensure auth state is fully synchronized before calling private APIs
+            await Promise.allSettled([
+              fetchAllResources(),
+              fetchUsers(),
+              fetchTransactions()
+            ]);
+          } catch (error) {
+            console.error('Load All Data Error:', error);
+          } finally {
+            setLoadingData(false);
+          }
+        };
+        loadAllData();
       }
     }
-  }, [loading, user, role, router]);
+  }, [authLoading, user, role, router, fetchAllResources, fetchUsers, fetchTransactions]);
 
   
   const transactions = [
@@ -35,65 +105,102 @@ export default function AdminPanel() {
   ];
   const totalRevenue = transactions
     .filter(t => t.status === 'completed')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const [users, setUsers] = useState([
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'student', status: 'active', uploads: 12 },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'admin', status: 'active', uploads: 8 },
-    { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'student', status: 'active', uploads: 15 },
-    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', role: 'student', status: 'suspended', uploads: 5 },
-  ]);
-
-  const [resources, setResources] = useState([
-    { id: 1, name: 'Data Structures Notes.pdf', uploader: 'John Doe', status: 'verified', reports: 0 },
-    { id: 2, name: 'Algorithm Guide.pdf', uploader: 'Jane Smith', status: 'pending', reports: 0 },
-    { id: 3, name: 'Database Manual.docx', uploader: 'Mike Johnson', status: 'verified', reports: 2 },
-    { id: 4, name: 'Web Dev Tutorial.pdf', uploader: 'Sarah Williams', status: 'flagged', reports: 5 },
-  ]);
-
-  const handleVerifyResource = (id: number) => {
-    setResources(resources.map(r => r.id === id ? { ...r, status: 'verified' } : r));
-  };
-
-  const handleDeleteResource = (id: number) => {
-    setResources(resources.filter(r => r.id !== id));
-  };
-
-  const handleSuspendUser = (id: number) => {
-    setUsers(users.map(u => u.id === id ? { ...u, status: 'suspended' } : u));
-  };
-
-  const handleActivateUser = (id: number) => {
-    setUsers(users.map(u => u.id === id ? { ...u, status: 'active' } : u));
-  };
+    .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const stats = {
     totalUsers: users.length,
     totalResources: resources.length,
-    pendingVerification: resources.filter(r => r.status === 'pending').length,
+    pendingVerification: resources.filter(r => ['pending_review', 'pending_admin', 'pending_ai', 'pending_plagiarism'].includes(r.status)).length,
     flaggedContent: resources.filter(r => r.status === 'flagged').length,
   };
 
-  if (loading) {
+  const handleVerifyResource = async (id: string) => {
+    try {
+      await updateResourceStatus(id, 'approved');
+      toast.success('Resource approved successfully');
+    } catch (error) {
+      toast.error('Failed to approve resource');
+    }
+  };
+
+  const handleDeleteResource = async (id: string, title: string) => {
+    if (confirm(`Are you sure you want to delete "${title}"?`)) {
+      try {
+        await deleteResource(id);
+        toast.success('Resource deleted successfully');
+      } catch (error) {
+        toast.error('Failed to delete resource');
+      }
+    }
+  };
+
+  const handleToggleUserRole = async (userId: string, currentRole: string) => {
+    const newRole = currentRole === 'admin' ? 'student' : 'admin';
+    if (confirm(`Change user role to ${newRole}?`)) {
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json'
+        };
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+
+        const response = await fetch('/api/admin/users', {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ userId, role: newRole })
+        });
+        
+        if (response.ok) {
+          toast.success(`User role updated to ${newRole}`);
+          fetchUsers();
+        } else {
+          const data = await response.json();
+          toast.error('Failed to update role: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        toast.error('Failed to update role');
+      }
+    }
+  };
+
+  if (authLoading || (loadingData && users.length === 0)) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-gray-700">Loading authentication...</span>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-gray-500 font-medium">Synchronizing administrative data...</p>
       </div>
     );
   }
 
-  
-  
-  if (!user || role !== 'admin') {
+  if (!user || !['admin', 'super_admin'].includes(role || '')) {
     return null; 
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Panel</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => router.push('/admin/dashboard')}>
+              Withdrawals
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => router.push('/review')}>
+              <FileCheck className="h-4 w-4 mr-2" />
+              Review Queue
+            </Button>
+          </div>
+        </div>
+
+        {errorState && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-8 flex justify-between items-center">
+            <div>
+              <span className="font-bold">Error:</span> {errorState}
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        )}
 
         {}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
@@ -105,247 +212,287 @@ export default function AdminPanel() {
 
         {}
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="users">User Management</TabsTrigger>
-            <TabsTrigger value="resources">Resource Management</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="reports">Reported Content</TabsTrigger>
+          <TabsList className="bg-white border p-1 h-auto flex-wrap sm:flex-nowrap">
+            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-white">User Management</TabsTrigger>
+            <TabsTrigger value="resources" className="data-[state=active]:bg-primary data-[state=active]:text-white">Resource Management</TabsTrigger>
+            <TabsTrigger value="transactions" className="data-[state=active]:bg-primary data-[state=active]:text-white">Transactions</TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-primary data-[state=active]:text-white">Reported Content</TabsTrigger>
+            <TabsTrigger value="review" className="data-[state=active]:bg-primary data-[state=active]:text-white">Review Queue</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
             <Card className="p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Manage Users</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Uploads</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{user.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.status === 'active' ? 'secondary' : 'destructive'}>
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{user.uploads}</TableCell>
-                      <TableCell>
-                        {user.status === 'active' ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSuspendUser(user.id)}
-                          >
-                            Suspend
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleActivateUser(user.id)}
-                          >
-                            Activate
-                          </Button>
-                        )}
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead>Premium</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>
+                          <div className="font-medium">{u.name}</div>
+                          <div className="text-xs text-gray-500">{u.email}</div>
+                          <div className="text-[10px] text-gray-400 font-mono">{u.id}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={u.role === 'admin' || u.role === 'super_admin' ? 'default' : 'outline'}>
+                            {u.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>NPR {u.balance || 0}</TableCell>
+                        <TableCell>
+                          {u.is_premium ? (
+                            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200">PRO</Badge>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Free</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {new Date(u.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleToggleUserRole(u.id, u.role)}
+                            disabled={u.role === 'super_admin'}
+                          >
+                            Toggle Role
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {users.length === 0 && !loadingData && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          No users found or error loading data.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </Card>
           </TabsContent>
 
           <TabsContent value="resources">
             <Card className="p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Manage Resources</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Resource Name</TableHead>
-                    <TableHead>Uploader</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Reports</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {resources.map((resource) => (
-                    <TableRow key={resource.id}>
-                      <TableCell className="font-medium">{resource.name}</TableCell>
-                      <TableCell>{resource.uploader}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            resource.status === 'verified'
-                              ? 'secondary'
-                              : resource.status === 'flagged'
-                              ? 'destructive'
-                              : 'outline'
-                          }
-                        >
-                          {resource.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{resource.reports}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {resource.status !== 'verified' && (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Resource Name</TableHead>
+                      <TableHead>Uploader</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Downloads</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {resources.map((resource) => (
+                      <TableRow key={resource.id}>
+                        <TableCell className="font-medium">{resource.title}</TableCell>
+                        <TableCell className="text-sm">
+                          <div>{resource.uploader}</div>
+                          <div className="text-xs text-gray-400">{resource.uploaderEmail}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              resource.status === 'approved'
+                                ? 'secondary'
+                                : resource.status === 'flagged' || resource.status === 'rejected'
+                                ? 'destructive'
+                                : 'outline'
+                            }
+                          >
+                            {resource.status.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{resource.downloads}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleVerifyResource(resource.id)}
+                              onClick={() => router.push(`/resources/${resource.id}`)}
                             >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Verify
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDeleteResource(resource.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                            {!['approved', 'rejected'].includes(resource.status) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700"
+                                onClick={() => handleVerifyResource(resource.id)}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDeleteResource(resource.id, resource.title)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </Card>
           </TabsContent>
 
           <TabsContent value="transactions">
             <Card className="p-6">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
                 <h2 className="text-xl font-semibold text-gray-900">Transaction History</h2>
                 <div className="bg-green-100 px-4 py-2 rounded-lg">
                   <span className="text-sm text-gray-600">Total Revenue: </span>
                   <span className="text-lg font-bold text-green-600">NPR {totalRevenue.toLocaleString()}</span>
                 </div>
               </div>
-              {transactions.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Resource</TableHead>
-                      <TableHead>Buyer</TableHead>
-                      <TableHead>Seller</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell className="font-medium">{transaction.resourceName}</TableCell>
-                        <TableCell className="text-sm">{transaction.buyerEmail}</TableCell>
-                        <TableCell className="text-sm">{transaction.sellerEmail}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">NPR {transaction.amount}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {transaction.paymentMethod === 'esewa' && 'eSewa'}
-                            {transaction.paymentMethod === 'khalti' && 'Khalti'}
-                            {transaction.paymentMethod === 'bank' && 'Bank'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              transaction.status === 'completed' 
-                                ? 'secondary' 
-                                : transaction.status === 'failed'
-                                ? 'destructive'
-                                : 'outline'
-                            }
-                          >
-                            {transaction.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {new Date(transaction.createdAt).toLocaleDateString()}
-                        </TableCell>
+              <div className="overflow-x-auto">
+                {transactions.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Resource/Plan</TableHead>
+                        <TableHead>Buyer</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  No transactions yet
-                </div>
-              )}
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell className="font-medium">
+                            {transaction.type === 'subscription' ? (
+                              <div className="flex items-center gap-2">
+                                <Zap className="h-3 w-3 text-amber-500 fill-amber-500" />
+                                <span>{transaction.subscription_plan}</span>
+                              </div>
+                            ) : (
+                              transaction.resource_name
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">{transaction.buyer_email}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">NPR {transaction.amount}</Badge>
+                          </TableCell>
+                          <TableCell className="capitalize">
+                            {transaction.payment_method}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={
+                                transaction.status === 'completed' 
+                                  ? 'secondary' 
+                                  : transaction.status === 'failed'
+                                  ? 'destructive'
+                                  : 'outline'
+                              }
+                            >
+                              {transaction.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm whitespace-nowrap">
+                            {new Date(transaction.created_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12 text-gray-500 border rounded-lg bg-gray-50">
+                    No transactions found in the system
+                  </div>
+                )}
+              </div>
             </Card>
           </TabsContent>
 
           <TabsContent value="reports">
             <Card className="p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Reported Content</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Resource Name</TableHead>
-                    <TableHead>Reports</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {resources.filter(r => r.reports > 0).map((resource) => (
-                    <TableRow key={resource.id}>
-                      <TableCell className="font-medium">{resource.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">{resource.reports} reports</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={resource.status === 'flagged' ? 'destructive' : 'outline'}>
-                          {resource.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleVerifyResource(resource.id)}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDeleteResource(resource.id)}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Remove
-                          </Button>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Resource Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {resources.filter(r => r.reports > 0).length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No reported content at the moment
-                </div>
-              )}
+                  </TableHeader>
+                  <TableBody>
+                    {resources.filter(r => r.status === 'flagged').map((resource) => (
+                      <TableRow key={resource.id}>
+                        <TableCell className="font-medium">{resource.title}</TableCell>
+                        <TableCell>
+                          <Badge variant="destructive">
+                            {resource.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleVerifyResource(resource.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDeleteResource(resource.id, resource.title)}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Remove
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {resources.filter(r => r.status === 'flagged').length === 0 && (
+                  <div className="text-center py-12 text-gray-500 border rounded-lg bg-gray-50">
+                    No reported content at the moment
+                  </div>
+                )}
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="review">
+            <Card className="p-12 text-center">
+              <FileCheck className="h-12 w-12 mx-auto mb-4 text-primary opacity-20" />
+              <h2 className="text-2xl font-bold mb-2">Review Queue</h2>
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                Access the detailed review queue to perform AI analysis, plagiarism checks, and manual approvals for submitted resources.
+              </p>
+              <Button onClick={() => router.push('/review')} size="lg">
+                Go to Review Queue
+              </Button>
             </Card>
           </TabsContent>
         </Tabs>

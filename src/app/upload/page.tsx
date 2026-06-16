@@ -207,7 +207,12 @@ export default function UploadResource() {
       const downloadUrl = await getDownloadUrl(uploadSuccess.publicUrl, filenameWithExt);
       if (downloadUrl) {
         toast.success(`Downloading ${uploadSuccess.originalFileName}...`);
-        window.open(downloadUrl, '_blank');
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = uploadSuccess.originalFileName; // Set the download attribute
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       } else {
         toast.error("Failed to prepare download. Please try again.");
       }
