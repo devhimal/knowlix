@@ -82,12 +82,12 @@ const FileCard = ({ file }: { file: Resource }) => {
     }
 
     try {
-      const downloadUrl = await getDownloadUrl(file.file_path, file.title);
+      const downloadUrl = await getDownloadUrl(file.file_path, file.file_name); // Use file.file_name
       
       if (downloadUrl) {
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = file.title;
+        a.download = file.file_name; // Set the download attribute
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

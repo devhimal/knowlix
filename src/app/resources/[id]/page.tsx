@@ -87,7 +87,7 @@ export default function ResourceDetailsPage() {
     // Generate signed download URL
     const downloadUrl = await getDownloadUrl(
       res.file_path,
-      res.title + "." + res.fileType.split("/").pop(),
+      res.file_name, // Use res.file_name directly
     );
 
     if (!downloadUrl) {
@@ -101,8 +101,13 @@ export default function ResourceDetailsPage() {
       hasPurchased(res.id) ||
       (user && user.id === res.uploaderId)
     ) {
-      toast.success(`Downloading ${res.title}`);
-      window.open(downloadUrl, "_blank");
+      toast.success(`Downloading ${res.file_name}`);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = res.file_name; // Set the download attribute
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       incrementDownload(res.id); // Increment download count
       return;
     }
