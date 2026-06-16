@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { FileCheck } from "lucide-react";
 
 interface WithdrawalRequest {
   id: string;
@@ -19,7 +20,7 @@ interface WithdrawalRequest {
 }
 
 export default function AdminDashboardPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, session } = useAuth();
   const router = useRouter();
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,11 @@ export default function AdminDashboardPage() {
   const fetchWithdrawalRequests = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/withdrawals");
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+      const response = await fetch("/api/admin/withdrawals", { headers });
       const data = await response.json();
       if (response.ok) {
         setWithdrawalRequests(data);
@@ -60,11 +65,15 @@ export default function AdminDashboardPage() {
   const handleUpdateWithdrawalStatus = async (id: string, status: 'approved' | 'rejected') => {
     setProcessingId(id);
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
       const response = await fetch(`/api/admin/withdrawals/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({ status }),
       });
 
@@ -98,7 +107,18 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="container mx-auto p-8 max-w-6xl">
-      <h1 className="text-4xl font-bold text-center mb-8">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold">Admin Panel</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => router.push('/admin')}>
+            Admin Panel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/review')}>
+            <FileCheck className="h-4 w-4 mr-2" />
+            Review Queue
+          </Button>
+        </div>
+      </div>
 
       <Card className="mb-10 shadow-lg">
         <CardHeader>

@@ -88,10 +88,10 @@ export default function Navbar() {
                 </Link>
                 {["admin", "super_admin"].includes(user?.role || "") && (
                   <Link
-                    href="/admin/dashboard" // Assuming an admin dashboard path
+                    href="/admin/dashboard" // Assuming an admin panel path
                     className="text-white/90 hover:text-white font-medium transition-colors"
                   >
-                    Admin Dashboard
+                    Admin Panel
                   </Link>
                 )}
                 {["super_admin", "admin", "mentor"].includes(user?.role || "") && (
@@ -219,6 +219,23 @@ export default function Navbar() {
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
+                    {["admin", "super_admin"].includes(user?.role || "") && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin" className="flex items-center w-full cursor-pointer">
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Admin Panel</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/review" className="flex items-center w-full cursor-pointer">
+                            <FileCheck className="mr-2 h-4 w-4" />
+                            <span>Review Queue</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <DropdownMenuItem 
                       className="text-red-600 focus:text-red-600 cursor-pointer" 
                       onSelect={(e) => {
@@ -307,7 +324,7 @@ export default function Navbar() {
                     className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Admin Dashboard
+                    Admin Panel
                   </Link>
                 )}
                 {["super_admin", "admin", "mentor"].includes(user?.role || "") && (

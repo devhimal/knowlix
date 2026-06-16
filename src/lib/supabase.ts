@@ -1,16 +1,16 @@
 import { createBrowserClient } from '@supabase/ssr'; // Use createBrowserClient
 
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase URL or Anon Key. Please check your environment variables.');
+  console.warn('Missing Supabase URL or Anon Key. Please check your environment variables in .env.local');
 }
 
 const supabase = createBrowserClient(
-  supabaseUrl,
-  supabaseAnonKey,
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key',
   {
     auth: {
       persistSession: true, // This tells Supabase to store the session
@@ -22,7 +22,9 @@ const supabase = createBrowserClient(
     cookies: {
       get(name: string) {
         if (typeof document !== 'undefined') { // Check if running in browser
-          return document.cookie.split('; ').find(row => row.startsWith(`${name}=`))?.split('=')[1];
+          const cookie = document.cookie.split(';').find(row => row.trim().startsWith(`${name}=`));
+          if (!cookie) return undefined;
+          return decodeURIComponent(cookie.trim().split('=')[1]);
         }
         return undefined; // Or handle as appropriate for server-side
       },
