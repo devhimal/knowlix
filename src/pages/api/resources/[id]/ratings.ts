@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Unauthorized: No access token provided.' });
   }
 
-  // Create a Supabase client that acts as the authenticated user
+  
   const supabase = createClient(supabaseUrl!, supabaseAnonKey!, {
     global: {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       let response;
       if (existingRating) {
-        // Update existing rating
+        
         response = await supabase
           .from('resource_ratings')
           .update({ rating, comment, user_name: userName, created_at: new Date().toISOString() })

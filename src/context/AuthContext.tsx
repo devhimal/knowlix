@@ -39,7 +39,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   session: Session | null;
-  emailExists: boolean; // <-- new flag
+  emailExists: boolean; 
   signIn: (
     email: string,
     password: string,
@@ -61,7 +61,7 @@ interface AuthContextType {
     emailExists?: boolean;
   }>;
   signOut: () => Promise<{ success: boolean; error: string | null }>;
-  checkEmailExists: (email: string) => Promise<boolean>; // <-- new utility
+  checkEmailExists: (email: string) => Promise<boolean>; 
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
-  const [emailExists, setEmailExists] = useState(false); // <-- tracks duplicate email state
+  const [emailExists, setEmailExists] = useState(false); 
 
   useEffect(() => {
     let initialized = false;
@@ -182,7 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    // Sync future auth events (login, logout, token refresh)
+    
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -194,47 +194,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  /**
-   * Checks if an email is already registered.
-   * Strategy: attempt OTP sign-in (magic link).
-   * - If Supabase returns "Email not confirmed" or similar → email EXISTS in the system
-   * - If it returns no error (OTP sent) → likely a NEW email
-   * - We use `shouldCreateUser: false` so Supabase never creates a new account
-   */
+  
   const checkEmailExists = async (email: string): Promise<boolean> => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { shouldCreateUser: false },
     });
 
-    // If shouldCreateUser is false and the email doesn't exist,
-    // Supabase returns: "Email not found" or similar error
-    // If it DOES exist, it sends the OTP (no error) or returns a known error
+    
+    
+    
     if (error) {
-      // "Email not found" means email does NOT exist
+      
       const notFound =
         error.message.toLowerCase().includes("email not found") ||
         error.message.toLowerCase().includes("user not found") ||
         error.message.toLowerCase().includes("no user found");
-      return !notFound; // if it's NOT a "not found" error → email likely exists
+      return !notFound; 
     }
 
-    // No error = OTP was sent = email EXISTS
+    
     return true;
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ // Get data as well
+    const { data, error } = await supabase.auth.signInWithPassword({ 
       email,
       password,
     });
 
-    console.log('AuthContext signIn: Supabase data after login attempt:', data); // Add this log
-    console.log('AuthContext signIn: Supabase error after login attempt:', error); // Add this log
+    console.log('AuthContext signIn: Supabase data after login attempt:', data); 
+    console.log('AuthContext signIn: Supabase error after login attempt:', error); 
 
     if (error) {
-      // "Invalid login credentials" can mean wrong password OR email doesn't exist.
-      // We do a secondary check only on this ambiguous error.
+      
+      
       if (error.message.includes("Invalid login credentials")) {
         const exists = await checkEmailExists(email);
         setEmailExists(exists);
@@ -249,7 +243,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { success: false, error: error.message };
     }
 
-    setEmailExists(true); // signed in successfully → email obviously exists
+    setEmailExists(true); 
     return { success: true, error: null };
   };
 
@@ -286,8 +280,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { success: false, error: error.message };
     }
 
-    // Supabase returns { user: null, session: null } for existing emails
-    // when email enumeration protection is enabled — treat as duplicate
+    
+    
     if (!data.user && !data.session) {
       setEmailExists(true);
       return {
@@ -298,7 +292,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
     }
 
-    setEmailExists(false); // fresh account created
+    setEmailExists(false); 
     return { success: true, error: null };
   };
 

@@ -8,7 +8,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import supabase from "@/lib/supabase"; // Client-side Supabase client
+import supabase from "@/lib/supabase"; 
 
 export interface Mentor {
   id: string;

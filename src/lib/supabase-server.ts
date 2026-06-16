@@ -1,5 +1,7 @@
-import { createServerClient } from '@supabase/ssr';
+
+import { createServerClient } from '@supabase/ssr'; 
 import { NextApiRequest, NextApiResponse } from 'next';
+import { serialize } from 'cookie'; 
 
 export function createServerSupabaseClient(req: NextApiRequest, res: NextApiResponse) {
   const token = req.headers.authorization?.split(' ')[1];
@@ -77,6 +79,11 @@ export function createServerSupabaseClient(req: NextApiRequest, res: NextApiResp
           }
           
           res.setHeader('Set-Cookie', newCookies);
+        set(name: string, value: string, options: any) { 
+          res.setHeader('Set-Cookie', serialize(name, value, options));
+        },
+        remove(name: string, options: any) { 
+          res.setHeader('Set-Cookie', serialize(name, '', options));
         },
       },
     }

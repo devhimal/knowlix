@@ -1,9 +1,9 @@
 
--- Drop existing triggers
+
 DROP TRIGGER IF EXISTS resource_ratings_after_insert_update ON public.resource_ratings;
 DROP TRIGGER IF EXISTS resource_ratings_after_delete ON public.resource_ratings;
 
--- Drop and recreate functions with COALESCE (ensure they are current)
+
 CREATE OR REPLACE FUNCTION public.update_resource_average_rating()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -28,7 +28,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Recreate triggers
+
 CREATE TRIGGER resource_ratings_after_insert_update
 AFTER INSERT OR UPDATE ON public.resource_ratings
 FOR EACH ROW EXECUTE FUNCTION public.update_resource_average_rating();

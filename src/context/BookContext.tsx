@@ -24,7 +24,7 @@ export interface Book {
   pages: number | null;
   language: string | null;
   pdf_url: string | null;
-  // New properties for market functionality
+  
   condition: string | null;
   price: number | null;
   type: "sell" | "exchange" | "free" | null;
@@ -168,7 +168,7 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
       value={{
         books,
         fetchBooks,
-        addBook, // Expose addBook
+        addBook, 
         loading,
       }}
     >

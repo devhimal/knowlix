@@ -25,10 +25,10 @@ import {
   DollarSign,
   ArrowRight,
   ArrowLeft,
-  Download, // Added Download icon
+  Download, 
 } from "lucide-react";
 import { toast } from "sonner";
-import supabase, { getDownloadUrl } from "@/lib/supabase"; // Import Supabase client and getDownloadUrl
+import supabase, { getDownloadUrl } from "@/lib/supabase"; 
 
 import { categories, semesters } from "@/lib/constants";
 
@@ -53,7 +53,7 @@ export default function UploadResource() {
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState<{ status: boolean; publicUrl: string; originalFileName: string } | false>(false);
 
-  const router = useRouter(); // Use useRouter after useAuth and useNotifications
+  const router = useRouter(); 
 
   const handleNext = () => setStep(step + 1);
   const handlePrev = () => setStep(step - 1);
@@ -80,16 +80,16 @@ export default function UploadResource() {
       const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
       const filePath = `resources/${fileName}`;
 
-      // Upload file to Supabase Storage
+      
       const { error: uploadError } = await supabase.storage
-        .from("resource_files") // Assuming you have a bucket named 'resource_files'
+        .from("resource_files") 
         .upload(filePath, file);
 
       if (uploadError) {
         throw uploadError;
       }
 
-      // Get public URL of the uploaded file
+      
       const { data: publicUrlData } = supabase.storage
         .from("resource_files")
         .getPublicUrl(filePath);
@@ -100,7 +100,7 @@ export default function UploadResource() {
 
       const publicUrl = publicUrlData.publicUrl;
 
-      // Insert resource metadata into Supabase database
+      
       const { data, error: insertError } = await supabase
         .from("resources")
         .insert({
@@ -117,7 +117,7 @@ export default function UploadResource() {
           file_type: file.type,
           file_size_mb: (file.size / (1024 * 1024)).toFixed(2),
           uploader_id: user.id,
-          uploader_name: user.user_metadata?.name || user.email, // Use user_metadata name if available, otherwise email
+          uploader_name: user.user_metadata?.name || user.email, 
           uploader_email: user.email,
           status: "pending_ai",
         })
@@ -144,7 +144,7 @@ export default function UploadResource() {
         });
       }
 
-      // router.push("/dashboard"); // Commented out to stay on success screen
+      
     } catch (error: any) {
       console.error("Upload failed:", error);
       toast.error(
@@ -203,7 +203,7 @@ export default function UploadResource() {
         return;
       }
       const fileExt = uploadSuccess.originalFileName.split('.').pop();
-      const filenameWithExt = uploadSuccess.originalFileName; // Use original file name for download
+      const filenameWithExt = uploadSuccess.originalFileName; 
       const downloadUrl = await getDownloadUrl(uploadSuccess.publicUrl, filenameWithExt);
       if (downloadUrl) {
         toast.success(`Downloading ${uploadSuccess.originalFileName}...`);

@@ -93,23 +93,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             event: "INSERT",
             schema: "public",
             table: "messages",
-            filter: `sender_id=eq.${user.id}`,
           },
           (payload) => {
-            setMessages((prev) => [...prev, payload.new as Message]);
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-            filter: `receiver_id=eq.${user.id}`,
-          },
-          (payload) => {
-            setMessages((prev) => [...prev, payload.new as Message]);
-            // Optional: Show toast or notification
+            const newMessage = payload.new as Message;
+            // Filter in memory to only include messages relevant to this user
+            if (newMessage.sender_id === user.id || newMessage.receiver_id === user.id) {
+              setMessages((prev) => [...prev, newMessage]);
+            }
           }
         )
         .subscribe();
@@ -122,6 +112,20 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
   const sendMessage = async (receiverId: string, content: string, bookId?: string) => {
     if (!user) return;
+
+    // Optimistic UI update
+    const tempMessage: Message = {
+      id: Math.random().toString(36).substring(7), // Temporary ID
+      created_at: new Date().toISOString(),
+      sender_id: user.id,
+      receiver_id: receiverId,
+      content,
+      book_id: bookId || null,
+      is_read: false,
+    };
+    
+    setMessages((prev) => [...prev, tempMessage]);
+
     try {
       const { error } = await supabase.from("messages").insert({
         sender_id: user.id,
@@ -131,9 +135,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
+        // Rollback on error
+        setMessages((prev) => prev.filter(m => m.id !== tempMessage.id));
         console.error("Supabase error sending message:", error.message, error.details);
         throw error;
       }
+      
+      // Realtime will replace the temp message with the actual one from DB
+      // We can optionally filter out the temp message if needed, 
+      // but usually the DB event will trigger a re-render or add the real message.
+      
     } catch (error: any) {
       console.error("Error in sendMessage:", error.message || error);
       throw error;

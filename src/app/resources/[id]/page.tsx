@@ -59,7 +59,18 @@ export default function ResourceDetailsPage() {
     );
   }
 
-  const resourceId = params?.id as string;
+  const resourceId = params.id as string;
+
+  const { getResourceById, loading, fetchResources, resources, incrementDownload } =
+    useResources();
+
+  const { user, isAuthenticated, session } = useAuth(); 
+  const { hasPurchased, isSubscribed } = usePayment();
+
+  const [resource, setResource] = useState<Resource | undefined>();
+  const [userRating, setUserRating] = useState(0); // State for user's selected rating
+  const [userComment, setUserComment] = useState(""); // State for user's comment
+  const [refreshReviews, setRefreshReviews] = useState(0); // Trigger to refresh review list
 
   useEffect(() => {
     fetchResources?.();
@@ -73,7 +84,7 @@ export default function ResourceDetailsPage() {
   }, [resourceId, resources, getResourceById]);
 
   const handleDownload = async (res: Resource) => {
-    // Made async
+    
     if (!res.isFree && !user) {
       toast.error("Please log in first to download premium resources.");
       return;
@@ -84,7 +95,7 @@ export default function ResourceDetailsPage() {
       return;
     }
 
-    // Generate signed download URL
+    
     const downloadUrl = await getDownloadUrl(
       res.file_path,
       res.file_name, // Use res.file_name directly
@@ -198,7 +209,7 @@ export default function ResourceDetailsPage() {
 
   const canAccess =
     resource.isFree ||
-    (user && (user.role === 'admin' || user.role === 'super_admin')) || // Added this condition
+    (user && (user.role === 'admin' || user.role === 'super_admin')) || 
     (user && isSubscribed(user.id)) ||
     hasPurchased(resource.id) ||
     (user && user.id === resource.uploaderId);
@@ -208,9 +219,9 @@ export default function ResourceDetailsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* HEADER CARD */}
+        {}
         <div className="bg-white shadow-lg rounded-2xl p-6 md:p-10 border border-gray-100">
-          {/* Top Section */}
+          {}
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
@@ -231,7 +242,7 @@ export default function ResourceDetailsPage() {
               </div>
             </div>
 
-            {/* CTA */}
+            {}
             <div>
               <Button
                 onClick={() => handleDownload(resource)}
@@ -252,12 +263,12 @@ export default function ResourceDetailsPage() {
             </div>
           </div>
 
-          {/* Description */}
+          {}
           <p className="mt-6 text-gray-700 leading-relaxed">
             {resource.description}
           </p>
 
-          {/* META GRID */}
+          {}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <Meta label="Category" value={resource.category.name} />
             <Meta label="Sub Category" value={resource.subCategory.name} />
@@ -348,7 +359,7 @@ export default function ResourceDetailsPage() {
             )}
           </div>
 
-          {/* Rating Section */}
+          {}
           <div className="mt-10 pt-8 border-t border-gray-100">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Ratings & Reviews</h2>
             
@@ -445,7 +456,7 @@ export default function ResourceDetailsPage() {
   );
 }
 
-/* 🔥 Small reusable meta component */
+
 function Meta({ label, value }: { label: string; value: any }) {
   return (
     <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">

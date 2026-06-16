@@ -2,24 +2,24 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createServerSupabaseClient(req, res); // Get server-side Supabase client
+  const supabase = createServerSupabaseClient(req, res); 
   if (req.method === 'POST') {
-    const { id: resourceId } = req.query; // Resource ID
-    const { buyerId } = req.body; // Buyer ID from the request body
+    const { id: resourceId } = req.query; 
+    const { buyerId } = req.body; 
 
     if (!resourceId || !buyerId) {
       return res.status(400).json({ error: 'Missing resourceId or buyerId' });
     }
 
-    // --- 1. Verify Authentication & Authorization (simplified for now) ---
-    // In a real application, you'd verify the JWT and ensure buyerId matches authenticated user's ID
+    
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError || !user || user.id !== buyerId) {
       return res.status(401).json({ error: 'Unauthorized: Buyer ID does not match authenticated user.' });
     }
 
-    // --- 2. Fetch Resource Details ---
+    
     const { data: resource, error: resourceError } = await supabase
       .from('resources')
       .select('id, title, price, is_free, uploader_id, uploader_email')
@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const purchaseAmount = resource.price;
 
-    // --- 3. Fetch Buyer's Profile ---
+    
     const { data: buyerProfile, error: buyerProfileError } = await supabase
       .from('profiles')
       .select('id, balance')
@@ -57,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(402).json({ error: 'Insufficient balance.' });
     }
 
-    // --- 4. Fetch Seller's Profile ---
+    
     const { data: sellerProfile, error: sellerProfileError } = await supabase
       .from('profiles')
       .select('id, balance')
@@ -69,10 +69,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Seller profile not found or database error.' });
     }
 
-    // --- 5. Perform Balances Update (Ideally within a database transaction) ---
-    // For now, doing sequentially. In a production app, use Supabase functions/transactions.
+    
+    
 
-    // Deduct from buyer
+    
     const newBuyerBalance = buyerProfile.balance - purchaseAmount;
     const { error: updateBuyerError } = await supabase
       .from('profiles')
@@ -84,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Failed to update buyer balance.' });
     }
 
-    // Add to seller
+    
     const newSellerBalance = sellerProfile.balance + purchaseAmount;
     const { error: updateSellerError } = await supabase
       .from('profiles')
@@ -93,36 +93,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (updateSellerError) {
       console.error('Error updating seller balance:', updateSellerError);
-      // IMPORTANT: In a real transaction, you would roll back the buyer's deduction here.
+      
       return res.status(500).json({ error: 'Failed to update seller balance.' });
     }
 
-    // --- 6. Record Transaction ---
+    
     const { error: transactionError } = await supabase
       .from('transactions')
       .insert([
         {
           type: 'resource_purchase',
           resource_id: resourceId as string,
-          resource_name: resource.title, // Assuming resource has a title
+          resource_name: resource.title, 
           buyer_id: buyerId,
-          buyer_email: user.email, // Use authenticated user's email
+          buyer_email: user.email, 
           seller_id: resource.uploader_id,
           seller_email: resource.uploader_email,
           amount: purchaseAmount,
-          payment_method: 'balance', // Assuming internal balance transfer
+          payment_method: 'balance', 
           status: 'completed',
-          transaction_id: `purchase_${Date.now()}_${resourceId}_${buyerId}`, // Simple unique ID
+          transaction_id: `purchase_${Date.now()}_${resourceId}_${buyerId}`, 
         },
       ]);
 
     if (transactionError) {
       console.error('Error recording transaction:', transactionError);
-      // IMPORTANT: In a real transaction, you would roll back balance updates here.
+      
       return res.status(500).json({ error: 'Failed to record transaction.' });
     }
 
-    // --- 7. Record Resource Purchase ---
+    
     const { error: resourcePurchaseError } = await supabase
       .from('resource_purchases')
       .insert([
@@ -136,7 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (resourcePurchaseError) {
       console.error('Error recording resource purchase:', resourcePurchaseError);
-      // IMPORTANT: In a real transaction, you would roll back all previous operations.
+      
       return res.status(500).json({ error: 'Failed to record resource purchase.' });
     }
 

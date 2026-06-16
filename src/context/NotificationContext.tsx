@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import supabase from '@/lib/supabase';
+import { useAuth } from './AuthContext';
 
 export interface Notification {
   id: string;
-  type: 'approval' | 'feedback' | 'upload' | 'message' | 'system';
+  type: 'approval' | 'feedback' | 'upload' | 'message' | 'system' | 'subscription';
   title: string;
   message: string;
   read: boolean;
@@ -31,57 +33,121 @@ export const useNotifications = () => {
 };
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'approval',
-      title: 'Resource Approved',
-      message: 'Your resource "Data Structures Notes.pdf" has been approved and is now live!',
-      read: false,
-      createdAt: new Date().toISOString(),
-      resourceId: '1',
-    },
-    {
-      id: '2',
-      type: 'feedback',
-      title: 'Feedback Received',
-      message: 'A mentor has provided feedback on your uploaded material.',
-      read: false,
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: '3',
-      type: 'upload',
-      title: 'New Resource Available',
-      message: 'New "Machine Learning Fundamentals.pdf" has been uploaded in your course.',
-      read: true,
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-    },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { user } = useAuth();
+
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching notifications:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      return;
+    }
+    setNotifications(data || []);
+  }, [user]);
+
+  useEffect(() => {
+    fetchNotifications();
+
+    if (user) {
+      console.log('Subscribing to notifications for user:', user.id);
+      const channel = supabase
+        .channel('notifications')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          console.log('New notification received:', payload);
+          setNotifications(prev => [payload.new as Notification, ...prev]);
+        })
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+        });
+
+      return () => {
+        supabase.removeChannel(channel);
+        console.log('Unsubscribed from notifications');
+      };
+    }
+  }, [user, fetchNotifications]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const addNotification = (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Math.random().toString(36).substr(2, 9),
-      read: false,
-      createdAt: new Date().toISOString(),
-    };
-    setNotifications(prev => [newNotification, ...prev]);
+  const addNotification = async (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        ...notification,
+        user_id: user.id
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding notification:', error);
+      return;
+    }
+    setNotifications(prev => [data as Notification, ...prev]);
   };
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error marking as read:', error);
+      return;
+    }
+
     setNotifications(prev => 
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
+
+    if (error) {
+      console.error('Error marking all as read:', error);
+      return;
+    }
+
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const clearAll = () => {
+  const clearAll = async () => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error clearing notifications:', error);
+      return;
+    }
+
     setNotifications([]);
   };
 

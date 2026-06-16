@@ -3,15 +3,15 @@
 import { useMentors } from "@/context/MentorContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react"; // Assuming you have lucide-react for icons
+import { Loader2 } from "lucide-react"; 
 
 export default function MentorsPage() {
   const { mentors, loading, fetchMentors } = useMentors();
   const router = useRouter();
 
   useEffect(() => {
-    // This will ensure mentors are fetched when the component mounts
-    // or if the context decides they need to be re-fetched.
+    
+    
     fetchMentors();
   }, [fetchMentors]);
 

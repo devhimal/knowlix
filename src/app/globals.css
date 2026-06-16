@@ -5,19 +5,19 @@
 
 :root {
   --font-size: 16px;
-  --background: #FDFDFD; /* Off-white Paper Grey */
+  --background: #FDFDFD; 
   --foreground: #1E293B;
   --card: #FFFFFF;
   --card-foreground: #1E293B;
   --popover: #FFFFFF;
   --popover-foreground: #1E293B;
-  --primary: #006D77; /* Deep Teal */
+  --primary: #006D77; 
   --primary-foreground: #FFFFFF;
   --secondary: #E2E8F0;
   --secondary-foreground: #1E293B;
   --muted: #F1F5F9;
   --muted-foreground: #64748B;
-  --accent: #FFB703; /* Soft Amber */
+  --accent: #FFB703; 
   --accent-foreground: #1E293B;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
@@ -30,7 +30,7 @@
   --ring: #006D77;
   --radius: 1rem;
   
-  /* Sidebar colors */
+  
   --sidebar: #064E55;
   --sidebar-foreground: #F8FAFC;
   --sidebar-primary: #FFB703;
@@ -106,7 +106,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   
-  /* Custom Animations */
+  
   --animate-shimmer: shimmer 2s infinite linear;
   --animate-float: float 3s ease-in-out infinite;
   

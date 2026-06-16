@@ -8,7 +8,7 @@ CREATE TABLE public.resource_purchases (
 
 ALTER TABLE public.resource_purchases ENABLE ROW LEVEL SECURITY;
 
--- Policies for resource_purchases (basic example, will need refinement based on RLS task)
+
 CREATE POLICY "Enable read access for buyers" ON public.resource_purchases
 FOR SELECT USING (auth.uid() = buyer_id);
 

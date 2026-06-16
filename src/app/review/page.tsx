@@ -60,7 +60,7 @@ export default function ReviewQueue() {
     }
   }, [isAuthenticated, role, fetchAllResources]);
 
-  // Get resources based on user role and workflow stage
+  
   const getResourcesForReview = () => {
     if (role === "super_admin" || role === "admin") {
       return resources.filter(
@@ -218,7 +218,7 @@ export default function ReviewQueue() {
           Review and approve academic resources
         </p>
 
-        {/* Stats */}
+        {}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <StatCard
             icon={<Brain />}
@@ -248,7 +248,7 @@ export default function ReviewQueue() {
           />
         </div>
 
-        {/* Tabs */}
+        {}
         <Tabs defaultValue="pending" className="space-y-6">
           <TabsList>
             <TabsTrigger value="pending">
@@ -324,7 +324,7 @@ export default function ReviewQueue() {
           </TabsContent>
         </Tabs>
 
-        {/* Review Panel */}
+        {}
         {selectedResource && (
           <Card className="mt-8 p-6 border-2 border-blue-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
@@ -354,7 +354,7 @@ export default function ReviewQueue() {
               </div>
             </div>
 
-            {/* AI Analysis Results */}
+            {}
             {selectedResource.aiAnalysis && (
               <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
@@ -390,7 +390,7 @@ export default function ReviewQueue() {
               </div>
             )}
 
-            {/* Plagiarism Results */}
+            {}
             {selectedResource.plagiarismResult && (
               <div className="mb-6 p-4 bg-purple-50 rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
@@ -438,7 +438,7 @@ export default function ReviewQueue() {
               </div>
             )}
 
-            {/* Previous Reviews */}
+            {}
             {selectedResource.reviews && selectedResource.reviews.length > 0 && (
               <div className="mb-6">
                 <h4 className="font-medium text-gray-900 mb-3">
@@ -474,7 +474,7 @@ export default function ReviewQueue() {
               </div>
             )}
 
-            {/* Review Form */}
+            {}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -11,25 +11,25 @@ CREATE TABLE public.books (
     pages INTEGER,
     language TEXT,
     pdf_url TEXT,
-    -- New columns for market functionality
+    
     condition TEXT,
     price NUMERIC,
-    type TEXT, -- e.g., 'sell', 'exchange', 'free'
+    type TEXT, 
     exchange_for TEXT
 );
 
 ALTER TABLE public.books ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access
+
 CREATE POLICY "Enable read access for all users" ON public.books FOR SELECT USING (true);
--- Allow authenticated users to insert (e.g., if users can suggest/upload books)
+
 CREATE POLICY "Enable insert for authenticated users only" ON public.books FOR INSERT WITH CHECK (auth.role() = 'authenticated');
--- Allow authenticated users to update their own books (if applicable)
+
 CREATE POLICY "Enable update for authenticated users only" ON public.books FOR UPDATE USING (auth.uid() = id);
--- Allow authenticated users to delete their own books (if applicable)
+
 CREATE POLICY "Enable delete for authenticated users only" ON public.books FOR DELETE USING (auth.uid() = id);
 
--- Sample Book Data
+
 INSERT INTO public.books (title, author, isbn, genre, publication_year, cover_image_url, description, pages, language, pdf_url, condition, price, type, exchange_for)
 VALUES
 ('The Silent Patient', 'Alex Michaelides', '978-1250301697', 'Thriller', 2019, 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=200&q=80', 'A shocking psychological thriller about a woman''s act of violence against her husband—and the psychotherapist obsessed with uncovering what happened.', 336, 'English', NULL, 'Used - Good', 12.99, 'sell', NULL),

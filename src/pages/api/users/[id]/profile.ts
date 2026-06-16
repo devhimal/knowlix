@@ -2,25 +2,25 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createServerSupabaseClient(req, res); // Get server-side Supabase client
+  const supabase = createServerSupabaseClient(req, res); 
   if (req.method === 'GET') {
-    const { id: userId } = req.query; // User ID
+    const { id: userId } = req.query; 
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
-    // --- 1. Verify Authentication & Authorization ---
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user || user.id !== userId) {
       return res.status(401).json({ error: 'Unauthorized: User ID does not match authenticated user or no user found.' });
     }
 
-    // --- 2. Fetch User Profile ---
+    
     const { data: userProfile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, role, balance, created_at') // Select relevant profile fields
+      .select('id, role, balance, created_at') 
       .eq('id', userId)
       .single();
 

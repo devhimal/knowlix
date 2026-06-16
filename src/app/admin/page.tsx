@@ -5,6 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useResources, ResourceStatus } from '@/context/ResourceContext';
 import supabase from '@/lib/supabase';
 import { toast } from 'sonner';
+import { usePayment } from '@/context/PaymentContext'; 
+import Navbar from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -94,6 +96,13 @@ export default function AdminPanel() {
     }
   }, [authLoading, user, role, router, fetchAllResources, fetchUsers, fetchTransactions]);
 
+  
+  const transactions = [
+    { id: 't1', resourceName: 'Calculus Notes', buyerEmail: 'student1@example.com', sellerEmail: 'admin@example.com', amount: 150, paymentMethod: 'esewa', status: 'completed', createdAt: '2024-04-01T10:00:00Z' },
+    { id: 't2', resourceName: 'Linear Algebra Guide', buyerEmail: 'student2@example.com', sellerEmail: 'admin@example.com', amount: 200, paymentMethod: 'khalti', status: 'completed', createdAt: '2024-04-02T11:00:00Z' },
+    { id: 't3', resourceName: 'Subscription - Monthly', buyerEmail: 'student3@example.com', sellerEmail: 'platform', amount: 299, paymentMethod: 'bank', status: 'completed', createdAt: '2024-04-03T12:00:00Z' },
+    { id: 't4', resourceName: 'Physics Exam Prep', buyerEmail: 'student4@example.com', sellerEmail: 'admin@example.com', amount: 100, paymentMethod: 'esewa', status: 'failed', createdAt: '2024-04-04T13:00:00Z' },
+  ];
   const totalRevenue = transactions
     .filter(t => t.status === 'completed')
     .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -193,7 +202,7 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* Stats */}
+        {}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <StatCard icon={<Users />} value={stats.totalUsers} label="Total Users" color="blue" />
           <StatCard icon={<FileText />} value={stats.totalResources} label="Total Resources" color="green" />
@@ -201,7 +210,7 @@ export default function AdminPanel() {
           <StatCard icon={<Flag />} value={stats.flaggedContent} label="Flagged Content" color="red" />
         </div>
 
-        {/* Tabs */}
+        {}
         <Tabs defaultValue="users" className="space-y-6">
           <TabsList className="bg-white border p-1 h-auto flex-wrap sm:flex-nowrap">
             <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-white">User Management</TabsTrigger>

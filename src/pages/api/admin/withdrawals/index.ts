@@ -2,16 +2,16 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createServerSupabaseClient(req, res); // Get server-side Supabase client
+  const supabase = createServerSupabaseClient(req, res); 
   if (req.method === 'GET') {
-    // --- 1. Verify Admin Authentication/Authorization ---
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Unauthorized: No authenticated user.' });
     }
 
-    // Fetch user's profile to check role
+    
     const { data: userProfile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
@@ -22,11 +22,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Forbidden: User does not have admin privileges.' });
     }
 
-    // --- 2. Fetch Withdrawal Requests ---
+    
     const { data: withdrawalRequests, error: fetchError } = await supabase
       .from('withdrawal_requests')
       .select('*')
-      .order('request_date', { ascending: false }); // Order by newest requests first
+      .order('request_date', { ascending: false }); 
 
     if (fetchError) {
       console.error('Error fetching withdrawal requests:', fetchError);
