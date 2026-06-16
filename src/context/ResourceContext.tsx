@@ -78,6 +78,7 @@ export interface Resource {
   price?: number;
   isFree: boolean;
   file_path?: string;
+  file_name: string; // Added missing property
   reviews?: ReviewFeedback[]; // Added missing property
 }
 
@@ -198,6 +199,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
             fileType: dbResource.file_type,
             fileSize: `${dbResource.file_size_mb} MB`, // Convert back to string for display
             file_path: dbResource.file_path, // Re-added file_path mapping
+            file_name: dbResource.file_name, // Map file_name
             uploader: dbResource.uploader_name || "Unknown",
             uploaderId: dbResource.uploader_id,
             uploaderEmail: dbResource.uploader_email,
@@ -268,6 +270,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
             fileType: dbResource.file_type,
             fileSize: `${dbResource.file_size_mb} MB`,
             file_path: dbResource.file_path,
+            file_name: dbResource.file_name, // Map file_name
             uploader: dbResource.uploader_name || "Unknown",
             uploaderId: dbResource.uploader_id,
             uploaderEmail: dbResource.uploader_email,
