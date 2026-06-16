@@ -86,6 +86,12 @@ export default function Navbar() {
                 >
                   My Uploads
                 </Link>
+                <Link
+                  href="/chats"
+                  className="text-white/90 hover:text-white font-medium transition-colors"
+                >
+                  Chats
+                </Link>
                 {["admin", "super_admin"].includes(user?.role || "") && (
                   <Link
                     href="/admin/dashboard" 
@@ -300,6 +306,13 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   My Uploads
+                </Link>
+                <Link
+                  href="/chats"
+                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Chats
                 </Link>
                 {["admin", "super_admin"].includes(user?.role || "") && (
                   <Link
