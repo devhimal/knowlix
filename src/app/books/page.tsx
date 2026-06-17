@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,16 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import BookCard from "@/components/BookCard";
 import { useBooks } from "@/context/BookContext"; 
+import { SearchEngine, mapBookToSearchable } from "@/lib/search/SearchEngine";
 
 export default function BooksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
   const { books } = useBooks(); 
 
-  const handleSearch = () => {
-    
-    console.log("Searching for:", searchQuery);
-  };
+  const searchableBooks = useMemo(() => books.map(mapBookToSearchable), [books]);
+  const engine = useMemo(() => new SearchEngine(searchableBooks), [searchableBooks]);
+
+  const filteredBooks = useMemo(() => {
+    if (!searchQuery) return books;
+    const result = engine.search(searchQuery);
+    // Array.isArray(result) depends on SearchEngine implementation
+    const items = Array.isArray(result) ? result : result.items;
+    return items.map(item => item.originalItem);
+  }, [books, engine, searchQuery]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -38,7 +45,7 @@ export default function BooksPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button onClick={handleSearch}>Search</Button>
+            <Button onClick={() => console.log("Searching for:", searchQuery)}>Search</Button>
             <Button onClick={() => router.push("/books/list")} variant="outline">
               List Your Book
             </Button>
@@ -47,7 +54,7 @@ export default function BooksPage() {
 
         <h2 className="text-3xl font-bold text-gray-900 mb-4">Books for Sale</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {books.filter((book) => book.type === "sell").map((book) => (
+          {filteredBooks.filter((book) => book.type === "sell").map((book) => (
             <BookCard
               key={book.id}
               id={book.id}
@@ -63,10 +70,9 @@ export default function BooksPage() {
           ))}
         </div>
 
-        {}
         <h2 className="text-3xl font-bold text-gray-900 mb-4">Books for Exchange</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {books.filter((book) => book.type === "exchange").map((book) => (
+          {filteredBooks.filter((book) => book.type === "exchange").map((book) => (
             <BookCard
               key={book.id}
               id={book.id}
