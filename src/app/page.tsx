@@ -23,10 +23,10 @@ import {
   Building2,
   Wrench,
   Download,
-  Check, 
-  Zap,   
-  Lock,  
-  ShoppingCart, 
+  Check,
+  Zap,
+  Lock,
+  ShoppingCart,
 } from "lucide-react";
 import { useState } from "react";
 import { Testimonials } from "@/components/Testimonials";
@@ -35,7 +35,6 @@ import { categories, semesters } from "@/lib/constants";
 import { toast } from "sonner";
 import { getDownloadUrl } from "@/lib/supabase";
 import { Progress } from "@/components/ui/progress"; // Importing Progress for loading indicator
-
 
 export default function HomePage() {
   const router = useRouter();
@@ -68,7 +67,7 @@ export default function HomePage() {
 
   const popularResources = resources
     .filter((r) => r.status === "approved")
-    .sort((a, b) => (b.downloads || 0) - (a.downloads || 0)) 
+    .sort((a, b) => (b.downloads || 0) - (a.downloads || 0))
     .slice(0, 5);
 
   const announcements = [
@@ -153,7 +152,11 @@ export default function HomePage() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
                 <Button
-                  onClick={() => isAuthenticated ? router.push("/resources") : router.push("/login")}
+                  onClick={() =>
+                    isAuthenticated
+                      ? router.push("/resources")
+                      : router.push("/login")
+                  }
                   size="lg"
                   className="h-14 px-10 text-lg shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
                 >
@@ -161,7 +164,7 @@ export default function HomePage() {
                 </Button>
                 <Link
                   href={"#explore-resources"}
-                  className="h-14 px-10 text-lg border-2 hover:bg-gray-50 transition-all"
+                  className="h-14 px-10 text-lg border-2 hover:bg-gray-50 transition-all flex justify-center items-center"
                 >
                   <Search className="mr-2 h-5 w-5" />
                   Explore Resources
@@ -436,8 +439,11 @@ export default function HomePage() {
                   <div className="text-muted-foreground mb-4">
                     <BookOpen className="h-16 w-16 mx-auto animate-pulse" />
                   </div>
-                  <p className="text-foreground text-lg">Loading resources...</p>
-                  <Progress value={null} className="w-1/2 mx-auto mt-4" /> {/* Indeterminate progress */}
+                  <p className="text-foreground text-lg">
+                    Loading resources...
+                  </p>
+                  <Progress value={null} className="w-1/2 mx-auto mt-4" />{" "}
+                  {/* Indeterminate progress */}
                 </Card>
               ) : filteredResources.length > 0 ? ( // If not loading, check if resources exist
                 filteredResources.map((resource) => (
@@ -449,7 +455,8 @@ export default function HomePage() {
                     hasPurchased={hasPurchased(resource.id)} // Pass hasPurchased status
                   />
                 ))
-              ) : ( // If not loading and no resources
+              ) : (
+                // If not loading and no resources
                 <Card className="p-12 text-center">
                   <div className="text-muted-foreground mb-4">
                     <BookOpen className="h-16 w-16 mx-auto" />
@@ -685,8 +692,15 @@ const FeedResourceCard = ({
     }
 
     // Check if it's a premium resource and user is not entitled
-    if (!res.isFree && !isSubscribed && !hasPurchased && user.id !== res.uploaderId) {
-      toast.info("This is a premium resource. Please subscribe or purchase to download.");
+    if (
+      !res.isFree &&
+      !isSubscribed &&
+      !hasPurchased &&
+      user.id !== res.uploaderId
+    ) {
+      toast.info(
+        "This is a premium resource. Please subscribe or purchase to download.",
+      );
       router.push(`/resources/${res.id}`); // Redirect to resource details page for purchase option
       return;
     }
@@ -702,7 +716,7 @@ const FeedResourceCard = ({
     }
 
     toast.success(`Downloading ${res.file_name}`);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = downloadUrl;
     a.download = res.file_name; // Set the download attribute
     document.body.appendChild(a);
@@ -724,7 +738,11 @@ const FeedResourceCard = ({
     // If subscribed, purchased, or it's the user's own resource, allow download
     if (isSubscribed || hasPurchased || user?.id === resource.uploaderId) {
       return (
-        <Button size="sm" onClick={() => handleDownload(resource)} variant="default">
+        <Button
+          size="sm"
+          onClick={() => handleDownload(resource)}
+          variant="default"
+        >
           <Check className="h-4 w-4 mr-2" />
           Download
         </Button>
@@ -732,8 +750,13 @@ const FeedResourceCard = ({
     }
 
     return (
-      <Button size="sm" onClick={() => router.push(`/resources/${resource.id}`)} variant="default">
-        <ShoppingCart className="h-4 w-4 mr-2" /> {/* Changed from Zap to ShoppingCart */}
+      <Button
+        size="sm"
+        onClick={() => router.push(`/resources/${resource.id}`)}
+        variant="default"
+      >
+        <ShoppingCart className="h-4 w-4 mr-2" />{" "}
+        {/* Changed from Zap to ShoppingCart */}
         Buy Now
       </Button>
     );
