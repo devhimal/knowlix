@@ -126,6 +126,7 @@ interface ResourceContextType {
     resourceId: string,
     result: PlagiarismResult,
   ) => Promise<void>;
+  deleteReview: (reviewId: string) => Promise<void>; // Added new function
   getResourceById: (id: string) => Resource | undefined;
   getResourcesByStatus: (status: ResourceStatus) => Resource[];
   getResourcesByUploader: (uploaderId: string) => Resource[];
@@ -301,15 +302,19 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteResource = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("resources")
-        .delete()
-        .eq("id", id);
+      const response = await fetch(`/api/admin/resources/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete resource via API');
       }
-      fetchResources(); 
+
+      fetchAllResources(); // Re-fetch all resources to update UI
     } catch (error) {
       console.error("Error deleting resource:", error);
     }
@@ -317,15 +322,20 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
   const updateResource = async (id: string, updates: Partial<Resource>) => {
     try {
-      const { error } = await supabase
-        .from("resources")
-        .update(updates)
-        .eq("id", id);
+      const response = await fetch(`/api/admin/resources/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update resource via API');
       }
-      fetchResources(); 
+
+      fetchAllResources(); // Re-fetch all resources to update UI
     } catch (error) {
       console.error("Error updating resource:", error);
     }
@@ -333,37 +343,18 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
   const updateResourceStatus = async (id: string, status: ResourceStatus) => {
     try {
-      
-      const { data: resourceToUpdate, error: fetchError } = await supabase
-        .from('resources')
-        .select('title, uploader_id')
-        .eq('id', id)
-        .single();
+      const response = await fetch(`/api/admin/resources/${id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          // Assuming the auth token is automatically sent by the browser or handled by Next.js middleware
+        },
+        body: JSON.stringify({ status }),
+      });
 
-      if (fetchError || !resourceToUpdate) {
-        throw new Error(fetchError?.message || 'Resource not found for status update');
-      }
-
-      
-      const { error } = await supabase
-        .from("resources")
-        .update({ status: status })
-        .eq("id", id);
-
-      if (error) {
-        throw error;
-      }
-
-      
-      if (status === 'approved') {
-        addNotification({
-          type: 'approval',
-          title: 'Resource Approved!',
-          message: `Your resource "${resourceToUpdate.title}" has been approved and is now live.`,
-          resourceId: id,
-          link: `/resources/${id}`,
-        });
-        
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update resource status via API');
       }
 
       // Re-fetch resources to update the UI with the latest status
@@ -465,14 +456,17 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
 
   const setAIAnalysis = async (resourceId: string, analysis: AIAnalysis) => {
     try {
-      
-      const { error } = await supabase
-        .from("resources")
-        .update({ ai_analysis: analysis })
-        .eq("id", resourceId);
+      const response = await fetch(`/api/admin/resources/${resourceId}/ai-analysis`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(analysis),
+      });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to set AI analysis via API');
       }
 
       // Re-fetch resources to update the UI
@@ -487,20 +481,43 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     result: PlagiarismResult,
   ) => {
     try {
-      
-      const { error } = await supabase
-        .from("resources")
-        .update({ plagiarism_result: result })
-        .eq("id", resourceId);
+      const response = await fetch(`/api/admin/resources/${resourceId}/plagiarism-result`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(result),
+      });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to set plagiarism result via API');
       }
 
       // Re-fetch resources to update the UI
       await fetchAllResources();
     } catch (error) {
       console.error("Error setting plagiarism result:", error);
+    }
+  };
+
+  const deleteReview = async (reviewId: string) => {
+    try {
+      const response = await fetch(`/api/admin/reviews/${reviewId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete review via API');
+      }
+
+      fetchAllResources(); // Re-fetch all resources to update UI
+    } catch (error) {
+      console.error("Error deleting review:", error);
     }
   };
 
@@ -557,6 +574,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
         addReview,
         setAIAnalysis,
         setPlagiarismResult,
+        deleteReview, // Added deleteReview
         getResourceById,
         getResourcesByStatus,
         getResourcesByUploader,

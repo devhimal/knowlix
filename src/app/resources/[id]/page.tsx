@@ -61,16 +61,8 @@ export default function ResourceDetailsPage() {
 
   const resourceId = params.id as string;
 
-  const { getResourceById, loading, fetchResources, resources, incrementDownload } =
-    useResources();
 
-  const { user, isAuthenticated, session } = useAuth(); 
-  const { hasPurchased, isSubscribed } = usePayment();
 
-  const [resource, setResource] = useState<Resource | undefined>();
-  const [userRating, setUserRating] = useState(0); // State for user's selected rating
-  const [userComment, setUserComment] = useState(""); // State for user's comment
-  const [refreshReviews, setRefreshReviews] = useState(0); // Trigger to refresh review list
 
   useEffect(() => {
     fetchResources?.();

@@ -18,8 +18,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('id', user.id)
       .single();
 
+    console.log('[API] User Profile Check:', { userProfile, profileError });
+
     if (profileError || !userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'super_admin')) {
-      return res.status(403).json({ error: 'Forbidden: User does not have admin privileges.' });
+      return res.status(403).json({ error: 'Forbidden: User does not have admin privileges.', details: profileError });
     }
 
     

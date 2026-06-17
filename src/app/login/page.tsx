@@ -1,51 +1,61 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth, UserRole } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth, UserRole } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookOpen, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import Link from "next/link";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [currentTab, setCurrentTab] = useState('signin'); 
-  const [selectedRole, setSelectedRole] = useState<UserRole>('student');
-  const { signIn, signUp, loading, checkEmailExists } = useAuth(); 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [currentTab, setCurrentTab] = useState("signin");
+  const [selectedRole, setSelectedRole] = useState<UserRole>("student");
+  const { signIn, signUp, loading, checkEmailExists } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (loading) return; 
+    if (loading) return;
 
-    if (currentTab === 'signup') {
-      
-      const emailAlreadyExists = await checkEmailExists(email);
-      if (emailAlreadyExists) {
-        toast.error("An account with this email already exists. Please log in or use a different email to continue.");
+    if (currentTab === "signup") {
+      try {
+        const emailAlreadyExists = await checkEmailExists(email);
+        if (emailAlreadyExists) {
+          toast.error(
+            "An account with this email already exists. Please log in or use a different email to continue.",
+          );
+          return;
+        }
+      } catch (err) {
+        console.error("Error checking email existence:", err);
+        toast.error("An error occurred while checking your email. Please try again.");
         return;
       }
 
       const { success, error } = await signUp(email, password, selectedRole);
       if (success) {
-        toast.success('Account created! Please check your email to verify and then sign in.');
-        setCurrentTab('signin');
+        toast.success(
+          "Account created! Please check your email to verify and then sign in.",
+        );
+        setCurrentTab("signin");
       } else {
-        toast.error(error || 'Signup failed.');
+        toast.error(error || "Signup failed.");
       }
-    } else { 
+    } else {
       const { success, error } = await signIn(email, password);
       if (success) {
-        toast.success('Signed in successfully!');
-        router.push('/dashboard');
+        toast.success("Signed in successfully!");
+        router.push("/dashboard");
       } else {
-        toast.error(error || 'Sign in failed.');
+        toast.error(error || "Sign in failed.");
       }
     }
   };
@@ -61,7 +71,9 @@ export default function LoginPage() {
           </div>
           <h1 className="text-4xl font-black text-gray-900 mb-2">Padyantra</h1>
           <p className="text-gray-500">
-            {currentTab === 'signup' ? 'Create your account' : 'Sign in to your account'}
+            {currentTab === "signup"
+              ? "Create your account"
+              : "Sign in to your account"}
           </p>
         </div>
 
@@ -73,17 +85,7 @@ export default function LoginPage() {
         </Tabs>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {currentTab === 'signup' && (
-            <div className="mb-4">
-              <Label htmlFor="role">I am a:</Label>
-              <Tabs value={selectedRole || 'student'} onValueChange={(value) => setSelectedRole(value as UserRole)} className="mt-2">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="student">Student</TabsTrigger>
-                  <TabsTrigger value="admin">Admin</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          )}
+          {/* Role selection removed: New users default to 'student' */}
 
           <div>
             <Label htmlFor="email">Email Address</Label>
@@ -107,15 +109,27 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <div className="text-right mt-1">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-primary hover:underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
           </div>
 
-          <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full h-12 text-lg font-bold"
+            disabled={loading}
+          >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
-            ) : currentTab === 'signup' ? (
-              'Sign Up'
+            ) : currentTab === "signup" ? (
+              "Sign Up"
             ) : (
-              'Sign In'
+              "Sign In"
             )}
           </Button>
         </form>

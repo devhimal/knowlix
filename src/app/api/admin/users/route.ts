@@ -89,7 +89,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden: Admin verification failed' }, { status: 403 });
     }
 
-    if (!['admin', 'super_admin'].includes(profile.role)) {
+    if (profile.role !== 'super_admin') {
       console.warn(`[API] Forbidden: User ${user.email} has insufficient role: ${profile.role}`);
       return NextResponse.json({ error: `Forbidden: Admin role required (Current: ${profile.role})` }, { status: 403 });
     }
@@ -183,7 +183,7 @@ export async function PUT(req: Request) {
     });
 
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
-    if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
+    if (!profile || profile.role !== 'super_admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -193,22 +193,107 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Missing userId or role' }, { status: 400 });
     }
 
-    console.log(`[API] Updating user ${userId} to role ${newRole}`);
+    if (userId === user.id) {
+      return NextResponse.json({ error: 'Cannot update your own role' }, { status: 400 });
+    }
+
+    console.log(`[API] Updating user ${userId} to role ${newRole} (Initiated by ${user.email})`);
 
     const [authUpdate, profileUpdate] = await Promise.all([
       supabaseAdmin.auth.admin.updateUserById(userId, { user_metadata: { role: newRole } }),
       supabaseAdmin.from('profiles').update({ role: newRole }).eq('id', userId)
     ]);
 
-    if (authUpdate.error || profileUpdate.error) {
-      console.error('[API] Update Error:', authUpdate.error || profileUpdate.error);
-      return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
+    if (authUpdate.error) {
+      console.error('[API] Auth Update Error:', authUpdate.error);
+      return NextResponse.json({ error: 'Failed to update Auth metadata' }, { status: 500 });
     }
 
+    if (profileUpdate.error) {
+      console.error('[API] Profile Update Error:', profileUpdate.error);
+      return NextResponse.json({ error: 'Failed to update profile role' }, { status: 500 });
+    }
+
+    console.log(`[API] Success: User ${userId} role updated to ${newRole}`);
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
     console.error('[API] Update Critical Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  console.log('[API] DELETE /api/admin/users: Initiated');
+  
+  try {
+    const cookieStore = await cookies();
+    const headersList = await headers();
+    const authHeader = headersList.get('Authorization');
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json({ error: 'Missing configuration' }, { status: 500 });
+    }
+
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey!, {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value; },
+        set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }); },
+        remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }); },
+      },
+    });
+
+    // Verify Admin
+    let userData = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const { data } = await supabase.auth.getUser(token);
+      userData = data.user;
+    } else {
+      const { data } = await supabase.auth.getUser();
+      userData = data.user;
+    }
+
+    if (!userData) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const user = userData;
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+    if (!profile || profile.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Process Delete
+    const { userId } = await req.json();
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+    }
+
+    if (userId === user.id) {
+      return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
+    }
+
+    console.log(`[API] Deleting user ${userId} (Initiated by ${user.email})`);
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    if (error) {
+      console.error('[API] Delete Error:', error);
+      return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+    }
+
+    console.log(`[API] Success: User ${userId} deleted`);
+    return NextResponse.json({ success: true });
+
+  } catch (error: any) {
+    console.error('[API] Delete Critical Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

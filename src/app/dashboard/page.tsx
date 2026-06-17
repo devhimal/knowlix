@@ -357,7 +357,9 @@ const StudentDashboardContent = ({
 
 export default function StudentDashboard() {
   const { user, isAuthenticated, role, loading } = useAuth();
-  const paymentContext = usePayment(); 
+  const router = useRouter();
+  const paymentContext = usePayment();
+ 
   const { getUserEarnings, getUserTransactions, loading: loadingPayments } = paymentContext;
   const { resources, fetchResources, loading: loadingResourcesFromContext } = useResources();
 
@@ -421,7 +423,15 @@ export default function StudentDashboard() {
   }
 
   if (role === 'admin' || role === 'super_admin') {
-    return <AdminDashboardContent />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Admin Access</h2>
+          <p className="text-gray-500 mb-6">As an admin, please use the dedicated Admin Panel to manage resources and site content.</p>
+          <Button onClick={() => router.push('/admin')}>Go to Admin Panel</Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -438,198 +448,3 @@ export default function StudentDashboard() {
     />
   );
 }
-
-
-
-type ResourceStatus = 'pending_review' | 'approved' | 'rejected' | 'pending_admin';
-
-const AdminDashboardContent = () => {
-  const { resources, fetchAllResources, loading, updateResourceStatus, deleteResource } = useResources();
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [totalUsers, setTotalUsers] = useState<number | null>(null);
-  const [totalBooks, setTotalBooks] = useState<number | null>(null);
-  const router = useRouter();
-
-  useEffect(() => {
-    fetchAllResources();
-  }, [fetchAllResources]);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      const { count: usersCount, error: usersError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' });
-      if (usersError) {
-        console.error('Error fetching total users:', usersError);
-      } else {
-        setTotalUsers(usersCount);
-      }
-
-      const { count: booksCount, error: booksError } = await supabase
-        .from('books')
-        .select('*', { count: 'exact' });
-      if (booksError) {
-        console.error('Error fetching total books:', booksError);
-      } else {
-        setTotalBooks(booksCount);
-      }
-    };
-    fetchStats();
-  }, []);
-
-  const filteredResources = resources.filter(resource => {
-    const matchesStatus = filterStatus === 'all' || resource.status === filterStatus;
-    const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          resource.uploader.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
-
-  const approvedResources = resources.filter(r => r.status === 'approved').length;
-  const pendingReviewResources = resources.filter(r => r.status === 'pending_review' || r.status === 'pending_admin').length;
-  const rejectedResources = resources.filter(r => r.status === 'rejected').length;
-
-  const handleUpdateStatus = async (id: string, newStatus: ResourceStatus) => {
-    await updateResourceStatus(id, newStatus);
-    toast.success(`Resource status updated to ${newStatus.replace('_', ' ')}!`);
-    fetchAllResources();
-  };
-
-  const handleDeleteResource = async (id: string, title: string) => {
-    if (window.confirm(`Are you sure you want to delete the resource: "${title}"?`)) {
-      try {
-        await deleteResource(id);
-        toast.success(`Resource "${title}" deleted successfully!`);
-        fetchAllResources();
-      } catch (error) {
-        console.error("Error deleting resource:", error);
-        toast.error(`Failed to delete resource "${title}".`);
-      }
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Loading resources for admin...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => router.push('/admin')}>
-            Admin Panel
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => router.push('/admin/dashboard')}>
-            Withdrawals
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => router.push('/review')}>
-            <FileCheck className="h-4 w-4 mr-2" />
-            Review Queue
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={<Users className="h-4 w-4" />} value={totalUsers !== null ? totalUsers : '...'} label="Total Users" />
-        <StatCard icon={<BookOpen className="h-4 w-4" />} value={totalBooks !== null ? totalBooks : '...'} label="Total Books" />
-        <StatCard icon={<FileText className="h-4 w-4" />} value={resources.length} label="Total Resources" />
-        <StatCard icon={<Download className="h-4 w-4" />} value={resources.reduce((sum, r) => sum + r.downloads, 0)} label="Total Downloads" />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <StatCard icon={<Check className="h-4 w-4 text-green-500" />} value={approvedResources} label="Approved Resources" />
-        <StatCard icon={<Search className="h-4 w-4 text-orange-500" />} value={pendingReviewResources} label="Pending Review" />
-        <StatCard icon={<Zap className="h-4 w-4 text-red-500" />} value={rejectedResources} label="Rejected Resources" />
-      </div>
-
-      <section className="mt-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Manage Resources</h2>
-        <div className="flex items-center gap-2 mb-4">
-          <Input
-            placeholder="Search resources..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-xs"
-          />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="p-2 border rounded-md"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending_review">Pending Review</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="pending_admin">Pending Admin</option>
-          </select>
-        </div>
-
-        <Card>
-          <div className="relative w-full overflow-auto">
-            <table className="w-full caption-bottom text-sm">
-              <thead className="[&_tr]:border-b">
-                <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Title</th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Uploader</th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {filteredResources.length > 0 ? (
-                  filteredResources.map((resource) => (
-                    <tr key={resource.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                      <td className="p-4 align-middle font-medium">{resource.title}</td>
-                      <td className="p-4 align-middle">{resource.uploader}</td>
-                      <td className="p-4 align-middle">
-                        <Badge
-                          variant={
-                            resource.status === 'approved' ? 'default' :
-                            resource.status === 'pending_review' || resource.status === 'pending_admin' ? 'secondary' :
-                            'destructive'
-                          }
-                        >
-                          {resource.status.replace('_', ' ')}
-                        </Badge>
-                      </td>
-                      <td className="p-4 align-middle">
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => router.push(`/resources/${resource.id}`)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {(resource.status === 'pending_review' || resource.status === 'pending_admin') && (
-                            <>
-                              <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(resource.id, 'approved')}>
-                                Approve
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(resource.id, 'rejected')}>
-                                Reject
-                              </Button>
-                            </>
-                          )}
-                          <Button variant="destructive" size="sm" onClick={() => handleDeleteResource(resource.id, resource.title)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="p-4 text-center text-muted-foreground">No resources found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </section>
-    </div>
-  );
-};

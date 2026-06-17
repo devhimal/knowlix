@@ -61,7 +61,8 @@ interface AuthContextType {
     emailExists?: boolean;
   }>;
   signOut: () => Promise<{ success: boolean; error: string | null }>;
-  checkEmailExists: (email: string) => Promise<boolean>; 
+  checkEmailExists: (email: string) => Promise<boolean>;
+  updatePassword: (newPassword: string, accessToken: string) => Promise<{ success: boolean; error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,54 +82,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let initialized = false;
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth event:", event);
-        setSession(session);
-        if (session) {
-          // Cast SupabaseUser to custom User type
-          const customUser: User = {
-            id: session.user.id,
-            email: session.user.email,
-            phone: session.user.phone,
-            app_metadata: session.user.app_metadata,
-            aud: session.user.aud,
-            confirmed_at: session.user.confirmed_at,
-            created_at: session.user.created_at,
-            email_confirmed_at: session.user.email_confirmed_at,
-            factors: session.user.factors,
-            last_sign_in_at: session.user.last_sign_in_at,
-            new_email: session.user.new_email,
-            phone_confirmed_at: session.user.phone_confirmed_at,
-            role: session.user.role,
-            updated_at: session.user.updated_at,
-            user_metadata: {
-              ...session.user.user_metadata,
-              name: session.user.user_metadata?.name,
-              course: session.user.user_metadata?.course,
-              semester: session.user.user_metadata?.semester,
-              role: session.user.user_metadata?.role as UserRole,
-            },
-            subscription: {
-              isSubscribed: false,
-              plan: 'free',
-              expiryDate: new Date().toISOString(),
-            },
-          };
-          setUser(customUser);
-          setRole((customUser.user_metadata?.role as UserRole) || null); // Access role from session.user directly
-        } else {
-          setUser(null);
-          setRole(null);
-        }
-        
-        // Only set loading to false if we've already initialized or if this is a sign-in/out event after initialization
-        if (initialized) {
-          setLoading(false);
-        }
-      }
-    );
 
     // Initial check
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -185,36 +138,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setRole(parseRole(session?.user?.user_metadata?.role));
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        setRole(profile?.role as UserRole || null);
+      } else {
+        setRole(null);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   
-  const checkEmailExists = async (email: string): Promise<boolean> => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false },
-    });
+  const updatePassword = async (newPassword: string, accessToken: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
 
-    
-    
-    
     if (error) {
-      
-      const notFound =
-        error.message.toLowerCase().includes("email not found") ||
-        error.message.toLowerCase().includes("user not found") ||
-        error.message.toLowerCase().includes("no user found");
-      return !notFound; 
+      console.error('Update password error:', error);
+      return { success: false, error: error.message };
     }
 
-    
-    return true;
+    return { success: true, error: null };
+  };
+
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    const response = await fetch('/api/auth/check-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    return data.exists;
   };
 
   const signIn = async (email: string, password: string) => {
@@ -316,6 +279,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signUp,
         signOut,
         checkEmailExists,
+        updatePassword, // Added updatePassword
       }}
     >
       {children}
