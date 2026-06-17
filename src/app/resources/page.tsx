@@ -170,14 +170,17 @@ export default function ResourceLibrary() {
     }
   }, [user, loading, router]);
 
-  useEffect(() => {
+  const handleCategoryChange = (val: string) => {
+    setSelectedCategory(val);
     setSelectedSubCategory("all");
-  }, [selectedCategory]);
+  };
 
-  const availableSubCategories =
-    selectedCategory !== "all"
+  const availableSubCategories = useMemo(() => {
+    return selectedCategory !== "all"
       ? categories.find((c) => c.id === selectedCategory)?.subCategories || []
       : [];
+  }, [selectedCategory]);
+
   console.log("check", filteredResources);
   return (
     <div className="min-h-screen bg-gray-50">
@@ -209,7 +212,7 @@ export default function ResourceLibrary() {
               <div>
                 <Select
                   value={selectedCategory}
-                  onValueChange={setSelectedCategory}
+                  onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Category" />

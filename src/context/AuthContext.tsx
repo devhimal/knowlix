@@ -15,7 +15,7 @@ export type UserRole = 'admin' | 'student' | 'mentor' | 'super_admin' | null;
 
 // Extend Supabase's UserMetadata for custom fields
 export interface CustomUserMetadata {
-  [key: string]: any; // Allow any other properties from Supabase's user_metadata
+  [key: string]: unknown; // Changed any to unknown
   name?: string;
   course?: string;
   semester?: string;
@@ -84,8 +84,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let initialized = false;
 
-    // Initial check
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    // 1. Initial check
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       console.log("Initial session check:", { hasSession: !!session, error: error?.message });
       if (error) {
         console.error("Error getting initial session:", error.message);
@@ -94,7 +94,69 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       setSession(session);
+      await handleAuthChange(session);
+    }).catch(err => {
+      console.error("Unexpected error in getSession:", err);
+    }).finally(() => {
+      initialized = true;
+      setLoading(false);
+    });
+
+    // 2. Setup listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth event:", event);
+        setSession(session);
+        await handleAuthChange(session);
+        
+        if (initialized) {
+          setLoading(false);
+        }
+      }
+    );
+
+    async function handleAuthChange(session: Session | null) {
       if (session) {
+        // Fetch profile to get the authoritative role
+        let { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        // If profile is missing, attempt to create it (PGRST116 is 'no rows found')
+        if (profileError && (profileError as any).code === 'PGRST116') {
+          console.log("Profile missing, attempting to auto-create...");
+          const defaultRole = (session.user.user_metadata?.role as UserRole) || 'student';
+          
+          const { data: newProfile, error: insertError } = await supabase
+            .from('profiles')
+            .insert({ 
+              id: session.user.id, 
+              role: defaultRole,
+              name: session.user.user_metadata?.name || 'Unknown',
+              email: session.user.email
+            })
+            .select('role')
+            .single();
+          
+          if (!insertError) {
+            console.log("Profile auto-created successfully.");
+            profile = newProfile;
+          } else if ((insertError as any).code === '23505') {
+            // Duplicate key error - another process created the profile in the meantime
+            console.log("Profile was created by another process, fetching again...");
+            const { data: refetchedProfile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
+            profile = refetchedProfile;
+          } else {
+            console.error("Failed to auto-create profile:", insertError.message);
+          }
+        }
+
         const customUser: User = {
           id: session.user.id,
           email: session.user.email,
@@ -115,7 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: session.user.user_metadata?.name,
             course: session.user.user_metadata?.course,
             semester: session.user.user_metadata?.semester,
-            role: session.user.user_metadata?.role as UserRole,
+            role: (profile?.role || session.user.user_metadata?.role) as UserRole,
           },
           subscription: {
             isSubscribed: false,
@@ -124,35 +186,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           },
         };
         setUser(customUser);
-        setRole((customUser.user_metadata?.role as UserRole) || null);
+        setRole((profile?.role as UserRole) || (customUser.user_metadata?.role as UserRole) || null);
       } else {
         setUser(null);
         setRole(null);
       }
-    }).catch(err => {
-      console.error("Unexpected error in getSession:", err);
-    }).finally(() => {
-      initialized = true;
-      setLoading(false);
-    });
-
-    
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        setRole(profile?.role as UserRole || null);
-      } else {
-        setRole(null);
-      }
-    });
+    }
 
     return () => subscription.unsubscribe();
   }, []);

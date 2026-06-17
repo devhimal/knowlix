@@ -132,7 +132,7 @@ export default function HomePage() {
             <div className="flex-1 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary font-medium text-sm mb-6 animate-fade-in">
                 <Star className="h-4 w-4 fill-primary" />
-                <span>Nepal's #1 Academic Resource Hub</span>
+                <span>Nepal&apos;s #1 Academic Resource Hub</span>
               </div>
 
               <h1 className="text-5xl lg:text-7xl font-extrabold text-gray-900 tracking-tight mb-6 leading-[1.1]">

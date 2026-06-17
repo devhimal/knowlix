@@ -88,17 +88,24 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const addNotification = async (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => {
     if (!user) return;
 
+    // Map camelCase to snake_case for the database
+    const dbPayload = {
+      user_id: user.id,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      resource_id: notification.resourceId,
+      link: notification.link
+    };
+
     const { data, error } = await supabase
       .from('notifications')
-      .insert({
-        ...notification,
-        user_id: user.id
-      })
+      .insert(dbPayload)
       .select()
       .single();
 
     if (error) {
-      console.error('Error adding notification:', error);
+      console.error('Error adding notification:', JSON.stringify(error, null, 2));
       return;
     }
     setNotifications(prev => [data as Notification, ...prev]);

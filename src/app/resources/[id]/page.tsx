@@ -22,16 +22,37 @@ import { Card } from "@/components/ui/card";
 export default function ResourceDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { getResourceById, loading, fetchResources, resources, incrementDownload } =
+  const { fetchResourceById, loading: contextLoading, incrementDownload } =
     useResources();
 
-  const { user, isAuthenticated, session } = useAuth(); // Destructure isAuthenticated and session
+  const { user, isAuthenticated, session } = useAuth();
   const { hasPurchased, isSubscribed } = usePayment();
 
   const [resource, setResource] = useState<Resource | undefined>();
-  const [userRating, setUserRating] = useState(0); // State for user's selected rating
-  const [userComment, setUserComment] = useState(""); // State for user's comment
-  const [refreshReviews, setRefreshReviews] = useState(0); // Trigger to refresh review list
+  const [localLoading, setLocalLoading] = useState(true);
+  const [userRating, setUserRating] = useState(0);
+  const [userComment, setUserComment] = useState("");
+  const [refreshReviews, setRefreshReviews] = useState(0);
+
+  const resourceId = params?.id as string;
+
+  useEffect(() => {
+    const loadResource = async () => {
+      if (!resourceId) return;
+      
+      setLocalLoading(true);
+      // Clear stale data first
+      setResource(undefined);
+      
+      const freshResource = await fetchResourceById(resourceId);
+      if (freshResource) {
+        setResource(freshResource);
+      }
+      setLocalLoading(false);
+    };
+
+    loadResource();
+  }, [resourceId, fetchResourceById, refreshReviews]);
 
   if (!params || !params.id) {
     return (
@@ -59,24 +80,7 @@ export default function ResourceDetailsPage() {
     );
   }
 
-  const resourceId = params.id as string;
-
-
-
-
-  useEffect(() => {
-    fetchResources?.();
-  }, [fetchResources]);
-
-  useEffect(() => {
-    if (resourceId && resources.length > 0) {
-      const foundResource = getResourceById(resourceId);
-      setResource(foundResource);
-    }
-  }, [resourceId, resources, getResourceById]);
-
   const handleDownload = async (res: Resource) => {
-    
     if (!res.isFree && !user) {
       toast.error("Please log in first to download premium resources.");
       return;
@@ -87,10 +91,9 @@ export default function ResourceDetailsPage() {
       return;
     }
 
-    
     const downloadUrl = await getDownloadUrl(
       res.file_path,
-      res.file_name, // Use res.file_name directly
+      res.file_name || (res.title + "." + (res.fileType.split("/").pop() || "pdf")),
     );
 
     if (!downloadUrl) {
@@ -104,14 +107,14 @@ export default function ResourceDetailsPage() {
       hasPurchased(res.id) ||
       (user && user.id === res.uploaderId)
     ) {
-      toast.success(`Downloading ${res.file_name}`);
+      toast.success(`Downloading ${res.title}`);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = res.file_name; // Set the download attribute
+      a.download = res.file_name || res.title;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      incrementDownload(res.id); // Increment download count
+      incrementDownload(res.id);
       return;
     }
 
@@ -124,7 +127,6 @@ export default function ResourceDetailsPage() {
       return;
     }
 
-    // Logic: Only premium users can review premium resources
     if (resource && !resource.isFree && !isSubscribed(user.id)) {
       toast.error("Upgrade to Premium to leave a review for this resource.");
       return;
@@ -157,15 +159,17 @@ export default function ResourceDetailsPage() {
 
       toast.success("Rating submitted successfully!");
       fetchResources();
-      setRefreshReviews(prev => prev + 1); // Trigger review list refresh
+      setRefreshReviews(prev => prev + 1);
       setUserRating(0);
       setUserComment("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error submitting rating:", error);
-      toast.error(error.message || "Failed to submit rating.");
+      const message = error instanceof Error ? error.message : "Failed to submit rating.";
+      toast.error(message);
     }
   };
-  if (loading) {
+
+  if (localLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-pulse text-gray-500">Loading resource...</div>
@@ -185,15 +189,15 @@ export default function ResourceDetailsPage() {
             Resource Not Found
           </h1>
           <p className="text-gray-500 mt-2 mb-6">
-            The resource may have been removed or doesn’t exist.
+            The resource may have been removed or doesn&apos;t exist.
           </p>
 
-          <a
+          <Link
             href="/"
             className="inline-flex px-5 py-2.5 rounded-lg bg-black text-white hover:bg-gray-800 transition"
           >
             Go Home
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -201,7 +205,7 @@ export default function ResourceDetailsPage() {
 
   const canAccess =
     resource.isFree ||
-    (user && (user.role === 'admin' || user.role === 'super_admin')) || 
+    (user && (user.role === 'admin' || user.role === 'super_admin')) ||
     (user && isSubscribed(user.id)) ||
     hasPurchased(resource.id) ||
     (user && user.id === resource.uploaderId);
@@ -211,9 +215,7 @@ export default function ResourceDetailsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4">
       <div className="max-w-7xl mx-auto">
-        {}
         <div className="bg-white shadow-lg rounded-2xl p-6 md:p-10 border border-gray-100">
-          {}
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
@@ -234,7 +236,6 @@ export default function ResourceDetailsPage() {
               </div>
             </div>
 
-            {}
             <div className="flex gap-2">
               <Button
                 onClick={() => handleDownload(resource)}
@@ -284,12 +285,10 @@ export default function ResourceDetailsPage() {
             </div>
           </div>
 
-          {}
           <p className="mt-6 text-gray-700 leading-relaxed">
             {resource.description}
           </p>
 
-          {}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <Meta label="Category" value={resource.category.name} />
             <Meta label="Sub Category" value={resource.subCategory.name} />
@@ -300,10 +299,8 @@ export default function ResourceDetailsPage() {
             <Meta label="Downloads" value={resource.downloads} />
           </div>
 
-          {/* AI & PLAGIARISM RESULTS */}
           {(resource.aiAnalysis || resource.plagiarismResult) && (
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* AI Analysis Card */}
               {resource.aiAnalysis && (
                 <Card className="p-6 border-blue-100 bg-blue-50/30">
                   <div className="flex items-center gap-2 mb-4 text-blue-700">
@@ -314,6 +311,11 @@ export default function ResourceDetailsPage() {
                     <ScoreBar label="Relevance" score={resource.aiAnalysis.relevanceScore} color="blue" />
                     <ScoreBar label="Quality" score={resource.aiAnalysis.qualityScore} color="blue" />
                     <ScoreBar label="Completeness" score={resource.aiAnalysis.completenessScore} color="blue" />
+                    <ScoreBar 
+                      label="AI Probability" 
+                      score={resource.aiAnalysis.aiProbability} 
+                      color={resource.aiAnalysis.aiProbability > 50 ? "red" : "green"} 
+                    />
                   </div>
                   {resource.aiAnalysis.suggestions.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-blue-100">
@@ -332,7 +334,6 @@ export default function ResourceDetailsPage() {
                 </Card>
               )}
 
-              {/* Plagiarism Card */}
               {resource.plagiarismResult && (
                 <Card className="p-6 border-purple-100 bg-purple-50/30">
                   <div className="flex items-center justify-between mb-4">
@@ -367,7 +368,6 @@ export default function ResourceDetailsPage() {
             </div>
           )}
 
-          {/* BADGE */}
           <div className="mt-8">
             {resource.isFree ? (
               <Badge className="bg-green-100 text-green-700">
@@ -380,12 +380,10 @@ export default function ResourceDetailsPage() {
             )}
           </div>
 
-          {}
           <div className="mt-10 pt-8 border-t border-gray-100">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Ratings & Reviews</h2>
             
             <div className="grid lg:grid-cols-3 gap-10">
-              {/* Review Form */}
               <div className="lg:col-span-1">
                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 sticky top-24">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">Leave a Review</h3>
@@ -428,7 +426,6 @@ export default function ResourceDetailsPage() {
                 </div>
               </div>
 
-              {/* Review List */}
               <div className="lg:col-span-2">
                 <ResourceReviewList resourceId={resourceId} refreshTrigger={refreshReviews} />
               </div>
@@ -436,7 +433,6 @@ export default function ResourceDetailsPage() {
           </div>
         </div>
 
-        {/* RELATED RESOURCES */}
         <section className="mt-16">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Related Resources</h2>
@@ -456,7 +452,7 @@ export default function ResourceDetailsPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 line-clamp-1">{relatedResource.title}</h3>
-                      <p className="text-xs text-gray-500">{relatedResource.subject}</p>
+                      <p className="text-xs text-gray-500">{relatedResource.subjectName}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
@@ -478,11 +474,11 @@ export default function ResourceDetailsPage() {
 }
 
 
-function Meta({ label, value }: { label: string; value: any }) {
+function Meta({ label, value }: { label: string; value: string | number | undefined }) {
   return (
     <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
       <p className="text-xs text-gray-500">{label}</p>
-      <p className="font-semibold text-gray-800 mt-1">{value}</p>
+      <p className="font-semibold text-gray-800 mt-1">{value || 'N/A'}</p>
     </div>
   );
 }

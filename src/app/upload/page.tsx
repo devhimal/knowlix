@@ -101,6 +101,9 @@ export default function UploadResource() {
       const publicUrl = publicUrlData.publicUrl;
 
       
+      const fileSizeMB = parseFloat((file.size / (1024 * 1024)).toFixed(2));
+      const finalPrice = formData.isFree ? null : (Number(formData.price) || 0);
+
       const { data, error: insertError } = await supabase
         .from("resources")
         .insert({
@@ -109,13 +112,13 @@ export default function UploadResource() {
           category_id: formData.category,
           sub_category_id: formData.subCategory,
           subject: formData.subject,
-          semester: formData.semester,
+          semester: formData.semester || "N/A",
           is_free: formData.isFree,
-          price: formData.isFree ? null : formData.price,
+          price: finalPrice,
           file_path: publicUrl,
           file_name: file.name,
           file_type: file.type,
-          file_size_mb: (file.size / (1024 * 1024)).toFixed(2),
+          file_size_mb: fileSizeMB,
           uploader_id: user.id,
           uploader_name: user.user_metadata?.name || user.email, 
           uploader_email: user.email,
@@ -124,6 +127,7 @@ export default function UploadResource() {
         .select();
 
       if (insertError) {
+        console.error("Supabase Insert Error Details:", JSON.stringify(insertError, null, 2));
         throw insertError;
       }
 
@@ -146,10 +150,9 @@ export default function UploadResource() {
 
       
     } catch (error: any) {
-      console.error("Upload failed:", error);
-      toast.error(
-        `Failed to upload resource: ${error.message || "Unknown error"}`,
-      );
+      const errMsg = error?.message || error?.details || error?.hint || JSON.stringify(error);
+      console.error("Upload failed:", errMsg, error);
+      toast.error(`Failed to upload resource: ${errMsg}`);
       setUploading(false);
     }
   };

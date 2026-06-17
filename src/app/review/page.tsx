@@ -374,6 +374,10 @@ export default function ReviewQueue() {
                     label="Completeness"
                     score={selectedResource.aiAnalysis.completenessScore}
                   />
+                  <ScoreCard
+                    label="AI Probability"
+                    score={selectedResource.aiAnalysis.aiProbability}
+                  />
                 </div>
                 {selectedResource.aiAnalysis.suggestions.length > 0 && (
                   <div className="mt-3">
