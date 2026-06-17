@@ -502,12 +502,18 @@ const Step3 = ({ formData, handleChange, handleNext, handlePrev }: any) => {
               placeholder="100"
               value={formData.price || ""}
               onChange={(e) => {
-                const val = e.target.value === "" ? 0 : parseInt(e.target.value);
-                handleChange("price", isNaN(val) ? 0 : val);
+                const value = e.target.value;
+                if (value === "") {
+                  handleChange("price", "");
+                  return;
+                }
+                const val = parseInt(value);
+                if (!isNaN(val) && val > 0) {
+                  handleChange("price", val);
+                }
               }}
               className="pl-14"
-              min="10"
-              step="10"
+              min="1"
               required={!formData.isFree}
             />
           </div>

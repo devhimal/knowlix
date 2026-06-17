@@ -35,6 +35,8 @@ export default function Navbar() {
 
   const userIsSubscribed = user ? isSubscribed(user.id) : false;
 
+  const isAdmin = ["admin", "super_admin"].includes(user?.role || "");
+
   const handleLogout = async () => {
     await signOut();
     router.push("/");
@@ -56,12 +58,14 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-6">
             {isAuthenticated && ( 
               <>
-                <Link
-                  href="/dashboard"
-                  className="text-white/90 hover:text-white font-medium transition-colors"
-                >
-                  Dashboard
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    href="/dashboard"
+                    className="text-white/90 hover:text-white font-medium transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 <Link
                   href="/resources"
                   className="text-white/90 hover:text-white font-medium transition-colors"
@@ -94,7 +98,7 @@ export default function Navbar() {
                 </Link>
                 {["admin", "super_admin"].includes(user?.role || "") && (
                   <Link
-                    href="/admin/dashboard" // Assuming an admin panel path
+                    href="/admin" 
                     className="text-white/90 hover:text-white font-medium transition-colors"
                   >
                     Admin Panel
@@ -289,13 +293,15 @@ export default function Navbar() {
                     Go Premium
                   </Button>
                 )}
-                <Link
-                  href="/dashboard"
-                  className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    href="/dashboard"
+                    className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 <Link
                   href="/resources"
                   className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
@@ -333,7 +339,7 @@ export default function Navbar() {
                 </Link>
                 {["admin", "super_admin"].includes(user?.role || "") && (
                   <Link
-                    href="/admin/dashboard"
+                    href="/admin"
                     className="px-3 py-2 text-white/90 hover:bg-white/10 rounded"
                     onClick={() => setMobileMenuOpen(false)}
                   >

@@ -55,6 +55,7 @@ interface AuthContextType {
     name?: string,
     course?: string,
     semester?: string,
+    phone?: string,
   ) => Promise<{
     success: boolean;
     error: string | null;
@@ -217,11 +218,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     name?: string,
     course?: string,
     semester?: string,
+    phone?: string,
   ) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { role: selectedRole, name, course, semester } },
+      options: { data: { role: selectedRole, name, course, semester, phone } },
     });
 
     if (error) {

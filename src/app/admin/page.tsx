@@ -11,7 +11,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, FileText, Flag, CheckCircle, XCircle, Trash2, Loader2, FileCheck, Eye, Zap } from 'lucide-react';
+import { Users, FileText, Flag, CheckCircle, XCircle, Trash2, Loader2, FileCheck, Eye, Zap, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AdminPanel() {
   const { user, role, session, loading: authLoading } = useAuth();
@@ -19,9 +23,111 @@ export default function AdminPanel() {
   const router = useRouter();
 
   const [users, setUsers] = useState<any[]>([]);
+  const [books, setBooks] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
+
+  const [resourceSearch, setResourceSearch] = useState('');
+  const [resourceStatusFilter, setResourceStatusFilter] = useState('all');
+
+  const fetchBooks = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/books');
+      const data = await response.json();
+      if (response.ok) {
+        setBooks(data);
+      } else {
+        toast.error('Failed to fetch books');
+      }
+    } catch (error) {
+      console.error('Fetch Books Error:', error);
+    }
+  }, []);
+
+  const handleUpdateBookStatus = async (id: string, status: string) => {
+    try {
+      const response = await fetch('/api/admin/books', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status })
+      });
+      if (response.ok) {
+        toast.success('Book status updated');
+        fetchBooks();
+      } else {
+        toast.error('Failed to update book status');
+      }
+    } catch (error) {
+      console.error('Update Book Error:', error);
+    }
+  };
+
+  const handleDeleteBook = async (id: string) => {
+    if (confirm('Are you sure?')) {
+      try {
+        const response = await fetch('/api/admin/books', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        if (response.ok) {
+          toast.success('Book deleted');
+          fetchBooks();
+        } else {
+          toast.error('Failed to delete book');
+        }
+      } catch (error) {
+        console.error('Delete Book Error:', error);
+      }
+    }
+  };
+
+  const filteredResources = useMemo(() => {
+    return resources.filter(r => {
+      const matchesSearch = r.title.toLowerCase().includes(resourceSearch.toLowerCase()) || 
+                            r.uploader.toLowerCase().includes(resourceSearch.toLowerCase());
+      const matchesStatus = resourceStatusFilter === 'all' || r.status === resourceStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [resources, resourceSearch, resourceStatusFilter]);
+
+  const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', phone: '', role: 'student' });
+  const [registering, setRegistering] = useState(false);
+
+  const handleRegisterUser = async () => {
+    setRegistering(true);
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(newUser)
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(`User registered successfully`);
+        setIsRegisterDialogOpen(false);
+        setNewUser({ name: '', email: '', password: '', phone: '', role: 'student' });
+        fetchUsers();
+      } else {
+        toast.error('Failed to register user: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Register User Error:', error);
+      toast.error('Failed to register user');
+    } finally {
+      setRegistering(false);
+    }
+  };
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -82,7 +188,8 @@ export default function AdminPanel() {
             await Promise.allSettled([
               fetchAllResources(),
               fetchUsers(),
-              fetchTransactions()
+              fetchTransactions(),
+              fetchBooks()
             ]);
           } catch (error) {
             console.error('Load All Data Error:', error);
@@ -229,9 +336,6 @@ export default function AdminPanel() {
             <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => router.push('/admin/dashboard')}>
-              Withdrawals
-            </Button>
             <Button variant="outline" size="sm" onClick={() => router.push('/review')}>
               <FileCheck className="h-4 w-4 mr-2" />
               Review Queue
@@ -299,6 +403,7 @@ export default function AdminPanel() {
               <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-white">User Management</TabsTrigger>
             )}
             <TabsTrigger value="resources" className="data-[state=active]:bg-primary data-[state=active]:text-white">Resource Management</TabsTrigger>
+            <TabsTrigger value="books" className="data-[state=active]:bg-primary data-[state=active]:text-white">Book Management</TabsTrigger>
             <TabsTrigger value="transactions" className="data-[state=active]:bg-primary data-[state=active]:text-white">Transactions</TabsTrigger>
             <TabsTrigger value="reports" className="data-[state=active]:bg-primary data-[state=active]:text-white">Reported Content</TabsTrigger>
             <TabsTrigger value="review" className="data-[state=active]:bg-primary data-[state=active]:text-white">Review Queue</TabsTrigger>
@@ -307,7 +412,58 @@ export default function AdminPanel() {
           {role === 'super_admin' && (
             <TabsContent value="users">
               <Card className="p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Manage Users</h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Manage Users</h2>
+                  <Dialog open={isRegisterDialogOpen} onOpenChange={setIsRegisterDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Register New User
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Register New User</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label>Name</Label>
+                          <Input value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Email</Label>
+                          <Input type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Password</Label>
+                          <Input type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Phone</Label>
+                          <Input value={newUser.phone} onChange={e => setNewUser({...newUser, phone: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Role</Label>
+                          <Select onValueChange={role => setNewUser({...newUser, role})} value={newUser.role}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="student">Student</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="mentor">Mentor</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleRegisterUser} disabled={registering}>
+                          {registering ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Register'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -382,7 +538,29 @@ export default function AdminPanel() {
 
           <TabsContent value="resources">
             <Card className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Manage Resources</h2>
+              <div className="flex justify-between items-center mb-4 gap-4">
+                <h2 className="text-xl font-semibold text-gray-900">Manage Resources</h2>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Search resources..." 
+                    className="max-w-xs"
+                    value={resourceSearch}
+                    onChange={(e) => setResourceSearch(e.target.value)}
+                  />
+                  <Select value={resourceStatusFilter} onValueChange={setResourceStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="pending_review">Pending Review</SelectItem>
+                      <SelectItem value="flagged">Flagged</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -395,7 +573,7 @@ export default function AdminPanel() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {resources.map((resource) => (
+                    {filteredResources.map((resource) => (
                       <TableRow key={resource.id}>
                         <TableCell className="font-medium">{resource.title}</TableCell>
                         <TableCell className="text-sm">
@@ -445,6 +623,58 @@ export default function AdminPanel() {
                             </Button>
                           </div>
                         </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {filteredResources.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    No resources found matching the criteria.
+                  </div>
+                )}
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="books">
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Manage Books</h2>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Author</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {books.map((book) => (
+                      <TableRow key={book.id}>
+                        <TableCell className="font-medium">{book.title}</TableCell>
+                        <TableCell>{book.author}</TableCell>
+                        <TableCell>
+                          <Badge variant={book.status === 'approved' ? 'secondary' : 'destructive'}>
+                            {book.status?.replace('_', ' ') || 'pending_review'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => router.push(`/books/${book.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {book.status !== 'approved' && (
+                              <Button size="sm" variant="outline" onClick={() => handleUpdateBookStatus(book.id, 'approved')}>Approve</Button>
+                            )}
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteBook(book.id)}>Delete</Button>
+                          </div>
+                        </TableCell>
+
                       </TableRow>
                     ))}
                   </TableBody>

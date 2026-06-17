@@ -15,6 +15,8 @@ import Link from "next/link";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [currentTab, setCurrentTab] = useState("signin");
   const [selectedRole, setSelectedRole] = useState<UserRole>("student");
   const { signIn, signUp, loading, checkEmailExists } = useAuth();
@@ -40,7 +42,7 @@ export default function LoginPage() {
         return;
       }
 
-      const { success, error } = await signUp(email, password, selectedRole);
+      const { success, error } = await signUp(email, password, selectedRole, name, undefined, undefined, phone);
       if (success) {
         toast.success(
           "Account created! Please check your email to verify and then sign in.",
@@ -85,7 +87,31 @@ export default function LoginPage() {
         </Tabs>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Role selection removed: New users default to 'student' */}
+          {currentTab === "signup" && (
+            <>
+              <div>
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+977 98xxxxxxxx"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+            </>
+          )}
 
           <div>
             <Label htmlFor="email">Email Address</Label>

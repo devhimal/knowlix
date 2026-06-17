@@ -15,6 +15,7 @@ import { StarRating } from "@/components/StarRating";
 import { ResourceReviewList } from "@/components/ResourceReviewList";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import supabase from "@/lib/supabase";
 
 export default function BookDetailsPage() {
   const router = useRouter();
@@ -31,18 +32,40 @@ export default function BookDetailsPage() {
   const [refreshReviews, setRefreshReviews] = useState(0);
 
   useEffect(() => {
-    if (id && !booksLoading) {
+    const loadBook = async () => {
+      if (!id) {
+        setLocalLoading(false);
+        return;
+      }
+
+      // Try finding in context first
       const foundBook = books.find((b: any) => b.id === id);
       if (foundBook) {
         setBook(foundBook);
-      } else {
-        setBook(null);
+        setLocalLoading(false);
+        return;
       }
-      setLocalLoading(false);
-    } else if (!id) {
-      setLocalLoading(false);
-    }
-  }, [id, books, booksLoading]);
+
+      // If not in context (likely unapproved), fetch directly
+      try {
+        const { data, error } = await supabase
+          .from('books')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) throw error;
+        setBook(data);
+      } catch (err) {
+        console.error('Error fetching book directly:', err);
+        setBook(null);
+      } finally {
+        setLocalLoading(false);
+      }
+    };
+
+    loadBook();
+  }, [id, books]);
 
   const handleBuyClick = () => {
     if (!isAuthenticated) {

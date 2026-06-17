@@ -86,7 +86,10 @@ export const BookProvider = ({ children }: { children: ReactNode }) => {
   const fetchBooks = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from("books").select("*");
+      const { data, error } = await supabase
+        .from("books")
+        .select("*")
+        .eq("status", "approved");
 
       if (error) {
         throw error;

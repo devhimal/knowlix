@@ -297,3 +297,102 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  console.log('[API] POST /api/admin/users: Initiated');
+  
+  try {
+    const cookieStore = await cookies();
+    const headersList = await headers();
+    const authHeader = headersList.get('Authorization');
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json({ error: 'Missing configuration' }, { status: 500 });
+    }
+
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey!, {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value; },
+        set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }); },
+        remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }); },
+      },
+    });
+
+    // Verify Admin
+    let userData = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const { data } = await supabase.auth.getUser(token);
+      userData = data.user;
+    } else {
+      const { data } = await supabase.auth.getUser();
+      userData = data.user;
+    }
+
+    if (!userData) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const user = userData;
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+    if (!profile || profile.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Process Create
+    const { name, email, password, phone, role } = await req.json();
+    console.log(`[API] Received registration data: name=${name}, email=${email}, role=${role}`);
+
+    if (!email || !password || !name) {
+      return NextResponse.json({ error: 'Missing required fields (name, email, password)' }, { status: 400 });
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.error(`[API] Invalid email format: ${email}`);
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
+    console.log(`[API] Registering new user ${email} (Initiated by ${user.email})`);
+
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      user_metadata: { name, role: role || 'student' },
+      phone,
+      email_confirm: true,
+    });
+
+    if (authError) {
+      console.error('[API] Create User Error:', authError);
+      return NextResponse.json({ error: 'Failed to create user account: ' + authError.message }, { status: 500 });
+    }
+
+    // Initialize Profile (Using upsert for idempotency)
+    const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
+      id: authUser.user.id,
+      role: role || 'student',
+    });
+
+    if (profileError) {
+      console.error('[API] Profile Creation Error:', profileError);
+      // Cleanup Auth user if profile creation fails
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+      return NextResponse.json({ error: 'Failed to create user profile' }, { status: 500 });
+    }
+
+    console.log(`[API] Success: User ${authUser.user.id} registered`);
+    return NextResponse.json({ success: true, userId: authUser.user.id });
+
+  } catch (error: any) {
+    console.error('[API] Create Critical Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

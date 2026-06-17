@@ -64,12 +64,6 @@ interface PaymentContextType {
   getEarningsBalance: (userId: string) => Promise<number | null>; 
   getUserTransactions: (userId: string) => Transaction[];
   getAllTransactions: () => Transaction[];
-  submitWithdrawalRequest: (
-    userId: string,
-    amount: number,
-    paymentMethod: 'esewa' | 'khalti' | 'bank',
-    accountDetails: any
-  ) => Promise<{ success: boolean; error: string | null }>;
   loading: boolean;
 }
 
@@ -376,33 +370,6 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     return transactions;
   };
 
-  const submitWithdrawalRequest = useCallback(async (
-    userId: string,
-    amount: number,
-    paymentMethod: 'esewa' | 'khalti' | 'bank',
-    accountDetails: any
-  ): Promise<{ success: boolean; error: string | null }> => {
-    try {
-      const { error } = await supabase
-        .from('withdrawal_requests')
-        .insert({
-          user_id: userId,
-          amount,
-          payment_method: paymentMethod,
-          account_details_snapshot: accountDetails,
-          status: 'pending' 
-        });
-
-      if (error) {
-        throw error;
-      }
-      return { success: true, error: null };
-    } catch (error: any) {
-      console.error('Error submitting withdrawal request:', error);
-      return { success: false, error: error.message };
-    }
-  }, []);
-
   return (
     <PaymentContext.Provider
       value={{
@@ -417,7 +384,6 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         getUserTransactions,
         getAllTransactions,
         getEarningsBalance,
-        submitWithdrawalRequest,
         loading,
       }}
     >
