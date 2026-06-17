@@ -25,11 +25,26 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
   const [books, setBooks] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
 
   const [resourceSearch, setResourceSearch] = useState('');
   const [resourceStatusFilter, setResourceStatusFilter] = useState('all');
+
+  const fetchReports = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('resource_reports')
+        .select(`*, resources(title)`)
+        .eq('status', 'pending');
+      
+      if (error) throw error;
+      setReports(data || []);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    }
+  }, []);
 
   const fetchBooks = useCallback(async () => {
     try {
@@ -189,7 +204,8 @@ export default function AdminPanel() {
               fetchAllResources(),
               fetchUsers(),
               fetchTransactions(),
-              fetchBooks()
+              fetchBooks(),
+              fetchReports()
             ]);
           } catch (error) {
             console.error('Load All Data Error:', error);
@@ -603,14 +619,15 @@ export default function AdminPanel() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {!['approved', 'rejected'].includes(resource.status) && (
+                            {resource.status !== 'approved' && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="text-green-600 hover:text-green-700"
                                 onClick={() => handleVerifyResource(resource.id)}
                               >
-                                <CheckCircle className="h-4 w-4" />
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Approve
                               </Button>
                             )}
                             <Button
@@ -761,38 +778,52 @@ export default function AdminPanel() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Resource Name</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Resource</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead>Reporter</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {resources.filter(r => r.status === 'flagged').map((resource) => (
-                      <TableRow key={resource.id}>
-                        <TableCell className="font-medium">{resource.title}</TableCell>
-                        <TableCell>
-                          <Badge variant="destructive">
-                            {resource.status}
-                          </Badge>
-                        </TableCell>
+                    {reports.map((report: any) => (
+                      <TableRow key={report.id}>
+                        <TableCell className="font-medium">{report.resources?.title || 'Unknown Resource'}</TableCell>
+                        <TableCell className="text-sm">{report.reason}</TableCell>
+                        <TableCell className="text-sm">{report.reporter_id}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleVerifyResource(resource.id)}
+                              onClick={async () => {
+                                const { error } = await supabase.from('resource_reports').update({ status: 'resolved' }).eq('id', report.id);
+                                if (!error) {
+                                  toast.success("Report resolved.");
+                                  fetchReports();
+                                } else {
+                                  toast.error("Failed to resolve report.");
+                                }
+                              }}
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
+                              Resolve
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               className="text-red-600 hover:text-red-700"
-                              onClick={() => handleDeleteResource(resource.id, resource.title)}
+                              onClick={async () => {
+                                const { error } = await supabase.from('resource_reports').update({ status: 'ignored' }).eq('id', report.id);
+                                if (!error) {
+                                  toast.success("Report ignored.");
+                                  fetchReports();
+                                } else {
+                                  toast.error("Failed to ignore report.");
+                                }
+                              }}
                             >
                               <XCircle className="h-4 w-4 mr-1" />
-                              Remove
+                              Ignore
                             </Button>
                           </div>
                         </TableCell>
@@ -800,7 +831,7 @@ export default function AdminPanel() {
                     ))}
                   </TableBody>
                 </Table>
-                {resources.filter(r => r.status === 'flagged').length === 0 && (
+                {reports.length === 0 && (
                   <div className="text-center py-12 text-gray-500 border rounded-lg bg-gray-50">
                     No reported content at the moment
                   </div>

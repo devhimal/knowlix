@@ -479,7 +479,26 @@ const ResourceCard = ({
           <Button size="sm" variant="outline" onClick={handleViewDetails}>
             View Details
           </Button>
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={async () => {
+            const reason = prompt("Please provide a reason for flagging this resource:");
+            if (reason) {
+              try {
+                const response = await fetch(`/api/resources/${resource.id}/report`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ reason })
+                });
+                if (response.ok) {
+                  toast.success("Resource reported.");
+                } else {
+                  const data = await response.json();
+                  toast.error(data.error || "Failed to report resource.");
+                }
+              } catch (err) {
+                toast.error("Failed to report resource.");
+              }
+            }
+          }}>
             <Flag className="h-4 w-4" />
           </Button>
         </div>

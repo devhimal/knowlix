@@ -70,25 +70,26 @@ export async function PUT(
 
     const user = userData;
 
-    // 3. Verify Admin/Super_admin Authorization
+    // 3. Verify Authorization
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    // Check if the user is authorized to perform this status update
+    // Students can only set status to 'flagged'
+    // Admins/Super Admins can set any status
+    
+    if (status !== 'flagged') {
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
 
-    if (profileError || !profile) {
-      console.error('[API] Forbidden: Could not verify user profile', profileError);
-      return NextResponse.json({ error: 'Forbidden: Admin verification failed' }, { status: 403 });
-    }
-
-    if (!['admin', 'super_admin'].includes(profile.role)) {
-      console.warn(`[API] Forbidden: User ${user.email} has insufficient role: ${profile.role}`);
-      return NextResponse.json({ error: `Forbidden: Admin or Super Admin role required (Current: ${profile.role})` }, { status: 403 });
+      if (profileError || !profile || !['admin', 'super_admin'].includes(profile.role)) {
+        console.warn(`[API] Forbidden: User ${user.email} attempted to set status to ${status} with role: ${profile?.role || 'none'}`);
+        return NextResponse.json({ error: `Forbidden: Admin or Super Admin role required to set status to ${status}` }, { status: 403 });
+      }
     }
 
     // 4. Update Resource Status using Service Role Client

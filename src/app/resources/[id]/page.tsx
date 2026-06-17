@@ -235,7 +235,7 @@ export default function ResourceDetailsPage() {
             </div>
 
             {}
-            <div>
+            <div className="flex gap-2">
               <Button
                 onClick={() => handleDownload(resource)}
                 className="rounded-xl px-6"
@@ -252,6 +252,35 @@ export default function ResourceDetailsPage() {
                   </>
                 )}
               </Button>
+              {isAuthenticated && (
+                <Button
+                  variant="outline"
+                  className="rounded-xl px-4 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={async () => {
+                    const reason = prompt("Please provide a reason for flagging this resource:");
+                    if (reason) {
+                      try {
+                        const response = await fetch(`/api/resources/${resource.id}/report`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ reason })
+                        });
+                        if (response.ok) {
+                          toast.success("Resource reported.");
+                        } else {
+                          const data = await response.json();
+                          toast.error(data.error || "Failed to report resource.");
+                        }
+                      } catch (err) {
+                        toast.error("Failed to report resource.");
+                      }
+                    }
+                  }}
+                >
+                  <Info className="w-4 h-4 mr-2" />
+                  Flag
+                </Button>
+              )}
             </div>
           </div>
 
