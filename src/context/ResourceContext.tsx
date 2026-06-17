@@ -33,6 +33,7 @@ export interface AIAnalysis {
   relevanceScore: number; 
   qualityScore: number; 
   completenessScore: number; 
+  aiProbability: number;
   suggestions: string[];
   passed: boolean;
   analyzedAt: string;
@@ -128,6 +129,7 @@ interface ResourceContextType {
   ) => Promise<void>;
   deleteReview: (reviewId: string) => Promise<void>; // Added new function
   getResourceById: (id: string) => Resource | undefined;
+  fetchResourceById: (id: string) => Promise<Resource | null>;
   getResourcesByStatus: (status: ResourceStatus) => Resource[];
   getResourcesByUploader: (uploaderId: string) => Resource[];
   incrementDownload: (resourceId: string) => Promise<void>;
@@ -521,6 +523,63 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const fetchResourceById = async (id: string): Promise<Resource | null> => {
+    try {
+      const { data, error } = await supabase
+        .from("resources")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      if (!data) return null;
+
+      const dbResource = data as DBResource;
+      const category = categories.find((c) => c.id === dbResource.category_id);
+      const subCategory = category?.subCategories.find((sc) => sc.id === dbResource.sub_category_id);
+      const subject = subCategory?.subjects.find((s) => s.id === dbResource.subject);
+
+      return {
+        id: dbResource.id,
+        title: dbResource.title,
+        description: dbResource.description,
+        subject: dbResource.subject,
+        subjectName: subject?.name || dbResource.subject,
+        semester: dbResource.semester,
+        course: dbResource.course || "",
+        category: {
+          id: dbResource.category_id,
+          name: category?.name || dbResource.category_id,
+        },
+        subCategory: {
+          id: dbResource.sub_category_id,
+          name: subCategory?.name || dbResource.sub_category_id,
+        },
+        program: dbResource.program || "",
+        fileType: dbResource.file_type,
+        fileSize: `${dbResource.file_size_mb} MB`,
+        file_path: dbResource.file_path,
+        file_name: dbResource.file_name,
+        uploader: dbResource.uploader_name || "Unknown",
+        uploaderId: dbResource.uploader_id,
+        uploaderEmail: dbResource.uploader_email,
+        uploadDate: dbResource.created_at,
+        status: dbResource.status,
+        downloads: dbResource.downloads_count || 0,
+        average_rating: dbResource.average_rating || 0.0,
+        total_ratings: dbResource.total_ratings || 0,
+        aiAnalysis: dbResource.ai_analysis || undefined,
+        plagiarismResult: dbResource.plagiarism_result || undefined,
+        price: dbResource.price,
+        isFree: dbResource.is_free,
+        reviews: dbResource.reviews || undefined,
+      };
+    } catch (error) {
+      console.error("Error fetching resource by ID:", error);
+      return null;
+    }
+  };
+
   const getResourceById = (id: string) => resources.find((r) => r.id === id);
 
   const getResourcesByStatus = (status: ResourceStatus) =>
@@ -576,6 +635,7 @@ export const ResourceProvider = ({ children }: { children: ReactNode }) => {
         setPlagiarismResult,
         deleteReview, // Added deleteReview
         getResourceById,
+        fetchResourceById,
         getResourcesByStatus,
         getResourcesByUploader,
         incrementDownload,

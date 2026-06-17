@@ -24,6 +24,7 @@ export default function BookDetailsPage() {
   const { books, loading: booksLoading, fetchBooks } = useBooks();
   const { user, isAuthenticated, session } = useAuth();
   const [book, setBook] = useState<any>(null);
+  const [seller, setSeller] = useState<any>(null);
   const [localLoading, setLocalLoading] = useState(true);
   const [showConnect, setShowConnect] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -39,29 +40,43 @@ export default function BookDetailsPage() {
       }
 
       // Try finding in context first
-      const foundBook = books.find((b: any) => b.id === id);
-      if (foundBook) {
-        setBook(foundBook);
-        setLocalLoading(false);
-        return;
+      let foundBook = books.find((b: any) => b.id === id);
+      
+      if (!foundBook) {
+        // If not in context (likely unapproved), fetch directly
+        try {
+          const { data, error } = await supabase
+            .from('books')
+            .select('*')
+            .eq('id', id)
+            .single();
+          
+          if (error) throw error;
+          foundBook = data;
+        } catch (err) {
+          console.error('Error fetching book directly:', err);
+        }
       }
 
-      // If not in context (likely unapproved), fetch directly
-      try {
-        const { data, error } = await supabase
-          .from('books')
-          .select('*')
-          .eq('id', id)
-          .single();
+      if (foundBook) {
+        setBook(foundBook);
         
-        if (error) throw error;
-        setBook(data);
-      } catch (err) {
-        console.error('Error fetching book directly:', err);
-        setBook(null);
-      } finally {
-        setLocalLoading(false);
+        // Fetch seller details
+        if (foundBook.seller_id) {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('name, email')
+              .eq('id', foundBook.seller_id)
+              .single();
+            setSeller(profile);
+          } catch (err) {
+            console.error('Error fetching seller profile:', err);
+          }
+        }
       }
+      
+      setLocalLoading(false);
     };
 
     loadBook();
@@ -270,7 +285,8 @@ export default function BookDetailsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Seller</p>
-                  <p className="font-bold">Student Seller</p>
+                  <p className="font-bold">{seller?.name || "Student Seller"}</p>
+                  {seller?.email && <p className="text-xs text-gray-400 truncate max-w-[150px]">{seller.email}</p>}
                 </div>
               </div>
 
@@ -326,7 +342,7 @@ export default function BookDetailsPage() {
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}
             receiverId={book.seller_id}
-            receiverName="Seller"
+            receiverName={seller?.name || "Seller"}
             bookTitle={book.title}
             bookId={book.id}
           />

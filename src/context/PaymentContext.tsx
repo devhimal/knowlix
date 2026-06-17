@@ -77,6 +77,23 @@ export const usePayment = () => {
   return context;
 };
 
+interface DBTransaction {
+  id: string;
+  type: 'resource_purchase' | 'subscription';
+  resource_id?: string;
+  resource_name?: string;
+  subscription_plan?: 'monthly' | 'semester' | 'annual';
+  buyer_id: string;
+  buyer_email: string;
+  seller_id?: string;
+  seller_email?: string;
+  amount: number;
+  payment_method: 'esewa' | 'khalti' | 'bank';
+  status: 'pending' | 'completed' | 'failed';
+  transaction_id: string;
+  created_at: string;
+}
+
 export const PaymentProvider = ({ children }: { children: ReactNode }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [purchasedResources, setPurchasedResources] = useState<PurchasedResource[]>([]);
@@ -97,7 +114,9 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      const fetchedTransactions: Transaction[] = data.map((dbTransaction: any) => ({
+      if (!data) return;
+
+      const fetchedTransactions: Transaction[] = (data as DBTransaction[]).map((dbTransaction) => ({
         id: dbTransaction.id,
         type: dbTransaction.type,
         resourceId: dbTransaction.resource_id,
@@ -115,11 +134,11 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
       }));
       setTransactions(fetchedTransactions);
 
-      
-      const fetchedPurchasedResources: PurchasedResource[] = data
-        .filter((tx: any) => tx.type === 'resource_purchase' && tx.status === 'completed')
-        .map((tx: any) => ({
-          resourceId: tx.resource_id,
+      // For purchased resources, filter resource_purchase transactions that are completed
+      const fetchedPurchasedResources: PurchasedResource[] = (data as DBTransaction[])
+        .filter((tx) => tx.type === 'resource_purchase' && tx.status === 'completed')
+        .map((tx) => ({
+          resourceId: tx.resource_id as string,
           purchaseDate: tx.created_at,
           amount: tx.amount,
           transactionId: tx.transaction_id,
