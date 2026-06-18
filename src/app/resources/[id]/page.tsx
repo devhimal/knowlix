@@ -22,7 +22,7 @@ import { Card } from "@/components/ui/card";
 export default function ResourceDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { fetchResourceById, loading: contextLoading, incrementDownload } =
+  const { fetchResourceById, loading: contextLoading, incrementDownload, fetchResources, resources } =
     useResources();
 
   const { user, isAuthenticated, session } = useAuth();
